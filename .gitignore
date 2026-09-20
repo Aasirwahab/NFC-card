@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# env: the example IS committed, real values never are
+!.env.example
+
+# playwright
+/test-results/
+/playwright-report/
+
+# The build spec stays private — it carries competitive positioning, unit
+# economics and pricing. Every architectural decision it drives is quoted
+# inline in the code with its section reference.
+TAPLEAD_BUILD_SPEC.md

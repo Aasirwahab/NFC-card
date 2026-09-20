@@ -1,0 +1,89 @@
+name: CI
+
+# Spec §25.2 — every merge runs, in order:
+#   1. typecheck · lint · unit      (domain and quality gate)
+#   2. secret-leak check            (service role absent from the client bundle)
+#   3. raw-fetch check              (no fetch outside lib/http)
+#   4. migrate · smoke              (db push, /api/health, one real /c/[code] render)
+#
+# Gates 2 and 3 exist because both are one-character mistakes with unbounded blast
+# radius — the key that bypasses every RLS policy, and the SSRF surface. Neither is
+# left to code review.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Build-time placeholders. Nothing here reaches a real service: the unit and
+      # integration suites use an in-process Postgres and a mock model provider
+      # (§25.1), and the secret-leak gate needs values long enough to scan for.
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key-000000000000
+      NEXT_PUBLIC_APP_URL: https://ci.taplead.app
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key-00000
+      WORKER_SECRET: ci-placeholder-worker-secret-0000000000
+      CRON_SECRET: ci-placeholder-cron-secret-00000000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # ---------------------------------------------- 1. typecheck · lint · unit
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Gate 3 lives inside ESLint: no-restricted-globals bans `fetch` everywhere
+      # except lib/http, where safeFetch is the single guarded exit (§22.4).
+      - name: Lint (includes the raw-fetch gate)
+        run: npm run lint
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Unit and integration tests
+        run: npm test
+
+      # The migrations are the source of truth for the schema; the types are
+      # generated from them. If these disagree, someone edited types.ts by hand or
+      # forgot to regenerate after a migration.
+      - name: Database types are in sync with the migrations
+        run: |
+          npm run db:types
+          git diff --exit-code lib/db/types.ts \
+            || (echo "::error::lib/db/types.ts is stale. Run 'npm run db:types' and commit."; exit 1)
+
+      # -------------------------------------- 2. build + the secret-leak gate
+      # `npm run build` runs prebuild (the env schema check, which must fail the
+      # BUILD rather than a request) and postbuild (the secret-leak scan).
+      - name: Build, env gate and secret-leak gate
+        run: npm run build
+
+  # ------------------------------------------------------ 4. migrate · smoke
+  # TODO(phase 0, blocked): this job needs the Supabase project that does not exist
+  # yet. Until then the migrations are applied and exercised against an in-process
+  # Postgres by the integration suite above, which covers `supabase db push`
+  # succeeding but not the real project's extensions, auth schema or PostgREST.
+  #
+  # When the project exists, add:
+  #   - supabase/setup-cli@v1
+  #   - supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+  #   - supabase db push
+  #   - start the app and assert /api/health plus one real /c/[code] render
