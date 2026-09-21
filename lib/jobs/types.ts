@@ -32,8 +32,13 @@ export interface JobStore {
   /** False when this worker no longer holds the job (it was reaped). */
   saveStep(jobId: string, worker: string, step: string, output: StepOutput): Promise<boolean>;
   complete(jobId: string, worker: string): Promise<boolean>;
-  /** Re-queue without burning the attempt: the job ran out of time, not luck. */
-  yield(jobId: string, worker: string): Promise<boolean>;
+  /**
+   * Re-queue without burning the attempt: the job ran out of time or had to
+   * wait, not failed. `delaySeconds` holds it back that long before it is due.
+   */
+  yield(jobId: string, worker: string, delaySeconds?: number): Promise<boolean>;
+  /** Wipe the checkpoints and re-queue from scratch, without counting an attempt. */
+  restart(jobId: string, worker: string): Promise<boolean>;
   /**
    * Retry after `retryInSeconds`, or dead-letter when attempts are spent. A null
    * delay is a permanent failure and dead-letters immediately. Returns the new
@@ -65,6 +70,12 @@ export type JobContext = {
    *                    yields more often than it needs to.
    */
   step<T extends StepOutput>(name: string, estimateMs: number, fn: () => Promise<T>): Promise<T>;
+  /**
+   * Stop now and try again in `delaySeconds`, without counting an attempt —
+   * for a shared resource that is busy rather than broken, such as the model
+   * concurrency limit. Checkpoints already saved are kept.
+   */
+  defer(delaySeconds: number): never;
 };
 
 export type JobHandler = (context: JobContext) => Promise<void>;
@@ -84,10 +95,24 @@ export class PermanentJobError extends Error {
   }
 }
 
+/**
+ * Throw from a handler when the job's INPUTS changed under it — the rep edited
+ * the session mid-run. The checkpoints were computed from the old inputs, so
+ * they are wiped and the job runs again from the start, without counting an
+ * attempt.
+ */
+export class RestartJobError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RestartJobError';
+  }
+}
+
 export type RunOutcome =
   | { kind: 'idle' }
   | { kind: 'succeeded'; jobId: string; type: string }
   | { kind: 'yielded'; jobId: string; type: string }
+  | { kind: 'restarted'; jobId: string; type: string; reason: string }
   | { kind: 'retrying'; jobId: string; type: string; error: string; retryInSeconds: number }
   | { kind: 'dead'; jobId: string; type: string; error: string; attempts: number }
   /** The reaper handed this job to someone else while we were working on it. */

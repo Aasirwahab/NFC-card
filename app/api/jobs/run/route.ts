@@ -58,9 +58,10 @@ export async function POST(request: Request) {
       }),
     );
 
-    // A yield means a job is back in the queue mid-pipeline with run_after =
-    // now(). Kick at once rather than leaving it for the minute-by-minute sweep.
-    if (outcomes.some((o) => o.kind === 'yielded')) {
+    // A yield or a restart means a job is back in the queue. Kick at once rather
+    // than leaving it for the minute-by-minute sweep; a job deferred with a delay
+    // is not due yet, so the kick simply finds nothing to start.
+    if (outcomes.some((o) => o.kind === 'yielded' || o.kind === 'restarted')) {
       await kickWorkers();
     }
   });

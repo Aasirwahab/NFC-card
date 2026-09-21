@@ -42,12 +42,22 @@ export const supabaseJobStore: JobStore = {
     return data === true;
   },
 
-  async yield(jobId, worker) {
+  async yield(jobId, worker, delaySeconds = 0) {
     const { data, error } = await serviceClient().rpc('yield_job', {
       p_job_id: jobId,
       p_worker: worker,
+      p_delay_seconds: delaySeconds,
     });
     if (error) throw new Error(`yield_job failed: ${error.message}`);
+    return data === true;
+  },
+
+  async restart(jobId, worker) {
+    const { data, error } = await serviceClient().rpc('restart_job', {
+      p_job_id: jobId,
+      p_worker: worker,
+    });
+    if (error) throw new Error(`restart_job failed: ${error.message}`);
     return data === true;
   },
 

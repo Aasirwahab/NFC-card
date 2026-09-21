@@ -2,6 +2,7 @@ import { retryDelaySeconds } from './backoff';
 import type { Budget } from './budget';
 import {
   PermanentJobError,
+  RestartJobError,
   type Handlers,
   type Job,
   type JobContext,
@@ -34,8 +35,12 @@ export type RunnerDeps = {
 export const MIN_START_MS = 15_000;
 
 class YieldSignal extends Error {
-  constructor() {
-    super('out of time — yielding before the next step');
+  constructor(readonly delaySeconds = 0) {
+    super(
+      delaySeconds > 0
+        ? `deferred for ${delaySeconds}s`
+        : 'out of time — yielding before the next step',
+    );
     this.name = 'YieldSignal';
   }
 }
@@ -81,6 +86,9 @@ function contextFor(job: Job, deps: RunnerDeps): JobContext {
       steps[name] = output;
       return output;
     },
+    defer(delaySeconds: number): never {
+      throw new YieldSignal(Math.max(0, Math.round(delaySeconds)));
+    },
   };
 }
 
@@ -109,8 +117,14 @@ export async function runNext(deps: RunnerDeps): Promise<RunOutcome> {
       : { kind: 'lost_lock', ...base };
   } catch (error) {
     if (error instanceof YieldSignal) {
-      return (await deps.store.yield(job.id, deps.worker))
+      return (await deps.store.yield(job.id, deps.worker, error.delaySeconds))
         ? { kind: 'yielded', ...base }
+        : { kind: 'lost_lock', ...base };
+    }
+
+    if (error instanceof RestartJobError) {
+      return (await deps.store.restart(job.id, deps.worker))
+        ? { kind: 'restarted', ...base, reason: error.message }
         : { kind: 'lost_lock', ...base };
     }
 

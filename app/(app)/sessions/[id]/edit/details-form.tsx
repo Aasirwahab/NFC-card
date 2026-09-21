@@ -94,6 +94,17 @@ export function DetailsForm({
     }
   }
 
+  async function regenerate() {
+    setError(null);
+    try {
+      await apiSend(`/api/sessions/${session.id}/re-enrich`, 'POST');
+      setSaved(true);
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not regenerate the page.');
+    }
+  }
+
   async function voidSession() {
     if (
       !confirm(
@@ -304,6 +315,10 @@ export function DetailsForm({
           {saving ? 'Saving…' : 'Save details'}
         </Button>
 
+        {session.details_completed_at ? (
+          <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
+        ) : null}
+
         <button
           type="button"
           onClick={voidSession}
@@ -312,6 +327,35 @@ export function DetailsForm({
           Wrong card — void this session
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * What the prospect will see right now, in the rep's terms, and a way to try
+ * again (§15.2 re-enrich). A `failed` session is not an emergency — the prospect
+ * gets the template pitch and cannot tell — so this informs rather than alarms.
+ */
+function EnrichmentStatus({ status, onRegenerate }: { status: string; onRegenerate: () => void }) {
+  const label =
+    status === 'completed'
+      ? 'Their page is ready.'
+      : status === 'failed'
+        ? 'Their page is using the standard note — the tailored one could not be written.'
+        : 'Their page is being put together.';
+
+  return (
+    <div className="border-line-soft text-ink-2 flex items-center justify-between gap-3 border-t pt-3 text-[13px]">
+      <span>{label}</span>
+      {status === 'completed' || status === 'failed' ? (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="text-accent shrink-0 font-medium underline underline-offset-2"
+        >
+          Regenerate
+        </button>
+      ) : null}
     </div>
   );
 }

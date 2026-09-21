@@ -502,6 +502,7 @@ export type Database = {
           status: string;
           created_at: string;
           updated_at: string;
+          details_revision: number;
         };
         Insert: {
           id: string;
@@ -536,6 +537,7 @@ export type Database = {
           status?: string;
           created_at?: string;
           updated_at?: string;
+          details_revision?: number;
         };
         Update: {
           id?: string;
@@ -570,6 +572,7 @@ export type Database = {
           status?: string;
           created_at?: string;
           updated_at?: string;
+          details_revision?: number;
         };
         Relationships: [
           {
@@ -634,6 +637,10 @@ export type Database = {
         Returns: boolean;
       };
       yield_job: {
+        Args: { p_job_id: string; p_worker: string; p_delay_seconds?: number };
+        Returns: boolean;
+      };
+      restart_job: {
         Args: { p_job_id: string; p_worker: string };
         Returns: boolean;
       };
@@ -655,8 +662,31 @@ export type Database = {
         Returns: { claimable: number; running: number; stale_queued: number; unhandled: number }[];
       };
       complete_enrichment: {
-        Args: { p_session_id: string; p_research: Json; p_pitch: string; p_model: string };
-        Returns: boolean;
+        Args: {
+          p_session_id: string;
+          p_research: Json;
+          p_pitch: string;
+          p_model: string;
+          p_revision?: number | null;
+        };
+        Returns: string;
+      };
+      reject_enrichment: {
+        Args: {
+          p_session_id: string;
+          p_research: Json;
+          p_reason: string;
+          p_revision?: number | null;
+        };
+        Returns: string;
+      };
+      enrichment_snapshot: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      requeue_enrichment: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
       };
       colour_for_sequence: {
         Args: { p_sequence: number };

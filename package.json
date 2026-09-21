@@ -24,6 +24,7 @@
     "@supabase/supabase-js": "^2.116.0",
     "@upstash/ratelimit": "^2.1.0",
     "@upstash/redis": "^1.38.4",
+    "ai": "7.0.107",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
@@ -33,6 +34,7 @@
     "react-hook-form": "^7.88.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
+    "undici": "8.10.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {

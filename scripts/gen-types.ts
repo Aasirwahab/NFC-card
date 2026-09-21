@@ -98,6 +98,10 @@ const FUNCTIONS = `    {
         Returns: boolean;
       };
       yield_job: {
+        Args: { p_job_id: string; p_worker: string; p_delay_seconds?: number };
+        Returns: boolean;
+      };
+      restart_job: {
         Args: { p_job_id: string; p_worker: string };
         Returns: boolean;
       };
@@ -119,8 +123,31 @@ const FUNCTIONS = `    {
         Returns: { claimable: number; running: number; stale_queued: number; unhandled: number }[];
       };
       complete_enrichment: {
-        Args: { p_session_id: string; p_research: Json; p_pitch: string; p_model: string };
-        Returns: boolean;
+        Args: {
+          p_session_id: string;
+          p_research: Json;
+          p_pitch: string;
+          p_model: string;
+          p_revision?: number | null;
+        };
+        Returns: string;
+      };
+      reject_enrichment: {
+        Args: {
+          p_session_id: string;
+          p_research: Json;
+          p_reason: string;
+          p_revision?: number | null;
+        };
+        Returns: string;
+      };
+      enrichment_snapshot: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      requeue_enrichment: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
       };
       colour_for_sequence: {
         Args: { p_sequence: number };

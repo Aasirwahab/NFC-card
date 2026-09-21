@@ -32,8 +32,16 @@ export function pgliteJobStore(db: TestDb): JobStore {
       return rows[0]!.ok;
     },
 
-    async yield(jobId, worker) {
-      const { rows } = await db.query<{ ok: boolean }>(`select public.yield_job($1, $2) as ok`, [
+    async yield(jobId, worker, delaySeconds = 0) {
+      const { rows } = await db.query<{ ok: boolean }>(
+        `select public.yield_job($1, $2, $3) as ok`,
+        [jobId, worker, delaySeconds],
+      );
+      return rows[0]!.ok;
+    },
+
+    async restart(jobId, worker) {
+      const { rows } = await db.query<{ ok: boolean }>(`select public.restart_job($1, $2) as ok`, [
         jobId,
         worker,
       ]);

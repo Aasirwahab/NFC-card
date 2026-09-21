@@ -24,52 +24,80 @@ function blankAsUnset<T extends z.ZodTypeAny>(schema: T) {
 }
 
 /** Variables that must never reach the browser bundle. Guarded by CI gate 2. */
-export const serverEnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+export const serverEnvSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
-  // Database — the service role bypasses every RLS policy. Never NEXT_PUBLIC_.
-  SUPABASE_URL: required.url(),
-  SUPABASE_SERVICE_ROLE_KEY: required,
+    // Database — the service role bypasses every RLS policy. Never NEXT_PUBLIC_.
+    SUPABASE_URL: required.url(),
+    SUPABASE_SERVICE_ROLE_KEY: required,
 
-  // Also read on the server: rep auth runs server-side (see lib/db/server.ts),
-  // and the tag URL is built for the CSV export that feeds the NFC writer.
-  NEXT_PUBLIC_SUPABASE_URL: required.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: required,
-  NEXT_PUBLIC_APP_URL: required.url(),
+    // Also read on the server: rep auth runs server-side (see lib/db/server.ts),
+    // and the tag URL is built for the CSV export that feeds the NFC writer.
+    NEXT_PUBLIC_SUPABASE_URL: required.url(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: required,
+    NEXT_PUBLIC_APP_URL: required.url(),
 
-  // Bearer secrets on the worker and cron routes (§15.3).
-  WORKER_SECRET: required.min(24, 'use at least 24 characters'),
-  CRON_SECRET: required.min(24, 'use at least 24 characters'),
+    // Bearer secrets on the worker and cron routes (§15.3).
+    WORKER_SECRET: required.min(24, 'use at least 24 characters'),
+    CRON_SECRET: required.min(24, 'use at least 24 characters'),
 
-  // Rate limits, concurrency semaphore, research cache (§25.3).
-  // Optional: Redis fails open by design (§24.3), so the app still boots without it.
-  UPSTASH_REDIS_REST_URL: blankAsUnset(z.string().url().optional()),
-  UPSTASH_REDIS_REST_TOKEN: blankAsUnset(z.string().optional()),
+    // Rate limits, concurrency semaphore, research cache (§25.3).
+    // Optional: Redis fails open by design (§24.3), so the app still boots without it.
+    UPSTASH_REDIS_REST_URL: blankAsUnset(z.string().url().optional()),
+    UPSTASH_REDIS_REST_TOKEN: blankAsUnset(z.string().optional()),
 
-  // Phase 4 — model access (§14.3). Provider is still an open decision (§28).
-  MODEL_API_KEY: blankAsUnset(z.string().optional()),
-  MODEL_PITCH: blankAsUnset(z.string().default('mock')),
-  MODEL_CHAT: blankAsUnset(z.string().default('mock')),
+    // Model access (§14.3), through the Vercel AI Gateway: one key, and model ids
+    // as config, so switching provider is a deploy rather than a rewrite. The
+    // provider itself is still an open decision (§28). `mock` runs the whole
+    // pipeline offline (§25.1) and is never used for real prospects in production
+    // (lib/jobs/handlers.ts).
+    MODEL_API_KEY: blankAsUnset(z.string().optional()),
+    /** The pitch — the product's only differentiator. The best model (§14.3). */
+    MODEL_PITCH: blankAsUnset(z.string().default('mock')),
+    /** The chatbot — high volume, low stakes. A cheap model (§14.3). */
+    MODEL_CHAT: blankAsUnset(z.string().default('mock')),
+    /**
+     * Company research (step 3). Defaults to MODEL_CHAT: §28 suggests "a cheaper
+     * research pass — but not a cheaper pitch model" as a margin lever.
+     */
+    MODEL_RESEARCH: blankAsUnset(z.string().optional()),
 
-  // Phase 5 — email and booking.
-  RESEND_API_KEY: blankAsUnset(z.string().optional()),
-  CAL_WEBHOOK_SECRET: blankAsUnset(z.string().optional()),
+    // Set by Vercel on every deployment. Absent locally.
+    VERCEL_ENV: blankAsUnset(z.enum(['production', 'preview', 'development']).optional()),
 
-  // Queue tuning, changeable without a code change (§25.3).
-  JOB_CONCURRENCY: blankAsUnset(z.coerce.number().int().min(1).max(50).default(4)),
-  JOB_BATCH: blankAsUnset(z.coerce.number().int().min(1).max(100).default(10)),
+    // Phase 5 — email and booking.
+    RESEND_API_KEY: blankAsUnset(z.string().optional()),
+    CAL_WEBHOOK_SECRET: blankAsUnset(z.string().optional()),
 
-  // Chatbot kill switch (§18.2).
-  CHAT_ENABLED: blankAsUnset(
-    z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
-  ),
+    // Queue tuning, changeable without a code change (§25.3).
+    JOB_CONCURRENCY: blankAsUnset(z.coerce.number().int().min(1).max(50).default(4)),
+    JOB_BATCH: blankAsUnset(z.coerce.number().int().min(1).max(100).default(10)),
 
-  // Error tracking. Absent = no-op, which is what local and CI want.
-  SENTRY_DSN: blankAsUnset(z.string().optional()),
-});
+    // Chatbot kill switch (§18.2).
+    CHAT_ENABLED: blankAsUnset(
+      z
+        .enum(['true', 'false'])
+        .default('true')
+        .transform((v) => v === 'true'),
+    ),
+
+    // Error tracking. Absent = no-op, which is what local and CI want.
+    SENTRY_DSN: blankAsUnset(z.string().optional()),
+  })
+  .superRefine((vars, ctx) => {
+    // A real model id with no key would boot fine and fail on the first job, hours
+    // later, at an event. Fail the build instead.
+    const ids = [vars.MODEL_PITCH, vars.MODEL_CHAT, vars.MODEL_RESEARCH].filter(Boolean);
+    if (ids.some((id) => id !== 'mock') && !vars.MODEL_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MODEL_API_KEY'],
+        message:
+          'required when any of MODEL_PITCH, MODEL_CHAT or MODEL_RESEARCH is a real model id',
+      });
+    }
+  });
 
 /**
  * Client-visible configuration. Every value here is compiled into the browser bundle,
