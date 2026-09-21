@@ -16,7 +16,7 @@
     "format:check": "prettier --check .",
     "check:env": "tsx scripts/check-env.ts",
     "check:bundle": "node scripts/check-client-bundle.mjs",
-    "db:types": "tsx scripts/gen-types.ts"
+    "db:types": "tsx scripts/gen-types.ts && prettier --write --log-level warn lib/db/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -46,6 +46,7 @@
     "eslint-config-next": "16.3.5",
     "prettier": "^3.9.8",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "supabase": "2.117.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

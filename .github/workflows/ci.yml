@@ -77,13 +77,16 @@ jobs:
         run: npm run build
 
   # ------------------------------------------------------ 4. migrate · smoke
-  # TODO(phase 0, blocked): this job needs the Supabase project that does not exist
-  # yet. Until then the migrations are applied and exercised against an in-process
-  # Postgres by the integration suite above, which covers `supabase db push`
-  # succeeding but not the real project's extensions, auth schema or PostgREST.
+  # TODO(phase 0): not wired yet — it needs Supabase credentials as repository
+  # secrets. Until then the migrations are applied and exercised against an
+  # in-process Postgres by the integration suite above (with Supabase's default
+  # privileges shimmed), which covers the SQL but not the real project's
+  # extensions, auth schema or PostgREST.
   #
-  # When the project exists, add:
-  #   - supabase/setup-cli@v1
-  #   - supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-  #   - supabase db push
+  # To enable it: add SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD and
+  # SUPABASE_PROJECT_REF as repository secrets, then add a job that runs
+  #   - npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+  #   - npx supabase db push
   #   - start the app and assert /api/health plus one real /c/[code] render
+  # The CLI is a pinned dev dependency, so `npm ci` already installs it.
+  # Point this at a preview/branch database, never production data (§25.1).

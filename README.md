@@ -52,17 +52,28 @@ Then:
 npm run dev
 ```
 
-### You still need a Supabase project
+### The database workflow
 
-Nothing in this repo has been pointed at a real database yet — that was a
-deliberate choice, not an oversight. Every migration lives in
-`supabase/migrations/` and is applied from the repo, never by hand in the
-dashboard, in any environment (§11). To wire it up:
+Every schema change is a file in `supabase/migrations/`, applied with the CLI.
+**Never paste SQL into the dashboard's SQL editor**, in any environment (§11) —
+it applies the change but records nothing, so the next `db push` tries to
+re-apply it and fails, and the environments quietly drift apart.
 
-1. Create a new Supabase project (separate from any TMA project — §1).
-2. Put its URL, anon key and service-role key in `.env.local`.
-3. `supabase link --project-ref <ref>` then `supabase db push`.
-4. Sign up in the app, then run `supabase/seed.sql` to get the four demo cards.
+The CLI is a pinned dev dependency, so no global install is needed:
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+npx supabase migration new <descriptive_name>   # then write the SQL
+npm test                                        # the harness applies it too
+npx supabase db push --dry-run                  # see what will run
+npx supabase db push
+npm run db:types                                # regenerate lib/db/types.ts
+```
+
+After a push, check the project's security advisor (Dashboard → Advisors, or
+the Supabase MCP `get_advisors`). It is what caught the function-grant bug
+fixed in `20260921105702_lock_down_function_execute.sql`.
 
 Enable point-in-time recovery on day one (§24.4) — `cards` and `sessions` cannot
 be reconstructed by any means.
@@ -91,9 +102,13 @@ harness generates `lib/db/types.ts`.
 
 This covers the invariants §9.5 says the schema must enforce — including the
 partial unique index that makes the v1 data leak impossible — but it has no
-GoTrue and no PostgREST, so the `auth` schema and the Supabase roles are shimmed
-in `tests/integration/harness.ts`. It is not a substitute for `supabase db push`
-against the real project once it exists.
+GoTrue and no PostgREST, so the `auth` schema, the Supabase roles and Supabase's
+default privileges are shimmed in `tests/integration/harness.ts`.
+
+The shim must never be stricter than production. The first version omitted
+Supabase's default grants, so a migration that left every RPC callable by `anon`
+passed here and failed on the live project. It is not a substitute for checking
+the real project's advisors after a push.
 
 ---
 
@@ -110,8 +125,9 @@ should:
    import a build error.
 3. **Raw-fetch check** — ESLint bans `fetch` outside `lib/http`, which is the
    SSRF guard's single entry point (§22.4).
-4. **migrate · smoke** — blocked until the Supabase project exists; the job in
-   `.github/workflows/ci.yml` documents exactly what to add.
+4. **migrate · smoke** — not wired yet: it needs Supabase credentials as
+   repository secrets. The comment in `.github/workflows/ci.yml` lists them and
+   the exact steps.
 
 The env schema gate runs as `prebuild`, so a missing secret fails the **build**
 rather than a request at nine o'clock during an event.

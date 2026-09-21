@@ -62,6 +62,19 @@ begin
   create role service_role;
 exception when duplicate_object then null;
 end $shim$;
+
+-- Supabase's default privileges. Every table, function and sequence the
+-- migrations create in public is granted to the API roles automatically, so a
+-- migration that forgets to revoke leaves it reachable through /rest/v1.
+--
+-- Without these lines the harness was MORE locked down than real Supabase, and a
+-- migration that revoked from PUBLIC alone looked correct here while every
+-- SECURITY DEFINER function stayed callable by anon on the live project. The
+-- harness must never be stricter than production.
+grant usage on schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables    to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 `;
 
 export type TestDb = PGlite;

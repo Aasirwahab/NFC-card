@@ -67,6 +67,89 @@ describe('migrations', () => {
     // that is what makes prospect names and personal notes safe.
     expect(rows).toEqual([]);
   });
+
+  it('let no API role execute any function in public (§9.2)', async () => {
+    // Every function here is reachable at /rest/v1/rpc/<name> by any role that
+    // can execute it. Five of them are SECURITY DEFINER and take a p_user_id
+    // argument, so executable-by-anon means "anyone can register, edit, void or
+    // overwrite the pitch on any session". Only route handlers holding the
+    // service role may call them.
+    //
+    // This test exists because the first version of the migrations revoked from
+    // PUBLIC only, which misses Supabase's explicit grants to anon and
+    // authenticated. It passed here and failed on the live project.
+    const { rows } = await db.query<{ fn: string; anon: boolean; authenticated: boolean }>(
+      `select p.proname as fn,
+              has_function_privilege('anon', p.oid, 'execute') as anon,
+              has_function_privilege('authenticated', p.oid, 'execute') as authenticated
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+        order by p.proname`,
+    );
+
+    expect(rows.length).toBeGreaterThan(0);
+    const exposed = rows.filter((r) => r.anon || r.authenticated);
+    expect(exposed.map((r) => `${r.fn} anon=${r.anon} authenticated=${r.authenticated}`)).toEqual(
+      [],
+    );
+  });
+
+  it('keep a function added by a FUTURE migration locked down too', async () => {
+    // The default privileges are what stop the next migration from reopening
+    // the hole by forgetting a revoke. Simulate that next migration.
+    await db.exec(`
+      create function public.future_helper() returns int
+      language sql security definer set search_path = public, pg_temp
+      as $fn$ select 1 $fn$;
+      create table public.future_table (id int primary key);
+    `);
+
+    const fn = await db.query<{ anon: boolean; authenticated: boolean }>(
+      `select has_function_privilege('anon', 'public.future_helper()', 'execute') as anon,
+              has_function_privilege('authenticated', 'public.future_helper()', 'execute')
+                as authenticated`,
+    );
+    expect(fn.rows[0]).toEqual({ anon: false, authenticated: false });
+
+    const table = await db.query<{ n: number }>(
+      `select count(*)::int as n from information_schema.role_table_grants
+        where grantee = 'anon' and table_name = 'future_table'`,
+    );
+    expect(table.rows[0]!.n).toBe(0);
+
+    await db.exec(`drop function public.future_helper(); drop table public.future_table;`);
+  });
+
+  it('still let the service role execute every RPC the routes call', async () => {
+    const rpcs = [
+      'register_card',
+      'save_session_details',
+      'void_session',
+      'record_prospect_view',
+      'claim_jobs',
+      'complete_enrichment',
+    ];
+    const { rows } = await db.query<{ fn: string; ok: boolean }>(
+      `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and p.proname = any($1)`,
+      [rpcs],
+    );
+    expect(rows.filter((r) => !r.ok).map((r) => r.fn)).toEqual([]);
+    expect(rows).toHaveLength(rpcs.length);
+  });
+
+  it('pin search_path on every function (Supabase lint 0011)', async () => {
+    // A mutable search_path lets a caller shadow public objects with their own.
+    const { rows } = await db.query<{ fn: string }>(
+      `select p.proname as fn
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c
+                           where c like 'search_path=%')`,
+    );
+    expect(rows.map((r) => r.fn)).toEqual([]);
+  });
 });
 
 describe('colour_for_sequence', () => {
