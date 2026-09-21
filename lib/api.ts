@@ -60,24 +60,3 @@ export async function readJson(request: Request): Promise<unknown> {
     return null;
   }
 }
-
-/**
- * Constant-time bearer check for the worker and cron routes (§15.3).
- *
- * A plain `===` on a secret leaks its length and, in principle, its prefix
- * through timing. The comparison below always walks the whole of both strings.
- */
-export function bearerMatches(request: Request, secret: string): boolean {
-  const header = request.headers.get('authorization') ?? '';
-  const prefix = 'Bearer ';
-  if (!header.startsWith(prefix)) return false;
-
-  const provided = header.slice(prefix.length);
-  if (provided.length !== secret.length) return false;
-
-  let difference = 0;
-  for (let i = 0; i < secret.length; i++) {
-    difference |= provided.charCodeAt(i) ^ secret.charCodeAt(i);
-  }
-  return difference === 0;
-}

@@ -622,8 +622,37 @@ export type Database = {
         Returns: boolean;
       };
       claim_jobs: {
-        Args: { p_worker: string; p_limit: number };
+        Args: { p_worker: string; p_limit: number; p_types?: string[] | null };
         Returns: Database['public']['Tables']['jobs']['Row'][];
+      };
+      save_job_step: {
+        Args: { p_job_id: string; p_worker: string; p_step: string; p_output: Json };
+        Returns: boolean;
+      };
+      complete_job: {
+        Args: { p_job_id: string; p_worker: string };
+        Returns: boolean;
+      };
+      yield_job: {
+        Args: { p_job_id: string; p_worker: string };
+        Returns: boolean;
+      };
+      fail_job: {
+        Args: {
+          p_job_id: string;
+          p_worker: string;
+          p_error: string;
+          p_retry_in_seconds: number | null;
+        };
+        Returns: string | null;
+      };
+      reap_jobs: {
+        Args: { p_stale_after_seconds: number };
+        Returns: { job_id: string; job_type: string; outcome: string }[];
+      };
+      queue_stats: {
+        Args: { p_types?: string[] | null };
+        Returns: { claimable: number; running: number; stale_queued: number; unhandled: number }[];
       };
       complete_enrichment: {
         Args: { p_session_id: string; p_research: Json; p_pitch: string; p_model: string };

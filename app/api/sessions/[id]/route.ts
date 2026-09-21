@@ -1,4 +1,6 @@
+import { after } from 'next/server';
 import { fail, json, readJson, withRep } from '@/lib/api';
+import { kickWorkers } from '@/lib/jobs/kick';
 import { serviceClient } from '@/lib/db/service';
 import { sessionDetailsSchema } from '@/lib/schemas/sessions';
 
@@ -37,9 +39,22 @@ export const PATCH = withRep(async (rep, request, context: { params: Promise<{ i
     throw new Error(`save_session_details failed: ${error.message}`);
   }
 
-  // TODO(phase 3): after() kick to /api/jobs/kick. Until the worker exists the
-  // job simply waits in the queue, and the landing page renders the `crafting`
-  // state and then falls back to the template at 90 seconds — which is one of
-  // the four designed states, not a failure (§16).
+  // The fast path (§13): start a worker once the response has gone back to the
+  // rep, so the save never waits on it. The minute-by-minute cron is the safety
+  // net if this is missed — a missed kick costs at most sixty seconds.
+  after(async () => {
+    try {
+      await kickWorkers();
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: 'kick_failed',
+          sessionId: id,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  });
+
   return json({ session });
 });

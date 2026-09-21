@@ -21,15 +21,17 @@ explains, so the source is readable without it.
 | 0     | Foundations — repo, env schema, CI gates, auth                          | **Done**    |
 | 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture | **Done**    |
 | 2     | The landing page, all four states                                       | **Done**    |
-| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                   | Not started |
+| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                   | **Done**    |
 | 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                     | Not started |
 | 5     | Chat, booking, email                                                    | Not started |
 | 6     | Offline hardening — service worker, outbox, sync badge                  | Not started |
 | 7     | Follow-up and export                                                    | Not started |
 | 8     | Physical production and live test                                       | Not started |
 
-The `jobs` table, `claim_jobs` and `complete_enrichment` already exist and are
-tested — Phase 3 builds the worker that drains the queue, not the queue itself.
+The queue is complete and drains, but no job type has a handler yet: `enrich`'s
+handler **is** the Phase 4 pipeline. Until then enrich jobs wait untouched and a
+prospect sees the crafting state, then the template pitch — a designed state,
+not a failure.
 
 ---
 
@@ -181,6 +183,21 @@ Points where the spec left a choice open, or where this deviates:
   us" instead. Still no raw error, and the enumeration guarantee in §22.2 is
   untouched: this state is reachable only by an infrastructure failure, never by
   guessing a code.
+- **Each worker claims its own job; the kick claims nothing.** §13 has the kick
+  claim N jobs and fan out one HTTP call per claimed job. If one of those calls is
+  dropped, its job sits `running` with no worker until the reaper frees it ten
+  minutes later — and a prospect tapping in that window gets the template.
+  Here `/api/jobs/run` claims for itself, so a dropped call costs one worker and
+  the job stays `queued` for the next sweep. Same exactly-once guarantee.
+- **`claim_jobs` takes an optional type filter**, so a deployment only claims job
+  types it has a handler for. A type from a later phase — or from a newer deploy
+  mid-rollout — waits untouched instead of being failed and dead-lettered.
+- **Running out of time gives the attempt back.** `yield_job` re-queues without
+  counting the attempt; a crash (reaped) does count, so a job that reliably kills
+  its worker eventually dies.
+- **The worker URL comes from `NEXT_PUBLIC_APP_URL`, never the request.** The kick
+  sends `WORKER_SECRET` to it; deriving it from the `Host` header would hand the
+  secret to whoever controls that header.
 
 ## Things Zaid needs to decide or supply
 
@@ -194,18 +211,26 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   whatever number ends up there.
 - **Model provider** (§28) — needed before Phase 4, and it decides whether §23.2
   needs a transfer risk assessment.
-- **Supabase, Upstash, Resend and Cal.com accounts**, plus the domain.
+- **Resend and Cal.com accounts**, plus the domain. Supabase and Upstash exist.
+- **Vercel Pro, or a slower sweep.** `vercel.json` schedules `/api/cron/jobs`
+  every minute, as §13 specifies. Vercel's Hobby plan only allows daily cron jobs
+  and rejects the deploy. On Hobby, the `after()` kick still runs every job; the
+  cron is the safety net for a missed kick and the reaper for a crashed worker.
 
 ## Known gaps left for later phases
 
-- `PATCH /api/sessions/[id]` enqueues the job but nothing drains the queue yet.
-  A saved session therefore sits in `crafting` and falls back to the template
-  pitch after 90 seconds — which is one of the four designed states, not a
-  failure. The `after()` kick is marked `TODO(phase 3)`.
-- **Editing a session while its job is `running`** re-queues the session, but the
-  in-flight job can still commit the older details afterwards. Harmless today
-  because no worker runs; Phase 3 should make the commit check that the job is
-  still the live one for that session.
+- **No `enrich` handler until Phase 4** — see Status above.
+- **Editing a session while its enrich job is `running`** (Phase 4 must fix this
+  when it writes the handler). The edit sets the session back to `queued`, but
+  `jobs_one_live_per_session` turns the new enqueue into a no-op because a job is
+  already live — so the edit is never enriched, and the running job can commit a
+  pitch written from the old details. The fix belongs with the commit step: record
+  a details revision when the job starts, have `complete_enrichment` refuse a
+  stale revision, and re-queue the job fresh when it does.
+- **SKIP LOCKED under real parallel load** is not exercised by the test suite: the
+  in-process Postgres is single-connection, so concurrent workers interleave
+  rather than contend. The suite proves no job is handed out twice or lost; the
+  lock contention itself needs the real database.
 - The booking embed, chat widget and email capture have a reserved slot on the
   prospect page and render nothing until Phase 5. A dead button on the one page
   that gets one chance would be worse than no button.
