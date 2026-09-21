@@ -139,6 +139,45 @@ describe('migrations', () => {
     expect(rows).toHaveLength(rpcs.length);
   });
 
+  it('evaluate auth.uid() once per query in every policy (Supabase lint 0003)', async () => {
+    // A bare auth.uid() in a policy is re-evaluated for every row scanned.
+    // Wrapped in a sub-select, the planner runs it once as an InitPlan.
+    const { rows } = await db.query<{ policy: string; qual: string; roles: string[] }>(
+      `select tablename || '.' || policyname as policy,
+              coalesce(qual, '') || ' ' || coalesce(with_check, '') as qual,
+              roles::text[] as roles
+         from pg_policies where schemaname = 'public'`,
+    );
+
+    expect(rows.length).toBeGreaterThan(0);
+    for (const { policy, qual, roles } of rows) {
+      const bare = qual.replace(/SELECT auth\.uid\(\) AS uid/gi, '').match(/auth\.uid\(\)/i);
+      expect(bare, `${policy}: ${qual}`).toBeNull();
+      // Scoped to signed-in users, so anon never even evaluates the predicate.
+      expect(roles, policy).toEqual(['authenticated']);
+    }
+  });
+
+  it('index every foreign key that a cascade or a lookup uses (Supabase lint 0001)', async () => {
+    // A FK is only covered by a NON-partial index that leads with the FK column.
+    // Unindexed, ON DELETE CASCADE scans the whole child table — and erasing a
+    // prospect (§23) is exactly a cascading session delete.
+    const { rows } = await db.query<{ fk: string }>(`
+      select c.conrelid::regclass::text || '.' || a.attname as fk
+        from pg_constraint c
+        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+       where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+         and not exists (select 1 from pg_index i
+                          where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1]
+                            and i.indpred is null)
+       order by 1`);
+
+    // sessions.card_id is deliberately served by the partial unique index alone:
+    // every lookup is "the active session for this card", and cards are never
+    // deleted (§24.4), so there is no cascade to scan for.
+    expect(rows.map((r) => r.fk)).toEqual(['sessions.card_id']);
+  });
+
   it('pin search_path on every function (Supabase lint 0011)', async () => {
     // A mutable search_path lets a caller shadow public objects with their own.
     const { rows } = await db.query<{ fn: string }>(
