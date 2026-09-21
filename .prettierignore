@@ -2,3 +2,13 @@
 node_modules
 package-lock.json
 supabase/migrations
+
+# Supabase CLI link state. Git ignores it via supabase/.gitignore, but Prettier
+# only reads the root ignore files.
+supabase/.temp
+
+# Vendored agent skills. Third-party content: formatting it is not our call, and
+# a skills update must not be able to fail CI.
+.agents
+.claude/skills
+skills-lock.json
