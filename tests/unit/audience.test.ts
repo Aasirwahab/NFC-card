@@ -189,6 +189,23 @@ describe('viewForSession — the four render states (§16)', () => {
     });
   });
 
+  it('shows the rep’s own edit whatever the pipeline is doing (§14.5)', () => {
+    for (const enrichment_status of ['completed', 'queued', 'processing', 'failed', 'pending']) {
+      expect(
+        viewForSession({
+          enrichment_status,
+          generated_pitch: 'What the model wrote.',
+          rep_pitch: 'What Zaid wrote.',
+        }),
+        enrichment_status,
+      ).toEqual({ state: 'completed', pitch: 'What Zaid wrote.' });
+    }
+    // A blank edit is no edit.
+    expect(
+      viewForSession({ enrichment_status: 'failed', generated_pitch: null, rep_pitch: '  ' }),
+    ).toEqual({ state: 'failed' });
+  });
+
   it('treats an unrecognised status as pending rather than throwing', () => {
     // A future migration adding a status must not take the landing page down.
     expect(viewForSession({ enrichment_status: 'something_new', generated_pitch: null })).toEqual({

@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 12 tables by scripts/gen-types.ts.
+ * Generated from 13 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -392,6 +392,57 @@ export type Database = {
           },
         ];
       };
+      pitch_ratings: {
+        Row: {
+          id: number;
+          session_id: string;
+          user_id: string;
+          pitch: string;
+          model: string | null;
+          prompt: string | null;
+          rating: number;
+          reason: string | null;
+          rated_at: string;
+        };
+        Insert: {
+          id?: number;
+          session_id: string;
+          user_id: string;
+          pitch: string;
+          model?: string | null;
+          prompt?: string | null;
+          rating: number;
+          reason?: string | null;
+          rated_at?: string;
+        };
+        Update: {
+          id?: number;
+          session_id?: string;
+          user_id?: string;
+          pitch?: string;
+          model?: string | null;
+          prompt?: string | null;
+          rating?: number;
+          reason?: string | null;
+          rated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'pitch_ratings_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pitch_ratings_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -503,6 +554,9 @@ export type Database = {
           created_at: string;
           updated_at: string;
           details_revision: number;
+          rep_pitch: string | null;
+          rep_pitch_edited_at: string | null;
+          generated_pitch_prompt: string | null;
         };
         Insert: {
           id: string;
@@ -538,6 +592,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           details_revision?: number;
+          rep_pitch?: string | null;
+          rep_pitch_edited_at?: string | null;
+          generated_pitch_prompt?: string | null;
         };
         Update: {
           id?: string;
@@ -573,6 +630,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           details_revision?: number;
+          rep_pitch?: string | null;
+          rep_pitch_edited_at?: string | null;
+          generated_pitch_prompt?: string | null;
         };
         Relationships: [
           {
@@ -668,8 +728,22 @@ export type Database = {
           p_pitch: string;
           p_model: string;
           p_revision?: number | null;
+          p_prompt?: string | null;
         };
         Returns: string;
+      };
+      set_rep_pitch: {
+        Args: { p_session_id: string; p_user_id: string; p_text: string | null };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      rate_pitch: {
+        Args: {
+          p_session_id: string;
+          p_user_id: string;
+          p_rating: number;
+          p_reason: string | null;
+        };
+        Returns: Database['public']['Tables']['pitch_ratings']['Row'];
       };
       reject_enrichment: {
         Args: {

@@ -10,7 +10,7 @@ import { composeBrief, type Brief } from './brief';
 import { candidateDomains, companyKey, domainFromEmail, pageNamesCompany } from './domain';
 import { qualityGate, type GateFailure } from './gate';
 import { htmlToText } from './html';
-import { pitchPrompt, researchPrompt } from './prompts';
+import { PITCH_PROMPT_VERSION, pitchPrompt, researchPrompt } from './prompts';
 import { EMPTY_RESEARCH, researchOutputSchema, verifyFacts, type Research } from './research';
 import { snapshotSchema, type Snapshot } from './snapshot';
 
@@ -57,6 +57,8 @@ export type EnrichDeps = {
     research: Research;
     pitch: string;
     model: string;
+    /** PITCH_PROMPT_VERSION, recorded so ratings can be grouped by prompt. */
+    prompt: string;
     revision: number;
   }): Promise<CommitOutcome>;
   reject(input: {
@@ -326,6 +328,7 @@ export function createEnrichHandler(deps: EnrichDeps): JobHandler {
           research: found,
           pitch,
           model: deps.pitchModel.id,
+          prompt: PITCH_PROMPT_VERSION,
           revision: brief.revision,
         })
       : await deps.reject({

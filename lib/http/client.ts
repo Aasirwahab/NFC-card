@@ -42,10 +42,10 @@ export async function apiGet<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** POST or PATCH JSON to a same-origin endpoint. */
+/** POST, PUT, PATCH or DELETE JSON to a same-origin endpoint. */
 export async function apiSend<T>(
   path: string,
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
 ): Promise<T> {
   const response = await apiFetch(path, {

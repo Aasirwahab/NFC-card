@@ -79,6 +79,12 @@ const PITCH_RULES = [
 ];
 
 /**
+ * Recorded with every pitch, so rep ratings (§14.5) can be grouped by prompt as
+ * well as by model. Bump it whenever PITCH_RULES or the prompt layout changes.
+ */
+export const PITCH_PROMPT_VERSION = 'pitch-v1';
+
+/**
  * @param failures  on the stricter second attempt (§14.2), what the first
  *                  attempt got wrong — named, so the model can fix exactly that
  */

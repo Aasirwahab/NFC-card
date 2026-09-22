@@ -129,8 +129,17 @@ const FUNCTIONS = `    {
           p_pitch: string;
           p_model: string;
           p_revision?: number | null;
+          p_prompt?: string | null;
         };
         Returns: string;
+      };
+      set_rep_pitch: {
+        Args: { p_session_id: string; p_user_id: string; p_text: string | null };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      rate_pitch: {
+        Args: { p_session_id: string; p_user_id: string; p_rating: number; p_reason: string | null };
+        Returns: Database['public']['Tables']['pitch_ratings']['Row'];
       };
       reject_enrichment: {
         Args: {

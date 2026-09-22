@@ -40,6 +40,7 @@ const PROSPECT_SESSION_COLUMNS = [
   'custom_problems',
   'enrichment_status',
   'generated_pitch',
+  'rep_pitch',
   'first_viewed_at',
   'chat_response_count',
 ].join(', ');
@@ -55,6 +56,7 @@ export type ProspectSession = Pick<
   | 'custom_problems'
   | 'enrichment_status'
   | 'generated_pitch'
+  | 'rep_pitch'
   | 'first_viewed_at'
   | 'chat_response_count'
 >;
@@ -178,6 +180,21 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   // code. Nothing in the response distinguishes the two (§22.2).
   if (!session) return { audience: 'missing' };
 
+  return prospectView(code, session);
+}
+
+type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
+
+/**
+ * Everything around the session that the prospect page shows. Shared by the real
+ * tap and the rep's preview (§14.5), so the preview cannot drift from the page.
+ */
+async function prospectView(
+  code: string,
+  session: ProspectSession,
+): Promise<ProspectResolved | { audience: 'missing' }> {
+  const db = serviceClient();
+
   const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
     db.from('profiles').select('full_name, title, photo_url').eq('id', session.user_id).single(),
     db
@@ -212,4 +229,40 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
       : null,
     eventName: event?.name ?? null,
   };
+}
+
+/**
+ * The prospect page for one of the rep's own sessions — "Preview as the prospect"
+ * (§14.5). Scoped by user_id, so a rep can only ever preview their own. Null when
+ * the session is not theirs, not active, or cannot be rendered.
+ *
+ * Reading this is not a tap: nothing here records a view (§10.4).
+ */
+export async function previewForRep(
+  userId: string,
+  sessionId: string,
+): Promise<ProspectResolved | null> {
+  const db = serviceClient();
+
+  const { data: session } = await db
+    .from('sessions')
+    .select(`${PROSPECT_SESSION_COLUMNS}, card_id`)
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle<ProspectSession & { card_id: string }>();
+
+  if (!session) return null;
+
+  const { data: card } = await db
+    .from('cards')
+    .select('code')
+    .eq('id', session.card_id)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!card) return null;
+
+  const resolved = await prospectView(card.code, session);
+  return resolved.audience === 'prospect' ? resolved : null;
 }

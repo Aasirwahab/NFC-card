@@ -24,13 +24,14 @@ export function productionEnrichDeps(): EnrichDeps {
       return data ?? null;
     },
 
-    async commit({ sessionId, research, pitch, model, revision }) {
+    async commit({ sessionId, research, pitch, model, prompt, revision }) {
       const { data, error } = await db.rpc('complete_enrichment', {
         p_session_id: sessionId,
         p_research: research as unknown as Json,
         p_pitch: pitch,
         p_model: model,
         p_revision: revision,
+        p_prompt: prompt,
       });
       if (error) throw new Error(`complete_enrichment failed: ${error.message}`);
       return data as CommitOutcome;

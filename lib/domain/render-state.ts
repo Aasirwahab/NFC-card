@@ -21,7 +21,13 @@ export type ProspectView =
 export function viewForSession(session: {
   enrichment_status: string;
   generated_pitch: string | null;
+  /** The rep's own edit (§14.5). When set, it IS the pitch, whatever the status. */
+  rep_pitch?: string | null;
 }): ProspectView {
+  // The rep has read and rewritten this pitch themselves. Nothing the pipeline
+  // does afterwards — a retry, a failure, a fresh pitch — replaces their words.
+  if (session.rep_pitch?.trim()) return { state: 'completed', pitch: session.rep_pitch };
+
   switch (session.enrichment_status) {
     case 'completed':
       // A completed session with no pitch should be impossible, but rendering a

@@ -131,3 +131,14 @@ export const eventSchema = z.object({
 });
 
 export type EventInput = z.infer<typeof eventSchema>;
+
+/** PUT /api/sessions/[id]/pitch — the rep's own edit of the pitch (§14.5). */
+export const repPitchSchema = z.object({
+  text: z.string().trim().min(1, 'The pitch cannot be empty.').max(4000),
+});
+
+/** POST /api/sessions/[id]/pitch/rating — thumbs up or down on the model's pitch. */
+export const pitchRatingSchema = z.object({
+  rating: z.union([z.literal(1), z.literal(-1)]),
+  reason: z.string().trim().max(500).optional(),
+});

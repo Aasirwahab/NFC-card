@@ -38,6 +38,7 @@ describe('migrations', () => {
       'followup_drafts',
       'jobs',
       'knowledge_base',
+      'pitch_ratings',
       'profiles',
       'session_events',
       'sessions',
@@ -128,6 +129,8 @@ describe('migrations', () => {
       'record_prospect_view',
       'claim_jobs',
       'complete_enrichment',
+      'set_rep_pitch',
+      'rate_pitch',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -612,5 +615,174 @@ describe('complete_enrichment (§12.3)', () => {
       [sessionId],
     );
     expect(events.rows[0]!.n).toBe(1);
+  });
+});
+
+describe('the rep sees the pitch first (§14.5)', () => {
+  async function registered() {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+    return { ...fx, sessionId };
+  }
+
+  const commit = (sessionId: string, pitch: string, model = 'model-a', prompt = 'pitch-v1') =>
+    db.query(`select public.complete_enrichment($1, $2::jsonb, $3, $4, null, $5)`, [
+      sessionId,
+      JSON.stringify({ facts: [] }),
+      pitch,
+      model,
+      prompt,
+    ]);
+
+  it('records the prompt version alongside the model', async () => {
+    const { sessionId } = await registered();
+    await commit(sessionId, 'A pitch.', 'model-a', 'pitch-v7');
+
+    const { rows } = await db.query<{ generated_pitch_prompt: string }>(
+      `select generated_pitch_prompt from public.sessions where id = $1`,
+      [sessionId],
+    );
+    expect(rows[0]!.generated_pitch_prompt).toBe('pitch-v7');
+  });
+
+  it('keeps the rep’s edit apart from the generated pitch, and resets it', async () => {
+    const { sessionId, userId } = await registered();
+    await commit(sessionId, 'What the model wrote.');
+
+    await db.query(`select * from public.set_rep_pitch($1, $2, $3)`, [
+      sessionId,
+      userId,
+      '  What Zaid wrote.  ',
+    ]);
+    let { rows } = await db.query<{ generated_pitch: string; rep_pitch: string | null }>(
+      `select generated_pitch, rep_pitch from public.sessions where id = $1`,
+      [sessionId],
+    );
+    expect(rows[0]!.rep_pitch).toBe('What Zaid wrote.');
+    expect(rows[0]!.generated_pitch).toBe('What the model wrote.');
+
+    await db.query(`select * from public.set_rep_pitch($1, $2, null)`, [sessionId, userId]);
+    ({ rows } = await db.query<{ generated_pitch: string; rep_pitch: string | null }>(
+      `select generated_pitch, rep_pitch from public.sessions where id = $1`,
+      [sessionId],
+    ));
+    expect(rows[0]!.rep_pitch).toBeNull();
+
+    const events = await db.query<{ type: string }>(
+      `select type from public.session_events
+        where session_id = $1 and type like 'pitch_%' order by id`,
+      [sessionId],
+    );
+    expect(events.rows.map((r) => r.type)).toEqual(['pitch_edited', 'pitch_reset']);
+  });
+
+  it('never lets a re-enrich overwrite the rep’s edit', async () => {
+    const { sessionId, userId } = await registered();
+    await db.query(`select * from public.set_rep_pitch($1, $2, $3)`, [
+      sessionId,
+      userId,
+      'What Zaid wrote.',
+    ]);
+    await db.query(`select * from public.save_session_details($1, $2, $3::jsonb)`, [
+      sessionId,
+      userId,
+      JSON.stringify({ prospect_name: 'Tom', problems: ['Idle machine tracking'] }),
+    ]);
+    await commit(sessionId, 'A fresh model pitch.');
+
+    const { rows } = await db.query<{ generated_pitch: string; rep_pitch: string }>(
+      `select generated_pitch, rep_pitch from public.sessions where id = $1`,
+      [sessionId],
+    );
+    expect(rows[0]!.generated_pitch).toBe('A fresh model pitch.');
+    expect(rows[0]!.rep_pitch).toBe('What Zaid wrote.');
+  });
+
+  it('refuses to edit or rate another rep’s session', async () => {
+    const mine = await registered();
+    const theirs = await seedFixture(db);
+    await commit(mine.sessionId, 'A pitch.');
+
+    await expect(
+      db.query(`select * from public.set_rep_pitch($1, $2, $3)`, [
+        mine.sessionId,
+        theirs.userId,
+        'Hijacked.',
+      ]),
+    ).rejects.toThrow(/session_not_found/);
+    await expect(
+      db.query(`select * from public.rate_pitch($1, $2, 1::smallint, null)`, [
+        mine.sessionId,
+        theirs.userId,
+      ]),
+    ).rejects.toThrow(/session_not_found/);
+  });
+
+  it('rates the model’s pitch, keeps one judgement per pitch, and keeps old ones', async () => {
+    const { sessionId, userId } = await registered();
+
+    await expect(
+      db.query(`select * from public.rate_pitch($1, $2, 1::smallint, null)`, [sessionId, userId]),
+    ).rejects.toThrow(/nothing_to_rate/);
+
+    await commit(sessionId, 'First pitch.', 'model-a', 'pitch-v1');
+    await db.query(`select * from public.rate_pitch($1, $2, 1::smallint, null)`, [
+      sessionId,
+      userId,
+    ]);
+    // Changing your mind about the same pitch replaces the judgement.
+    await db.query(`select * from public.rate_pitch($1, $2, (-1)::smallint, $3)`, [
+      sessionId,
+      userId,
+      'Too generic',
+    ]);
+
+    // A re-enrich writes a new pitch; the old judgement survives with its text.
+    await db.query(`update public.sessions set enrichment_status = 'queued' where id = $1`, [
+      sessionId,
+    ]);
+    await commit(sessionId, 'Second pitch.', 'model-b', 'pitch-v2');
+    await db.query(`select * from public.rate_pitch($1, $2, 1::smallint, null)`, [
+      sessionId,
+      userId,
+    ]);
+
+    const { rows } = await db.query<{
+      pitch: string;
+      model: string;
+      prompt: string;
+      rating: number;
+      reason: string | null;
+    }>(
+      `select pitch, model, prompt, rating, reason from public.pitch_ratings
+        where session_id = $1 order by id`,
+      [sessionId],
+    );
+    expect(rows).toEqual([
+      {
+        pitch: 'First pitch.',
+        model: 'model-a',
+        prompt: 'pitch-v1',
+        rating: -1,
+        reason: 'Too generic',
+      },
+      { pitch: 'Second pitch.', model: 'model-b', prompt: 'pitch-v2', rating: 1, reason: null },
+    ]);
+  });
+
+  it('rejects a rating that is not thumbs up or down', async () => {
+    const { sessionId, userId } = await registered();
+    await commit(sessionId, 'A pitch.');
+    await expect(
+      db.query(`select * from public.rate_pitch($1, $2, 5::smallint, null)`, [sessionId, userId]),
+    ).rejects.toThrow();
   });
 });

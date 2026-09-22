@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/field';
@@ -318,6 +319,20 @@ export function DetailsForm({
         {session.details_completed_at ? (
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
         ) : null}
+
+        {session.rep_pitch ? (
+          <p className="text-ink-3 text-[13px]">
+            You edited their pitch, so saving or regenerating keeps your version. Switch back to
+            TapLead&rsquo;s on the preview.
+          </p>
+        ) : null}
+
+        <Link
+          href={`/sessions/${session.id}/preview`}
+          className="border-line bg-surface text-ink hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+        >
+          Preview their page
+        </Link>
 
         <button
           type="button"

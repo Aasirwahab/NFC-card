@@ -100,10 +100,10 @@ function deps(
       );
       return rows[0]?.s ?? null;
     },
-    async commit({ sessionId, research, pitch, model, revision }) {
+    async commit({ sessionId, research, pitch, model, prompt, revision }) {
       const { rows } = await db.query<{ r: CommitOutcome }>(
-        `select public.complete_enrichment($1, $2::jsonb, $3, $4, $5) as r`,
-        [sessionId, JSON.stringify(research), pitch, model, revision],
+        `select public.complete_enrichment($1, $2::jsonb, $3, $4, $5, $6) as r`,
+        [sessionId, JSON.stringify(research), pitch, model, revision, prompt],
       );
       return rows[0]!.r;
     },
