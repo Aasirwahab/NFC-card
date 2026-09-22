@@ -37,6 +37,12 @@ const profileSchema = z.object({
   photo_url: blank(500),
   linkedin_url: blank(300),
   phone: blank(40),
+  // On the vCard a prospect saves from the page. Optional, and deliberately not
+  // the sign-in address, which is not the rep's to publish by default.
+  contact_email: blank(254).refine(
+    (v) => v === null || z.string().email().safeParse(v).success,
+    'Enter a valid email, or leave it blank.',
+  ),
 });
 
 const businessSchema = z.object({

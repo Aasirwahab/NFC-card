@@ -454,6 +454,7 @@ export type Database = {
           phone: string | null;
           created_at: string;
           updated_at: string;
+          contact_email: string | null;
         };
         Insert: {
           id: string;
@@ -465,6 +466,7 @@ export type Database = {
           phone?: string | null;
           created_at?: string;
           updated_at?: string;
+          contact_email?: string | null;
         };
         Update: {
           id?: string;
@@ -476,6 +478,7 @@ export type Database = {
           phone?: string | null;
           created_at?: string;
           updated_at?: string;
+          contact_email?: string | null;
         };
         Relationships: [
           {

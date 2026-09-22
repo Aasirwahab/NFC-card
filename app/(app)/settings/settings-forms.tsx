@@ -66,6 +66,7 @@ export function ProfileForm({
     photo_url: string | null;
     linkedin_url: string | null;
     phone: string | null;
+    contact_email: string | null;
   } | null;
 }) {
   const [state, action] = useActionState(saveProfileAction, {});
@@ -105,6 +106,20 @@ export function ProfileForm({
 
         <Field label="Phone" htmlFor="phone">
           <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
+        </Field>
+
+        <Field
+          label="Email for your contact card"
+          hint="Shown when a prospect saves your contact from their page. Leave it blank to leave it off."
+          htmlFor="contact_email"
+        >
+          <Input
+            id="contact_email"
+            name="contact_email"
+            type="email"
+            autoComplete="email"
+            defaultValue={profile?.contact_email ?? ''}
+          />
         </Field>
 
         <Field label="Short bio" htmlFor="bio">

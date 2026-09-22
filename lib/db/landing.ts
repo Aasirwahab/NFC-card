@@ -1,6 +1,7 @@
 import 'server-only';
 import { decideAudience } from '@/lib/domain/audience';
 import { viewForSession, type ProspectView } from '@/lib/domain/render-state';
+import type { ContactCard } from '@/lib/domain/vcard';
 import { serviceClient } from './service';
 import type { Row } from './types';
 
@@ -265,4 +266,51 @@ export async function previewForRep(
 
   const resolved = await prospectView(card.code, session);
   return resolved.audience === 'prospect' ? resolved : null;
+}
+
+/**
+ * The rep behind a card, for "Save the rep's contact". Only the REP's own details
+ * are read — the vCard route never touches the prospect's (§ Phase 5).
+ *
+ * Same visibility as the page: a card with no live session is a miss.
+ */
+export async function contactForCode(code: string): Promise<ContactCard | null> {
+  const db = serviceClient();
+
+  const { data: card } = await db.from('cards').select('id').eq('code', code).maybeSingle();
+  if (!card) return null;
+
+  const { data: session } = await db
+    .from('sessions')
+    .select('user_id, event_id')
+    .eq('card_id', card.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (!session) return null;
+
+  const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
+    db
+      .from('profiles')
+      .select('full_name, title, phone, contact_email, linkedin_url')
+      .eq('id', session.user_id)
+      .maybeSingle(),
+    db
+      .from('business_profiles')
+      .select('company_name, website')
+      .eq('user_id', session.user_id)
+      .maybeSingle(),
+    db.from('events').select('name').eq('id', session.event_id).maybeSingle(),
+  ]);
+  if (!profile) return null;
+
+  return {
+    fullName: profile.full_name,
+    title: profile.title,
+    company: business?.company_name ?? null,
+    phone: profile.phone,
+    email: profile.contact_email,
+    linkedinUrl: profile.linkedin_url,
+    website: business?.website ?? null,
+    note: event?.name ? `Met at ${event.name}` : null,
+  };
 }

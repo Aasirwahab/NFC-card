@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { callToAction, greeting, templatePitch } from '@/lib/domain/pitch';
 import { Crafting } from './crafting';
@@ -68,6 +69,8 @@ export function ProspectView({ resolved }: { resolved: ProspectResolved }) {
         ) : null}
 
         <CallToActionBlock label={cta} repName={firstName(rep.fullName)} />
+
+        <SaveContact code={code} repName={firstName(rep.fullName)} />
       </main>
 
       <Footer />
@@ -217,6 +220,23 @@ function CallToActionBlock({ label, repName }: { label: string; repName: string 
       {/* TODO(phase 5): Cal.com embed with metadata.session_id prefilled (§19.1),
           the chat widget (§18), and email capture (§19.2) mount here. */}
     </section>
+  );
+}
+
+/**
+ * "Save the rep's contact" (Phase 5). A plain link to a vCard, which both iOS
+ * and Android open straight into "Add contact". It is a real, working button —
+ * the rule for this page is that nothing on it pretends to work.
+ */
+function SaveContact({ code, repName }: { code: string; repName: string }) {
+  return (
+    <a
+      href={`/c/${code}/contact`}
+      className="border-accent text-accent hover:bg-accent-soft mt-3 flex h-12 items-center justify-center gap-2 rounded-lg border-[1.5px] text-[15px] font-medium"
+    >
+      <UserPlus className="h-4 w-4" aria-hidden="true" />
+      Save {repName}&rsquo;s contact
+    </a>
   );
 }
 
