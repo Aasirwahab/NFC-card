@@ -748,6 +748,18 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['pitch_ratings']['Row'];
       };
+      claim_chat_response: {
+        Args: { p_session_id: string; p_cap?: number };
+        Returns: number | null;
+      };
+      release_chat_response: {
+        Args: { p_session_id: string };
+        Returns: undefined;
+      };
+      record_chat_turn: {
+        Args: { p_session_id: string; p_question: string; p_answer: string };
+        Returns: undefined;
+      };
       reject_enrichment: {
         Args: {
           p_session_id: string;

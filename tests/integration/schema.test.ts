@@ -131,6 +131,9 @@ describe('migrations', () => {
       'complete_enrichment',
       'set_rep_pitch',
       'rate_pitch',
+      'claim_chat_response',
+      'release_chat_response',
+      'record_chat_turn',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -577,6 +580,84 @@ describe('record_prospect_view (§10.4)', () => {
       [sessionId],
     );
     expect(events.rows[0]!.n).toBe(1);
+  });
+});
+
+describe('the chat cap (§18.1)', () => {
+  async function session() {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+    return sessionId;
+  }
+
+  const claim = async (sessionId: string) =>
+    (
+      await db.query<{ n: number | null }>(`select public.claim_chat_response($1) as n`, [
+        sessionId,
+      ])
+    ).rows[0]!.n;
+
+  it('grants five responses and refuses the sixth, even fired at once', async () => {
+    const sessionId = await session();
+    const results = await Promise.all(Array.from({ length: 6 }, () => claim(sessionId)));
+
+    expect(results.filter((n) => n !== null)).toHaveLength(5);
+    expect(results.filter((n) => n === null)).toHaveLength(1);
+  });
+
+  it('hands a claim back when the model call failed', async () => {
+    const sessionId = await session();
+    for (let i = 0; i < 5; i++) await claim(sessionId);
+    expect(await claim(sessionId)).toBeNull();
+
+    await db.query(`select public.release_chat_response($1)`, [sessionId]);
+    expect(await claim(sessionId)).toBe(5);
+  });
+
+  it('never releases below zero', async () => {
+    const sessionId = await session();
+    await db.query(`select public.release_chat_response($1)`, [sessionId]);
+    expect(await claim(sessionId)).toBe(1);
+  });
+
+  it('refuses a voided session', async () => {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+    await db.query(`select * from public.void_session($1, $2)`, [sessionId, fx.userId]);
+    expect(await claim(sessionId)).toBeNull();
+  });
+
+  it('records the question and the answer together', async () => {
+    const sessionId = await session();
+    await db.query(`select public.record_chat_turn($1, $2, $3)`, [
+      sessionId,
+      'Does it work with our telematics?',
+      'That one is for Zaid.',
+    ]);
+    const { rows } = await db.query<{ role: string; content: string }>(
+      `select role, content from public.chat_messages where session_id = $1 order by id`,
+      [sessionId],
+    );
+    expect(rows).toEqual([
+      { role: 'user', content: 'Does it work with our telematics?' },
+      { role: 'assistant', content: 'That one is for Zaid.' },
+    ]);
   });
 });
 

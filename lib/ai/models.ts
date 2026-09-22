@@ -1,7 +1,7 @@
 import 'server-only';
 import { createGateway, type LanguageModel } from 'ai';
 import { env } from '@/lib/env';
-import { mockPitchModel, mockResearchModel } from './mock';
+import { mockChatModel, mockPitchModel, mockResearchModel } from './mock';
 
 /**
  * The one place a model is chosen (§14.3: "swap providers in one config file").
@@ -13,7 +13,7 @@ import { mockPitchModel, mockResearchModel } from './mock';
  * provider it routes to.
  */
 
-export type ModelRole = 'research' | 'pitch';
+export type ModelRole = 'research' | 'pitch' | 'chat';
 
 export type ResolvedModel = {
   /** Recorded with the pitch as generated_pitch_model, and part of the research cache key. */
@@ -24,14 +24,18 @@ export type ResolvedModel = {
 const gateway = env.MODEL_API_KEY ? createGateway({ apiKey: env.MODEL_API_KEY }) : null;
 
 function idFor(role: ModelRole): string {
-  return role === 'pitch' ? env.MODEL_PITCH : (env.MODEL_RESEARCH ?? env.MODEL_CHAT);
+  if (role === 'pitch') return env.MODEL_PITCH;
+  if (role === 'chat') return env.MODEL_CHAT;
+  return env.MODEL_RESEARCH ?? env.MODEL_CHAT;
 }
 
 export function modelFor(role: ModelRole): ResolvedModel {
   const id = idFor(role);
 
   if (id === 'mock') {
-    return { id, model: role === 'pitch' ? mockPitchModel() : mockResearchModel() };
+    const mock =
+      role === 'pitch' ? mockPitchModel() : role === 'chat' ? mockChatModel() : mockResearchModel();
+    return { id, model: mock };
   }
 
   if (!gateway) {

@@ -131,3 +131,42 @@ export function mockPitchModel(): MockLanguageModelV4 {
     },
   });
 }
+
+// --------------------------------------------------------------------- chat
+
+/** The system instructions, where the chatbot's <knowledge> block lives. */
+function systemText(options: LanguageModelV4CallOptions): string {
+  return options.prompt
+    .flatMap((message) => (message.role === 'system' ? [message.content] : []))
+    .join('\n');
+}
+
+/**
+ * An offline chatbot (§18). It answers from the first line of the knowledge block
+ * and hands anything more to the rep — the shape a well-behaved real model's
+ * answer should take, so the widget and the guardrails can be exercised locally.
+ */
+export function mockChatModel(): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
+    modelId: 'mock-chat',
+    doGenerate: async (options) => {
+      // The rules mention "<knowledge>" before the block itself: read the LAST one.
+      const system = systemText(options);
+      const start = system.lastIndexOf('<knowledge>');
+      const end = system.lastIndexOf('</knowledge>');
+      const knowledge = start >= 0 && end > start ? system.slice(start + 11, end) : '';
+      const first = knowledge
+        .split('\n')
+        .map((line) => line.trim())
+        // A sentence, not the bare company name that heads the block.
+        .find((line) => line.length >= 20);
+      const rep = system.match(/^You are (\S+?)’s assistant/m)?.[1] ?? 'The team';
+
+      return reply(
+        first
+          ? `Good question. ${first.replace(/[.!?]?$/, '.')} For the detail on your setup, ${rep} can give you a straight answer — book 15 minutes below.`
+          : `That’s one ${rep} can answer properly — book 15 minutes below.`,
+      );
+    },
+  });
+}

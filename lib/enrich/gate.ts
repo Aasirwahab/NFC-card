@@ -151,6 +151,58 @@ const FIRST_NAMES = new Set(
   ).split(/\s+/),
 );
 
+// ------------------------------------------------------- shared claim checks
+
+/**
+ * Checks 3 and 4 of the gate, for any text the prospect reads: no placeholders or
+ * tells, no competitor framing, never announcing the research, and no price,
+ * percentage or credential that `context` does not contain.
+ *
+ * Shared by the pitch gate and the chatbot's reply check (§18.2: "no invented
+ * pricing, no invented capabilities"), so both enforce the same rules.
+ *
+ * @param context  all the text the writer was allowed to draw on
+ * @param pricing  the business's pricing; with none, ANY price is unsupported
+ */
+export function claimFailures(
+  text: string,
+  context: string,
+  pricing: string | null,
+): GateFailure[] {
+  const failures: GateFailure[] = [];
+  const fail = (check: GateCheck, detail: string) => failures.push({ check, detail });
+
+  for (const [pattern, label] of TELLS) {
+    if (pattern.test(text)) fail('placeholder_or_tell', label);
+  }
+
+  // §14.4 and §4: no competitor framing, and never announce the research.
+  if (COMPETITORS.test(text)) fail('competitor_framing', 'mentions competitors');
+  if (REVEALS_RESEARCH.test(text)) fail('reveals_research', 'says how we know about them');
+
+  const contextDigits = (context.match(/\d[\d,.]*/g) ?? []).map((d) => d.replace(/[,.]/g, ''));
+  for (const price of text.match(PRICE) ?? []) {
+    const digits = price.replace(/[^\d]/g, '');
+    if (!pricing || !contextDigits.includes(digits)) {
+      fail('unsupported_price', `quotes ${price.trim()}, which is not in the pricing`);
+    }
+  }
+  for (const percent of text.match(PERCENT) ?? []) {
+    const digits = percent.replace(/[^\d.]/g, '').replace(/\./g, '');
+    if (!contextDigits.includes(digits)) {
+      fail('unsupported_claim', `states ${percent.trim()}, which nothing in the brief supports`);
+    }
+  }
+  const lowerContext = context.toLowerCase();
+  for (const claim of text.match(CLAIMS) ?? []) {
+    if (!lowerContext.includes(claim.toLowerCase())) {
+      fail('unsupported_claim', `claims "${claim}", which the business profile does not`);
+    }
+  }
+
+  return failures;
+}
+
 // ----------------------------------------------------------------- the gate
 
 export function qualityGate(body: string, brief: Brief): GateResult {
@@ -191,36 +243,11 @@ export function qualityGate(body: string, brief: Brief): GateResult {
     }
   }
 
-  // 3. No placeholders or tells.
-  for (const [pattern, label] of TELLS) {
-    if (pattern.test(trimmed)) fail('placeholder_or_tell', label);
-  }
-
-  // §14.4 and §4: no competitor framing, and never announce the research.
-  if (COMPETITORS.test(trimmed)) fail('competitor_framing', 'mentions competitors');
-  if (REVEALS_RESEARCH.test(trimmed)) fail('reveals_research', 'says how we know about them');
-
-  // 4. No unsupported claims — prices, statistics or credentials the brief does
-  //    not contain. The pitch must not invent what the business offers.
-  const briefDigits = (context.match(/\d[\d,.]*/g) ?? []).map((d) => d.replace(/[,.]/g, ''));
-  for (const price of trimmed.match(PRICE) ?? []) {
-    const digits = price.replace(/[^\d]/g, '');
-    if (!brief.business.pricing || !briefDigits.includes(digits)) {
-      fail('unsupported_price', `quotes ${price.trim()}, which is not in the pricing`);
-    }
-  }
-  for (const percent of trimmed.match(PERCENT) ?? []) {
-    const digits = percent.replace(/[^\d.]/g, '').replace(/\./g, '');
-    if (!briefDigits.includes(digits)) {
-      fail('unsupported_claim', `states ${percent.trim()}, which nothing in the brief supports`);
-    }
-  }
+  // 3 and 4. No placeholders or tells, no competitor framing, never announce the
+  //    research, and no prices, statistics or credentials the brief does not
+  //    contain. Shared with the chatbot's reply check (§18.2).
+  failures.push(...claimFailures(trimmed, context, brief.business.pricing));
   const lowerContext = context.toLowerCase();
-  for (const claim of trimmed.match(CLAIMS) ?? []) {
-    if (!lowerContext.includes(claim.toLowerCase())) {
-      fail('unsupported_claim', `claims "${claim}", which the business profile does not`);
-    }
-  }
 
   // 5. Length and shape: one screen on a phone, with a call to action.
   if (count < MIN_WORDS || count > MAX_WORDS) {

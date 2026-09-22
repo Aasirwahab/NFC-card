@@ -83,7 +83,7 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
       />
 
       <div className="border-line shadow-lifted bg-ground mt-6 overflow-hidden rounded-[28px] border">
-        <ProspectView resolved={resolved} />
+        <ProspectView resolved={resolved} preview />
       </div>
     </div>
   );

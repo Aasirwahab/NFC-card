@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
-import { callToAction, greeting, templatePitch } from '@/lib/domain/pitch';
+import { openingLine } from '@/lib/chat/assistant';
+import { callToAction, greeting, primaryProblem, templatePitch } from '@/lib/domain/pitch';
+import { env } from '@/lib/env';
+import { ChatWidget } from './chat-widget';
 import { Crafting } from './crafting';
 
 /**
@@ -20,7 +23,14 @@ import { Crafting } from './crafting';
 
 type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
 
-export function ProspectView({ resolved }: { resolved: ProspectResolved }) {
+export function ProspectView({
+  resolved,
+  preview = false,
+}: {
+  resolved: ProspectResolved;
+  /** The rep's own preview (§14.5): the page as-is, but nothing that spends the prospect's questions. */
+  preview?: boolean;
+}) {
   const { session, rep, business, eventName, view, code } = resolved;
 
   const pitchInput = {
@@ -42,7 +52,8 @@ export function ProspectView({ resolved }: { resolved: ProspectResolved }) {
   });
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col px-5 pb-10">
+    // pb-28 keeps the footer links clear of the floating chat button.
+    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col px-5 pb-28">
       <Header rep={rep} business={business} />
 
       <main className="flex-1">
@@ -71,6 +82,20 @@ export function ProspectView({ resolved }: { resolved: ProspectResolved }) {
         <CallToActionBlock label={cta} repName={firstName(rep.fullName)} />
 
         <SaveContact code={code} repName={firstName(rep.fullName)} />
+
+        <ChatWidget
+          code={code}
+          repFirstName={firstName(rep.fullName)}
+          opening={openingLine(
+            firstName(rep.fullName),
+            primaryProblem({
+              problems: session.problems,
+              customProblems: session.custom_problems,
+            }),
+          )}
+          enabled={env.CHAT_ENABLED}
+          preview={preview}
+        />
       </main>
 
       <Footer />
@@ -217,8 +242,8 @@ function CallToActionBlock({ label, repName }: { label: string; repName: string 
       <p className="text-ink-2 mt-1.5 text-sm">
         {repName} will come prepared — no pitch deck, no discovery call before the discovery call.
       </p>
-      {/* TODO(phase 5): Cal.com embed with metadata.session_id prefilled (§19.1),
-          the chat widget (§18), and email capture (§19.2) mount here. */}
+      {/* TODO(phase 5): Cal.com embed with metadata.session_id prefilled (§19.1)
+          and email capture (§19.2) mount here. The chat widget (§18) floats. */}
     </section>
   );
 }
