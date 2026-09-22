@@ -16,17 +16,20 @@ explains, so the source is readable without it.
 
 ## Status
 
-| Phase | What                                                                    | State       |
-| ----- | ----------------------------------------------------------------------- | ----------- |
-| 0     | Foundations — repo, env schema, CI gates, auth                          | **Done**    |
-| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture | **Done**    |
-| 2     | The landing page, all four states                                       | **Done**    |
-| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                   | **Done**    |
-| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                     | **Done\***  |
-| 5     | Chat, booking, email                                                    | Not started |
-| 6     | Offline hardening — service worker, outbox, sync badge                  | Not started |
-| 7     | Follow-up and export                                                    | Not started |
-| 8     | Physical production and live test                                       | Not started |
+| Phase | What                                                                                        | State       |
+| ----- | ------------------------------------------------------------------------------------------- | ----------- |
+| 0     | Foundations — repo, env schema, CI gates, auth                                              | **Done**    |
+| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture                     | **Done**    |
+| 2     | The landing page, all four states                                                           | **Done**    |
+| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                       | **Done**    |
+| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                         | **Done\***  |
+| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | Not started |
+| 5b    | Field pilot — 20 cards at one real event, before Phase 6                                    | Not started |
+| 6     | Offline hardening — service worker, outbox, sync badge                                      | Not started |
+| 7     | Follow-up and export — plus results for each event                                          | Not started |
+| 8     | Physical production and live test — plus a QR code on every card                            | Not started |
+| 9     | _After v1:_ faster capture — business-card photo, voice note                                | Not started |
+| 10    | _After v1:_ team accounts and CRM connectors                                                | Not started |
 
 \* Phase 4 runs end to end against an offline **mock** model. Three of its four
 done-when tests pass. The fourth — "a real tap shows a researched pitch that is
@@ -246,8 +249,10 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
 - **Resend and Cal.com accounts**, plus the domain. Supabase and Upstash exist.
 - **Vercel Pro, or a slower sweep.** `vercel.json` schedules `/api/cron/jobs`
   every minute, as §13 specifies. Vercel's Hobby plan only allows daily cron jobs
-  and rejects the deploy. On Hobby, the `after()` kick still runs every job; the
-  cron is the safety net for a missed kick and the reaper for a crashed worker.
+  and rejects the deploy. To run on Hobby, change the schedule in `vercel.json`
+  to daily first: the `after()` kick still runs every job, and the cron is only
+  the safety net for a missed kick and the reaper for a crashed worker — so a
+  daily sweep means a missed job can wait up to a day.
 
 ## Known gaps left for later phases
 
@@ -268,3 +273,13 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   that gets one chance would be worse than no button.
 - Profile photos are an arbitrary URL, not an upload. §22.6's Supabase Storage
   rules apply when that changes.
+- **The miss limiter counts but never blocks.** `/c/[code]` calls
+  `checkRateLimit('landingMiss', …)` and ignores the result, so guessing codes is
+  held back only by the general 30-per-minute landing limit — weaker than §22.2
+  intends. Fix before launch.
+- **`.env.local` has a `NEXT_PUBLIC_SUPABASE_SECRET_KEY`.** Nothing reads it, so
+  nothing leaks today, but the `NEXT_PUBLIC_` prefix puts it into browser code the
+  moment anything does. Rename or delete it.
+- **The template pitch capitalises services mid-sentence** ("TMA does Plant hire
+  automation, Maritime…"). `templatePitch` in `lib/domain/pitch.ts` should lowercase
+  them the way it already lowercases the problem.
