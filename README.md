@@ -23,7 +23,7 @@ explains, so the source is readable without it.
 | 2     | The landing page, all four states                                                           | **Done**    |
 | 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                       | **Done**    |
 | 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                         | **Done\***  |
-| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | Not started |
+| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | **Built†**  |
 | 5b    | Field pilot — 20 cards at one real event, before Phase 6                                    | Not started |
 | 6     | Offline hardening — service worker, outbox, sync badge                                      | Not started |
 | 7     | Follow-up and export — plus results for each event                                          | Not started |
@@ -37,6 +37,18 @@ visibly specific" — needs a real model, because a mock cannot show that the
 pitch is good. Setting `MODEL_PITCH` and `MODEL_API_KEY` is what finishes it
 (see below). Until then, **production does not run the pipeline on the mock**:
 prospects get the designed template pitch, exactly as before Phase 4.
+
+† Phase 5 is built and tested against the in-process database, with email and
+chat running on their offline fallbacks. What the tests prove: the sixth chat
+request is refused even when six are fired at once; a replayed booking webhook
+does not duplicate; a first view queues exactly one tap alert; a rep's preview
+records no view and a re-enrich leaves a rep-edited pitch untouched. What still
+needs the real accounts and real phones before Phase 5 is done:
+
+- a test email landing in a Gmail inbox, not spam (Resend + SPF/DKIM/DMARC);
+- a real Cal.com booking arriving through the webhook, linked to its session;
+- the vCard opening "Add contact" on an iPhone and on an Android phone;
+- the new migrations pushed to the Supabase project (`npx supabase db push`).
 
 ---
 
@@ -230,6 +242,29 @@ Points where the spec left a choice open, or where this deviates:
   commit refuses a stale one and the job restarts against the new details.
 - **No `revalidateTag` at commit** (§14 step 7). `/c/[code]` is rendered per
   request and never cached, so there is nothing to invalidate.
+- **The rep's pitch edit is its own column** (`rep_pitch`), not an overwrite of
+  `generated_pitch`. A re-enrich can never replace the rep's words, and ratings
+  keep judging what the model wrote. Ratings are a table, one row per pitch
+  text, so a regenerated pitch keeps the old ratings for prompt tuning.
+- **The chatbot never sees the private note.** §18.2 allows it "to set tone";
+  a chatbot needs no tone hints, and a note that is not there cannot leak.
+  Replies pass the pitch gate's claim checks (`claimFailures`), and a reply
+  that fails is replaced with an honest hand-off to the rep.
+- **No booking confirmation email from us.** §19.1 says to send one if an email
+  is known; Cal.com already confirms to both sides, and a second copy reads as a
+  mistake.
+- **Booking uses Cal.com's embed, not a link.** Metadata passed through the
+  embed config is documented to reach the webhook; through a plain URL it is
+  not. The session id travels as `metadata[session_id]`.
+- **"Email me this page" saves the address only when the rep has none**, and
+  the form says the rep will see it. Limited to 3 an hour per IP and 3 a day
+  per card, since a card is a bearer token.
+- **Tap alerts go to the rep's sign-in email; the vCard uses a separate
+  `contact_email`** the rep chooses in Setup — the sign-in address is not
+  theirs to publish by default.
+- **The owner never spends the prospect's features.** Chat, booking and email
+  capture refuse the card's owner, signed in or recognised by the rep-device
+  cookie, and are switched off in the rep's preview.
 
 ## Things Zaid needs to decide or supply
 
@@ -247,6 +282,9 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   best model — the pitch is the product) and `MODEL_CHAT`. The build refuses a
   real model id without a key.
 - **Resend and Cal.com accounts**, plus the domain. Supabase and Upstash exist.
+  Then set `RESEND_API_KEY`, `EMAIL_FROM` and `CAL_WEBHOOK_SECRET`, point a
+  Cal.com webhook at `/api/webhooks/cal`, and add each rep's Cal.com link and
+  contact email in Setup.
 - **Vercel Pro, or a slower sweep.** `vercel.json` schedules `/api/cron/jobs`
   every minute, as §13 specifies. Vercel's Hobby plan only allows daily cron jobs
   and rejects the deploy. To run on Hobby, change the schedule in `vercel.json`
@@ -268,9 +306,10 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   in-process Postgres is single-connection, so concurrent workers interleave
   rather than contend. The suite proves no job is handed out twice or lost; the
   lock contention itself needs the real database.
-- The booking embed, chat widget and email capture have a reserved slot on the
-  prospect page and render nothing until Phase 5. A dead button on the one page
-  that gets one chance would be worse than no button.
+- Without a Resend key, Cal.com link or real chat model, the matching feature
+  hides itself or falls back: the tap alert is logged and skipped, booking and
+  "email me" do not render, chat answers from the offline mock. A dead button on
+  the one page that gets one chance would be worse than no button.
 - Profile photos are an arbitrary URL, not an upload. §22.6's Supabase Storage
   rules apply when that changes.
 - **`.env.local` has a `NEXT_PUBLIC_SUPABASE_SECRET_KEY`.** Nothing reads it, so
