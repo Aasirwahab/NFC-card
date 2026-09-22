@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { TapMark } from '@/components/brand';
+import { RepSignInLink } from './rep-sign-in-link';
 
 /**
  * The generic 404 (spec §8, §22.2).
  *
- * Shown for an unknown code, a malformed code, a card with no live session, and a
- * rate-limited request. All four are BYTE-IDENTICAL: nothing in this response
+ * Shown for an unknown code, a malformed code, and a card with no live session.
+ * All three are BYTE-IDENTICAL: nothing in this response
  * distinguishes "no such card" from "card exists but has no session", which is
  * what makes walking the code space useless.
  *
@@ -34,6 +35,7 @@ export default function CardNotFound() {
           <Link href="/privacy" className="hover:text-ink-2 underline underline-offset-2">
             Privacy
           </Link>
+          <RepSignInLink />
         </div>
       </div>
     </div>

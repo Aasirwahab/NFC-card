@@ -45,8 +45,11 @@ const NON_HUMAN_AGENTS = [
   'outlook',
   'microsoftpreview',
   'google-inspectiontool',
-  'quic',
-  'preview',
+  // Named previewers, not the bare word: a loose substring match silently
+  // un-counts real people, which sends a "you haven't looked" follow-up to
+  // someone who did.
+  'google web preview',
+  'bingpreview',
   'embedly',
   'redditbot',
   'applebot',
@@ -75,7 +78,9 @@ const NON_HUMAN_AGENTS = [
 export function isNonHumanAgent(userAgent: string | null | undefined): boolean {
   if (!userAgent) return true;
 
-  const agent = userAgent.toLowerCase();
+  // Real phone models that contain a needle. "CUBOT" is an Android brand, and
+  // its model name appears in every UA its phones send.
+  const agent = userAgent.toLowerCase().replaceAll('cubot', '');
   return NON_HUMAN_AGENTS.some((needle) => agent.includes(needle));
 }
 

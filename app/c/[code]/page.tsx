@@ -1,8 +1,8 @@
 import { after } from 'next/server';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { VIEW_DEDUPE_SECONDS, viewDedupeKey } from '@/lib/domain/bots';
-import { shouldRecordTap } from '@/lib/domain/audience';
+import { REP_DEVICE_COOKIE, shouldRecordTap } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { resolveCode } from '@/lib/db/landing';
 import { getRep } from '@/lib/db/server';
@@ -53,9 +53,11 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
 
   const limit = await checkRateLimit('landing', ip);
   if (!limit.allowed) {
-    // The generic page, not an error. A prospect who taps twice in quick
-    // succession must never see a 429 shouted at them.
-    notFound();
+    // Not a 429 and not the 404: the card may be perfectly good, and a shared
+    // venue or carrier IP can trip this for a real prospect. "This card is not
+    // active" would get it thrown away. Says nothing about whether the code
+    // exists, so enumeration learns nothing from it.
+    return <Unavailable />;
   }
 
   const rep = await getRep();
@@ -102,6 +104,7 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
   // ---------------------------------------------------------- a real tap
   const userAgent = requestHeaders.get('user-agent');
   const sessionId = resolved.session.id;
+  const ownerDevice = (await cookies()).get(REP_DEVICE_COOKIE)?.value === resolved.session.user_id;
 
   after(async () => {
     // A second view from the same IP within 60 seconds is the same look.
@@ -110,7 +113,7 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
     // The single gate in front of first_viewed_at. Pure, and exhaustively tested
     // in tests/unit/audience.test.ts — a rule whose failure mode is silence has
     // to be asserted somewhere a test can reach (§10.4).
-    if (!shouldRecordTap({ audience: 'prospect', userAgent, firstInWindow })) return;
+    if (!shouldRecordTap({ audience: 'prospect', userAgent, firstInWindow, ownerDevice })) return;
 
     const { error } = await serviceClient().rpc('record_prospect_view', {
       p_session_id: sessionId,

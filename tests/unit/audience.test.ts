@@ -41,6 +41,20 @@ describe('shouldRecordTap (§10.4) — the rule whose failure mode is silence', 
     );
   });
 
+  it("the owner's phone is not a tap, even signed out", () => {
+    // The rep's session expired, so the page renders the prospect view — but the
+    // rep-device cookie says whose phone this is. Counting it would suppress the
+    // no-tap follow-up exactly as a signed-in self-tap would.
+    expect(
+      shouldRecordTap({
+        audience: 'prospect',
+        userAgent: IPHONE,
+        firstInWindow: true,
+        ownerDevice: true,
+      }),
+    ).toBe(false);
+  });
+
   it('a genuine prospect view on a phone IS a tap', () => {
     expect(shouldRecordTap({ audience: 'prospect', userAgent: IPHONE, firstInWindow: true })).toBe(
       true,
@@ -83,6 +97,33 @@ describe('shouldRecordTap (§10.4) — the rule whose failure mode is silence', 
         shouldRecordTap({ audience: 'prospect', userAgent: agent, firstInWindow: true }),
         agent,
       ).toBe(false);
+    }
+  });
+
+  it('real phone browsers are people', () => {
+    // A false positive here is silent: the view is never recorded, and the
+    // prospect is chased for not looking at a page they read.
+    for (const agent of [
+      IPHONE,
+      'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+        'Chrome/124.0.0.0 Mobile Safari/537.36',
+      'Mozilla/5.0 (Linux; Android 13; SAMSUNG SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+        'SamsungBrowser/24.0 Chrome/117.0.0.0 Mobile Safari/537.36',
+      'Mozilla/5.0 (Linux; Android 12; CUBOT KINGKONG 7) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+        'Chrome/120.0.0.0 Mobile Safari/537.36',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 ' +
+        '(KHTML, like Gecko) CriOS/125.0.6422.80 Mobile/15E148 Safari/604.1',
+    ]) {
+      expect(isNonHumanAgent(agent), agent).toBe(false);
+    }
+  });
+
+  it('named link previewers are still not taps', () => {
+    for (const agent of [
+      'Mozilla/5.0 (compatible; Google Web Preview) Chrome/41.0.2272.118',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) BingPreview/1.0b',
+    ]) {
+      expect(isNonHumanAgent(agent), agent).toBe(true);
     }
   });
 

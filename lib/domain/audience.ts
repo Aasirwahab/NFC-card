@@ -18,6 +18,14 @@ import { isNonHumanAgent } from './bots';
 export type Audience = 'missing' | 'rep' | 'prospect';
 
 /**
+ * Remembers "this browser belongs to rep X" after the Supabase session expires.
+ * Set by proxy.ts whenever a rep is signed in. It only ever suppresses view
+ * counting — a forged value can hide a visitor's own view and nothing more, so it
+ * is deliberately not an authentication cookie.
+ */
+export const REP_DEVICE_COOKIE = 'taplead_rep_device';
+
+/**
  * The §8 branch. `repId` is the signed-in rep, or null for anyone else —
  * including a rep signed in to a DIFFERENT account, who is just a visitor here.
  */
@@ -32,16 +40,31 @@ export type TapContext = {
   userAgent: string | null;
   /** False when this IP already viewed this session inside the dedupe window. */
   firstInWindow: boolean;
+  /**
+   * True when the browser carries the rep-device cookie of the card's owner.
+   * Outlives the Supabase session, so a rep whose sign-in has expired still does
+   * not count as their own prospect.
+   */
+  ownerDevice?: boolean;
 };
 
 /**
  * True only for a genuine prospect view. This is the single gate in front of
  * `record_prospect_view`, and therefore in front of `first_viewed_at`.
  */
-export function shouldRecordTap({ audience, userAgent, firstInWindow }: TapContext): boolean {
+export function shouldRecordTap({
+  audience,
+  userAgent,
+  firstInWindow,
+  ownerDevice = false,
+}: TapContext): boolean {
   // The rep tapping their own card before handover is not a tap. Neither is a
   // miss, which has no session to record against.
   if (audience !== 'prospect') return false;
+
+  // The owner's phone, signed out. The prospect view renders (they cannot be
+  // shown the rep controls without a session), but it is still a self-tap.
+  if (ownerDevice) return false;
 
   // Crawlers and link unfurlers are not people. Counting a Slack preview would
   // mark the session viewed when nobody has looked at it.

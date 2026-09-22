@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 
 /**
  * Proxy (what Next.js called middleware before 16).
@@ -79,6 +80,18 @@ export async function proxy(request: NextRequest) {
     url.pathname = '/dashboard';
     url.search = '';
     return NextResponse.redirect(url);
+  }
+
+  // Mark this browser as the rep's, so a later tap on their own card does not
+  // count as a prospect view even once the session has expired (§10.4).
+  if (user && request.cookies.get(REP_DEVICE_COOKIE)?.value !== user.id) {
+    response.cookies.set(REP_DEVICE_COOKIE, user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 400 * 24 * 60 * 60, // the longest browsers allow
+    });
   }
 
   return response;
