@@ -16,6 +16,8 @@ export type OutgoingEmail = {
   subject: string;
   text: string;
   html: string;
+  /** Where a reply goes — the rep, for anything a prospect receives. */
+  replyTo?: string;
   /**
    * Resend drops a second send with the same key for 24 hours. A job retried
    * after the send succeeded, but before it was checkpointed, cannot email twice.
@@ -26,6 +28,11 @@ export type OutgoingEmail = {
 export type SendResult = 'sent' | 'skipped';
 
 export type Mailer = (email: OutgoingEmail) => Promise<SendResult>;
+
+/** Whether a send would actually go out. Pages hide what would only be skipped. */
+export function emailConfigured(): boolean {
+  return Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
+}
 
 let client: Resend | null = null;
 
@@ -50,6 +57,7 @@ export const sendEmail: Mailer = async (email) => {
       subject: email.subject,
       text: email.text,
       html: email.html,
+      ...(email.replyTo ? { replyTo: email.replyTo } : {}),
     },
     { idempotencyKey: email.idempotencyKey },
   );

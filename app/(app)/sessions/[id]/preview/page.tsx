@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProspectView } from '@/app/c/[code]/prospect-view';
-import { previewForRep } from '@/lib/db/landing';
+import { previewForRep, shownPitch } from '@/lib/db/landing';
 import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
-import { templatePitch } from '@/lib/domain/pitch';
 import { PitchTools } from './pitch-tools';
 
 export const metadata = { title: 'Preview', robots: { index: false, follow: false } };
@@ -27,23 +26,10 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
   const resolved = await previewForRep(rep.userId, id);
   if (!resolved) notFound();
 
-  const { session, view, business, eventName } = resolved;
-  const repFirstName = resolved.rep.fullName.trim().split(/\s+/)[0] ?? resolved.rep.fullName;
+  const { session } = resolved;
 
   // What is on the page right now — the starting point for an edit.
-  const shownPitch =
-    view.state === 'completed'
-      ? view.pitch
-      : templatePitch({
-          prospectName: session.prospect_name,
-          prospectCompany: session.prospect_company,
-          problems: session.problems,
-          customProblems: session.custom_problems,
-          repName: repFirstName,
-          businessName: business?.companyName ?? null,
-          services: business?.services ?? [],
-          eventName,
-        });
+  const pitchOnPage = shownPitch(resolved);
 
   // The rep's judgement of the pitch the model wrote, if they have given one.
   const { data: rating } = session.generated_pitch
@@ -76,7 +62,7 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
 
       <PitchTools
         sessionId={session.id}
-        shownPitch={shownPitch}
+        shownPitch={pitchOnPage}
         edited={Boolean(session.rep_pitch)}
         canRate={Boolean(session.generated_pitch)}
         rating={rating ? { rating: rating.rating, reason: rating.reason } : null}

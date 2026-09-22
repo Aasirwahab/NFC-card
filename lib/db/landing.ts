@@ -2,6 +2,7 @@ import 'server-only';
 import { decideAudience } from '@/lib/domain/audience';
 import { viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
+import { templatePitch } from '@/lib/domain/pitch';
 import { serviceClient } from './service';
 import type { Row } from './types';
 
@@ -186,7 +187,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   return prospectView(code, session);
 }
 
-type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
+export type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
 
 /**
  * Everything around the session that the prospect page shows. Shared by the real
@@ -320,4 +321,26 @@ export async function contactForCode(code: string): Promise<ContactCard | null> 
     website: business?.website ?? null,
     note: event?.name ? `Met at ${event.name}` : null,
   };
+}
+
+/**
+ * The pitch text the prospect page is showing right now: the rep's edit, the
+ * researched pitch, or the template. Shared by the rep's preview (the starting
+ * point for an edit) and "email me this page", so both say what the page says.
+ */
+export function shownPitch(resolved: ProspectResolved): string {
+  if (resolved.view.state === 'completed') return resolved.view.pitch;
+
+  const { session, business, eventName, rep } = resolved;
+  const repFirstName = rep.fullName.trim().split(/\s+/)[0] || rep.fullName;
+  return templatePitch({
+    prospectName: session.prospect_name,
+    prospectCompany: session.prospect_company,
+    problems: session.problems,
+    customProblems: session.custom_problems,
+    repName: repFirstName,
+    businessName: business?.companyName ?? null,
+    services: business?.services ?? [],
+    eventName,
+  });
 }

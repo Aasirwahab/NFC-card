@@ -4,9 +4,11 @@ import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
 import { callToAction, greeting, primaryProblem, templatePitch } from '@/lib/domain/pitch';
+import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
 import { ChatWidget } from './chat-widget';
+import { EmailMe } from './email-me';
 import { Crafting } from './crafting';
 
 /**
@@ -92,6 +94,9 @@ export function ProspectView({
               link={bookingLink}
               preview={preview}
             />
+          ) : null}
+          {emailConfigured() && !preview ? (
+            <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
           ) : null}
         </CallToActionBlock>
 
@@ -265,7 +270,6 @@ function CallToActionBlock({
         {repName} will come prepared — no pitch deck, no discovery call before the discovery call.
       </p>
       {children}
-      {/* TODO(phase 5): email capture (§19.2) mounts here. The chat widget (§18) floats. */}
     </section>
   );
 }
