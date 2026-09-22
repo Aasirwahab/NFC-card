@@ -87,6 +87,18 @@ describe('templatePitch (§16, the `failed` state)', () => {
     expect(templatePitch(base)).toContain('idle machine tracking');
   });
 
+  it('lowercases service labels mid-sentence, but keeps acronyms', () => {
+    // Services are stored as labels. "TMA does Plant hire automation" reads as a
+    // template, which is the one thing the failed state must not look like.
+    const pitch = templatePitch({
+      ...base,
+      services: ['Plant hire automation', 'IMO reporting', 'Maritime compliance'],
+    });
+    expect(pitch).toContain(
+      'TMA does plant hire automation, IMO reporting and maritime compliance.',
+    );
+  });
+
   it('never echoes the memorable note', () => {
     // The note is not even an input to this function, which is the strongest
     // possible version of the §23.1 guarantee: it cannot leak what it cannot see.

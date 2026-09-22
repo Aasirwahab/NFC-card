@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { serviceClient } from '@/lib/db/service';
-import { checkRateLimit, clientIp } from '@/lib/security/rate-limit';
+import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 
 /**
  * GET /api/landing/[code]/status — polled by the "crafting" state (spec §15.1).
@@ -42,25 +42,35 @@ export async function GET(_request: Request, context: { params: Promise<{ code: 
   const code = normaliseCode(raw);
 
   const ip = clientIp(await headers());
-  const limit = await checkRateLimit('landingStatus', ip);
+  // Shares the page's miss budget (§22.2). Polled at 60 a minute, this route is a
+  // faster way to walk the code space than the page itself, so its misses count
+  // against the same limiter, and an IP that has spent it is refused for every code.
+  const [limit, missesLeft] = await Promise.all([
+    checkRateLimit('landingStatus', ip),
+    peekRateLimit('landingMiss', ip),
+  ]);
 
-  if (!limit.allowed) {
+  if (!limit.allowed || !missesLeft) {
     return NextResponse.json(
       { error: 'rate_limited' },
-      { status: 429, headers: { 'retry-after': String(limit.retryAfter) } },
+      { status: 429, headers: { 'retry-after': String(limit.allowed ? 60 : limit.retryAfter) } },
     );
   }
 
   // Same generic miss as the page itself: nothing here distinguishes an unknown
   // code from a known card with no live session (§22.2).
-  const miss = NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const notFound = () => NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const miss = async () => {
+    await checkRateLimit('landingMiss', ip);
+    return notFound();
+  };
 
-  if (!isValidCode(code)) return miss;
+  if (!isValidCode(code)) return miss();
 
   const db = serviceClient();
 
   const { data: card } = await db.from('cards').select('id').eq('code', code).maybeSingle();
-  if (!card) return miss;
+  if (!card) return miss();
 
   const { data: session } = await db
     .from('sessions')
@@ -69,7 +79,7 @@ export async function GET(_request: Request, context: { params: Promise<{ code: 
     .eq('status', 'active')
     .maybeSingle();
 
-  if (!session) return miss;
+  if (!session) return miss();
 
   return NextResponse.json(
     { status: publicStatus(session.enrichment_status) },

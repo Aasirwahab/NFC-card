@@ -103,6 +103,33 @@ export async function checkRateLimit(name: LimitName, key: string): Promise<Rate
 }
 
 /**
+ * Whether `key` still has budget on a limiter, WITHOUT spending any of it.
+ *
+ * The miss limiter is spent by misses and read by every request: an IP that has
+ * burned through its misses is refused for real codes too, so walking the code
+ * space stops yielding hits instead of merely being counted. Fails open, like
+ * checkRateLimit.
+ */
+export async function peekRateLimit(name: LimitName, key: string): Promise<boolean> {
+  const instance = limiter(name);
+  if (!instance) return true;
+
+  try {
+    const { remaining } = await instance.getRemaining(key);
+    return remaining > 0;
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: 'rate_limit_unavailable',
+        limit: name,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return true;
+  }
+}
+
+/**
  * The caller's IP, from the proxy headers Vercel sets.
  *
  * These headers are attacker-controlled anywhere they are not set by a trusted

@@ -273,13 +273,6 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   that gets one chance would be worse than no button.
 - Profile photos are an arbitrary URL, not an upload. §22.6's Supabase Storage
   rules apply when that changes.
-- **The miss limiter counts but never blocks.** `/c/[code]` calls
-  `checkRateLimit('landingMiss', …)` and ignores the result, so guessing codes is
-  held back only by the general 30-per-minute landing limit — weaker than §22.2
-  intends. Fix before launch.
 - **`.env.local` has a `NEXT_PUBLIC_SUPABASE_SECRET_KEY`.** Nothing reads it, so
   nothing leaks today, but the `NEXT_PUBLIC_` prefix puts it into browser code the
   moment anything does. Rename or delete it.
-- **The template pitch capitalises services mid-sentence** ("TMA does Plant hire
-  automation, Maritime…"). `templatePitch` in `lib/domain/pitch.ts` should lowercase
-  them the way it already lowercases the problem.

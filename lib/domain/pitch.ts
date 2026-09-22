@@ -108,7 +108,12 @@ export function templatePitch(input: PitchInput): string {
     sentences.push(`I wanted to follow up properly rather than leave you with a card.`);
   }
 
-  const services = input.services.map((s) => s.trim()).filter(Boolean);
+  // Services are stored as labels ("Plant hire automation") but read mid-sentence
+  // here, so they take the same lowercasing as the problem.
+  const services = input.services
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(midSentence);
   if (services.length > 0) {
     sentences.push(`${business} does ${listPhrase(services.slice(0, 3))}.`);
   } else {

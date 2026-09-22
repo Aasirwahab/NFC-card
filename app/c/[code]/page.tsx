@@ -8,7 +8,7 @@ import { resolveCode } from '@/lib/db/landing';
 import { getRep } from '@/lib/db/server';
 import { getProfile, listEvents } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
-import { checkRateLimit, clientIp } from '@/lib/security/rate-limit';
+import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 import { claimOnce } from '@/lib/security/once';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
@@ -51,8 +51,13 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
     notFound();
   }
 
-  const limit = await checkRateLimit('landing', ip);
-  if (!limit.allowed) {
+  // An IP that has spent its miss budget is refused for EVERY code, real ones
+  // included — otherwise the miss limiter only counts guesses and never stops them.
+  const [limit, missesLeft] = await Promise.all([
+    checkRateLimit('landing', ip),
+    peekRateLimit('landingMiss', ip),
+  ]);
+  if (!limit.allowed || !missesLeft) {
     // Not a 429 and not the 404: the card may be perfectly good, and a shared
     // venue or carrier IP can trip this for a real prospect. "This card is not
     // active" would get it thrown away. Says nothing about whether the code
