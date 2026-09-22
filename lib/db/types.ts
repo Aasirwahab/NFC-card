@@ -455,6 +455,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           contact_email: string | null;
+          booking_url: string | null;
         };
         Insert: {
           id: string;
@@ -467,6 +468,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           contact_email?: string | null;
+          booking_url?: string | null;
         };
         Update: {
           id?: string;
@@ -479,6 +481,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           contact_email?: string | null;
+          booking_url?: string | null;
         };
         Relationships: [
           {
@@ -759,6 +762,18 @@ export type Database = {
       record_chat_turn: {
         Args: { p_session_id: string; p_question: string; p_answer: string };
         Returns: undefined;
+      };
+      record_booking: {
+        Args: {
+          p_uid: string;
+          p_status: string;
+          p_session_id: string | null;
+          p_starts_at: string | null;
+          p_email: string | null;
+          p_name: string | null;
+          p_rescheduled_from: string | null;
+        };
+        Returns: string;
       };
       reject_enrichment: {
         Args: {

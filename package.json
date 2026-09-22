@@ -19,6 +19,7 @@
     "db:types": "tsx scripts/gen-types.ts && prettier --write --log-level warn lib/db/types.ts"
   },
   "dependencies": {
+    "@calcom/embed-react": "1.5.3",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",

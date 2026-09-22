@@ -67,6 +67,7 @@ export function ProfileForm({
     linkedin_url: string | null;
     phone: string | null;
     contact_email: string | null;
+    booking_url: string | null;
   } | null;
 }) {
   const [state, action] = useActionState(saveProfileAction, {});
@@ -106,6 +107,20 @@ export function ProfileForm({
 
         <Field label="Phone" htmlFor="phone">
           <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
+        </Field>
+
+        <Field
+          label="Booking link"
+          hint="Your Cal.com event. Prospects book straight from their page; leave it blank to hide booking."
+          htmlFor="booking_url"
+        >
+          <Input
+            id="booking_url"
+            name="booking_url"
+            type="url"
+            placeholder="https://cal.com/you/15min"
+            defaultValue={profile?.booking_url ?? ''}
+          />
         </Field>
 
         <Field

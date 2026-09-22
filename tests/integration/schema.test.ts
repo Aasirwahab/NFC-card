@@ -134,6 +134,7 @@ describe('migrations', () => {
       'claim_chat_response',
       'release_chat_response',
       'record_chat_turn',
+      'record_booking',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -658,6 +659,102 @@ describe('the chat cap (§18.1)', () => {
       { role: 'user', content: 'Does it work with our telematics?' },
       { role: 'assistant', content: 'That one is for Zaid.' },
     ]);
+  });
+});
+
+describe('record_booking (§19.1)', () => {
+  async function session() {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+    return sessionId;
+  }
+
+  const book = async (
+    uid: string,
+    status: string,
+    sessionId: string | null,
+    rescheduledFrom: string | null = null,
+  ) =>
+    (
+      await db.query<{ r: string }>(
+        `select public.record_booking($1, $2, $3, $4, $5, $6, $7) as r`,
+        [uid, status, sessionId, '2026-09-24T10:00:00Z', 'tom@example.com', 'Tom', rescheduledFrom],
+      )
+    ).rows[0]!.r;
+
+  const events = async (sessionId: string) =>
+    (
+      await db.query<{ type: string }>(
+        `select type from public.session_events
+          where session_id = $1 and type like 'booking_%' order by id`,
+        [sessionId],
+      )
+    ).rows.map((r) => r.type);
+
+  it('does not duplicate a replayed delivery', async () => {
+    const sessionId = await session();
+    const uid = `bk_${crypto.randomUUID()}`;
+
+    expect(await book(uid, 'confirmed', sessionId)).toBe('created');
+    expect(await book(uid, 'confirmed', sessionId)).toBe('unchanged');
+
+    const { rows } = await db.query<{ n: number }>(
+      `select count(*)::int as n from public.bookings where provider_event_id = $1`,
+      [uid],
+    );
+    expect(rows[0]!.n).toBe(1);
+    expect(await events(sessionId)).toEqual(['booking_created']);
+  });
+
+  it('updates status on a cancellation rather than deleting', async () => {
+    const sessionId = await session();
+    const uid = `bk_${crypto.randomUUID()}`;
+    await book(uid, 'confirmed', sessionId);
+    expect(await book(uid, 'cancelled', null)).toBe('updated');
+
+    const { rows } = await db.query<{ status: string; session_id: string }>(
+      `select status, session_id from public.bookings where provider_event_id = $1`,
+      [uid],
+    );
+    // The link survives a delivery that did not carry the metadata.
+    expect(rows[0]).toEqual({ status: 'cancelled', session_id: sessionId });
+    expect(await events(sessionId)).toEqual(['booking_created', 'booking_cancelled']);
+  });
+
+  it('marks the original booking rescheduled', async () => {
+    const sessionId = await session();
+    const first = `bk_${crypto.randomUUID()}`;
+    const second = `bk_${crypto.randomUUID()}`;
+    await book(first, 'confirmed', sessionId);
+    await book(second, 'confirmed', sessionId, first);
+
+    const { rows } = await db.query<{ provider_event_id: string; status: string }>(
+      `select provider_event_id, status from public.bookings
+        where provider_event_id = any($1) order by created_at, provider_event_id`,
+      [[first, second]],
+    );
+    expect(Object.fromEntries(rows.map((r) => [r.provider_event_id, r.status]))).toEqual({
+      [first]: 'rescheduled',
+      [second]: 'confirmed',
+    });
+  });
+
+  it('keeps a booking whose session id names no real session, unlinked', async () => {
+    const uid = `bk_${crypto.randomUUID()}`;
+    expect(await book(uid, 'confirmed', crypto.randomUUID())).toBe('created');
+    const { rows } = await db.query<{ session_id: string | null }>(
+      `select session_id from public.bookings where provider_event_id = $1`,
+      [uid],
+    );
+    expect(rows[0]!.session_id).toBeNull();
   });
 });
 

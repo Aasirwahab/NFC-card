@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
+import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
 import { callToAction, greeting, primaryProblem, templatePitch } from '@/lib/domain/pitch';
 import { env } from '@/lib/env';
+import { Booking } from './booking';
 import { ChatWidget } from './chat-widget';
 import { Crafting } from './crafting';
 
@@ -45,6 +47,8 @@ export function ProspectView({
   };
 
   const fallbackPitch = templatePitch(pitchInput);
+  // No link, no button: a dead button on this page is worse than none (§16).
+  const bookingLink = parseBookingUrl(rep.bookingUrl);
   const cta = callToAction({
     problems: session.problems,
     customProblems: session.custom_problems,
@@ -79,7 +83,17 @@ export function ProspectView({
           <SolutionPoints services={business.services} companyName={business.companyName} />
         ) : null}
 
-        <CallToActionBlock label={cta} repName={firstName(rep.fullName)} />
+        <CallToActionBlock label={cta} repName={firstName(rep.fullName)}>
+          {bookingLink ? (
+            <Booking
+              code={code}
+              sessionId={session.id}
+              prospectName={session.prospect_name}
+              link={bookingLink}
+              preview={preview}
+            />
+          ) : null}
+        </CallToActionBlock>
 
         <SaveContact code={code} repName={firstName(rep.fullName)} />
 
@@ -229,11 +243,19 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
 /**
  * The CTA (§16, §5.5). Problem-specific text, never "Book a demo".
  *
- * The booking embed and the chat widget arrive in Phase 5. Until then this block
- * carries the CTA label and nothing that pretends to work — a dead button on the
- * one page that gets one chance would be worse than no button.
+ * Carries the rep's booking calendar when they have set a Cal.com link, and
+ * nothing that pretends to work when they have not — a dead button on the one
+ * page that gets one chance would be worse than no button.
  */
-function CallToActionBlock({ label, repName }: { label: string; repName: string }) {
+function CallToActionBlock({
+  label,
+  repName,
+  children,
+}: {
+  label: string;
+  repName: string;
+  children?: React.ReactNode;
+}) {
   return (
     <section className="border-accent-soft bg-surface shadow-card mt-8 rounded-xl border p-5">
       <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
@@ -242,8 +264,8 @@ function CallToActionBlock({ label, repName }: { label: string; repName: string 
       <p className="text-ink-2 mt-1.5 text-sm">
         {repName} will come prepared — no pitch deck, no discovery call before the discovery call.
       </p>
-      {/* TODO(phase 5): Cal.com embed with metadata.session_id prefilled (§19.1)
-          and email capture (§19.2) mount here. The chat widget (§18) floats. */}
+      {children}
+      {/* TODO(phase 5): email capture (§19.2) mounts here. The chat widget (§18) floats. */}
     </section>
   );
 }
