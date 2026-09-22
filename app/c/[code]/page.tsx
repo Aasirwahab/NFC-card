@@ -10,6 +10,7 @@ import { getProfile, listEvents } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 import { claimOnce } from '@/lib/security/once';
+import { kickWorkers } from '@/lib/jobs/kick';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
 import { Unavailable } from './unavailable';
@@ -120,7 +121,7 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
     // to be asserted somewhere a test can reach (§10.4).
     if (!shouldRecordTap({ audience: 'prospect', userAgent, firstInWindow, ownerDevice })) return;
 
-    const { error } = await serviceClient().rpc('record_prospect_view', {
+    const { data: wasFirst, error } = await serviceClient().rpc('record_prospect_view', {
       p_session_id: sessionId,
     });
 
@@ -128,6 +129,24 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
       console.error(
         JSON.stringify({ event: 'record_view_failed', sessionId, error: error.message }),
       );
+      return;
+    }
+
+    // The first view queued the rep's tap alert. Start a worker now, so the
+    // alert lands while the prospect is still reading; the cron sweep covers a
+    // missed kick within a minute (§13).
+    if (wasFirst) {
+      try {
+        await kickWorkers();
+      } catch (kickError) {
+        console.error(
+          JSON.stringify({
+            event: 'kick_failed',
+            sessionId,
+            error: kickError instanceof Error ? kickError.message : String(kickError),
+          }),
+        );
+      }
     }
   });
 

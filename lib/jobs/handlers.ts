@@ -3,6 +3,8 @@ import { pitchUsesMock } from '@/lib/ai/models';
 import { productionEnrichDeps } from '@/lib/enrich/deps';
 import { createEnrichHandler } from '@/lib/enrich/pipeline';
 import { env } from '@/lib/env';
+import { productionNotifyTapDeps } from '@/lib/notify/deps';
+import { createNotifyTapHandler } from '@/lib/notify/tap';
 import type { Handlers } from './types';
 
 /**
@@ -28,6 +30,16 @@ if (!enrichEnabled) {
   );
 }
 
+/**
+ * `notify_tap` — "Tom just opened your card" (Phase 5). Always registered: with
+ * no Resend key the send is logged and skipped, so it never needs gating.
+ */
+const notifyTap: Handlers[string] = (context) =>
+  createNotifyTapHandler(productionNotifyTapDeps())(context);
+
 export const handlers: Handlers = enrichEnabled
-  ? { enrich: (context) => createEnrichHandler(productionEnrichDeps())(context) }
-  : {};
+  ? {
+      enrich: (context) => createEnrichHandler(productionEnrichDeps())(context),
+      notify_tap: notifyTap,
+    }
+  : { notify_tap: notifyTap };

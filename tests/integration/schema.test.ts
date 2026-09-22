@@ -580,6 +580,42 @@ describe('record_prospect_view (§10.4)', () => {
   });
 });
 
+describe('the tap alert (Phase 5)', () => {
+  it('queues exactly one notify_tap job, on the first real view only', async () => {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+
+    for (let i = 0; i < 3; i++) {
+      await db.query(`select public.record_prospect_view($1)`, [sessionId]);
+    }
+
+    const { rows } = await db.query<{ n: number; user_id: string }>(
+      `select count(*)::int as n, min(user_id::text) as user_id from public.jobs
+        where session_id = $1 and type = 'notify_tap'`,
+      [sessionId],
+    );
+    expect(rows[0]!.n).toBe(1);
+    expect(rows[0]!.user_id).toBe(fx.userId);
+  });
+
+  it('queues nothing for a session that does not exist', async () => {
+    const missing = crypto.randomUUID();
+    const { rows } = await db.query<{ record_prospect_view: boolean }>(
+      `select public.record_prospect_view($1)`,
+      [missing],
+    );
+    expect(rows[0]!.record_prospect_view).toBe(false);
+  });
+});
+
 describe('complete_enrichment (§12.3)', () => {
   it('is a no-op on replay', async () => {
     const fx = await seedFixture(db);

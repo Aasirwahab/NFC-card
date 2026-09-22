@@ -68,6 +68,8 @@ export const serverEnvSchema = z
 
     // Phase 5 — email and booking.
     RESEND_API_KEY: blankAsUnset(z.string().optional()),
+    /** The sender, e.g. "TapLead <alerts@taplead.app>". Required with a Resend key. */
+    EMAIL_FROM: blankAsUnset(z.string().optional()),
     CAL_WEBHOOK_SECRET: blankAsUnset(z.string().optional()),
 
     // Queue tuning, changeable without a code change (§25.3).
@@ -95,6 +97,15 @@ export const serverEnvSchema = z
         path: ['MODEL_API_KEY'],
         message:
           'required when any of MODEL_PITCH, MODEL_CHAT or MODEL_RESEARCH is a real model id',
+      });
+    }
+
+    // Same reasoning: a key with no sender boots fine and fails on the first alert.
+    if (vars.RESEND_API_KEY && !vars.EMAIL_FROM) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_FROM'],
+        message: 'required when RESEND_API_KEY is set, e.g. "TapLead <alerts@taplead.app>"',
       });
     }
   });

@@ -35,6 +35,17 @@ describe('server environment (§22.3)', () => {
     expect(serverEnvSchema.safeParse({ ...valid, CRON_SECRET: 'short' }).success).toBe(false);
   });
 
+  it('refuses a Resend key with no sender, rather than failing on the first alert', () => {
+    expect(serverEnvSchema.safeParse({ ...valid, RESEND_API_KEY: 're_123' }).success).toBe(false);
+    expect(
+      serverEnvSchema.safeParse({
+        ...valid,
+        RESEND_API_KEY: 're_123',
+        EMAIL_FROM: 'TapLead <alerts@taplead.app>',
+      }).success,
+    ).toBe(true);
+  });
+
   it('rejects a malformed URL rather than booting half-configured', () => {
     expect(serverEnvSchema.safeParse({ ...valid, SUPABASE_URL: 'not-a-url' }).success).toBe(false);
   });
