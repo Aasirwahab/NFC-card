@@ -21,6 +21,19 @@ Founders, CEOs, managing partners and top closers who refuse to be average and a
 - **Motion:** near zero. Slow fades on scroll; nothing bounces, counts up or pulses.
 - **Mobile first.** Most visitors arrive from a card on their phone.
 
+## Pages to take inspiration from
+
+Borrow the specific thing listed from each, not the whole look.
+
+| Site                                           | Take this                                                                                                           | Don't take                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [linear.app](https://linear.app)               | The discipline: dark base, hairline borders, tight headline type, a lot of space, one idea per section              | The product-UI screenshots and feature grids                           |
+| [rolex.com](https://www.rolex.com)             | Macro product photography (texture, edge, light), slow unhurried scroll, serif headlines, almost no copy per screen | The heritage storytelling length                                       |
+| [astonmartin.com](https://www.astonmartin.com) | Dark luxury restraint, one accent colour, imagery that does the talking                                             | Autoplay video and heavy motion                                        |
+| [remarkable.com](https://remarkable.com)       | The physical-to-screen bridge: the object shown next to what it produces, in one frame                              | The bright, light palette                                              |
+| [v1ce.co.uk](https://v1ce.co.uk)               | How a card and a phone are shown together (the card beside the screen it opens)                                     | Everything else; it's a competitor selling the card, we sell the brief |
+| [clay.com](https://www.clay.com)               | **Later, not v1:** the live demo where a visitor types something and watches the result form                        | Its colourful, busy style                                              |
+
 ## Sections and copy (final unless the design needs a change)
 
 ### 1. Navigation
