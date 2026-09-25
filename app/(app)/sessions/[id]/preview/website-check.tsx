@@ -9,18 +9,20 @@ import { apiSend } from '@/lib/http/client';
 /**
  * "Is this their website?" (2026-09-25 review).
  *
- * Shown only when the pipeline GUESSED the prospect's site from the company name.
+ * Shown when the pipeline GUESSED the prospect's site from the company name, or
+ * found none at all (domain null) — then it asks for the website instead.
  * A common name matches many companies, so the guessed site's facts are held
  * back from the page until the rep says yes. Ignoring this is safe: the pitch
  * stays written from the conversation alone.
  */
-export function WebsiteCheck({ sessionId, domain }: { sessionId: string; domain: string }) {
+export function WebsiteCheck({ sessionId, domain }: { sessionId: string; domain: string | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
+    if (!domain) return;
     setBusy(true);
     setError(null);
     try {
@@ -39,6 +41,27 @@ export function WebsiteCheck({ sessionId, domain }: { sessionId: string; domain:
       <p className="bg-surface border-line text-ink-2 mt-5 rounded-2xl border p-4 text-[14px]">
         Thanks. Rewriting the pitch with what {domain} says. This takes about a minute.
       </p>
+    );
+  }
+
+  if (!domain) {
+    // Nothing to research: no work email, no website, no site that names the
+    // company. The pitch is already written from the problem they raised; a
+    // website turns it into a researched one.
+    return (
+      <div className="bg-surface border-line mt-5 rounded-2xl border p-4">
+        <p className="text-ink text-[15px] font-semibold">We couldn&rsquo;t find their website</p>
+        <p className="text-ink-2 mt-1 text-[13px] leading-snug">
+          The pitch is written from the problem they mentioned. Add their website or full company
+          name and it&rsquo;s rewritten with real facts about their business.
+        </p>
+        <Link
+          href={`/sessions/${sessionId}/edit`}
+          className="text-ink mt-3 inline-block text-[14px] font-semibold underline underline-offset-2"
+        >
+          Add their website
+        </Link>
+      </div>
     );
   }
 

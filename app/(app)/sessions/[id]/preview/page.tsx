@@ -57,6 +57,8 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
     research?.domainSource === 'guess' && typeof research.domain === 'string'
       ? research.domain
       : null;
+  // Enrichment ran and found no site to research at all.
+  const noSite = research !== null && !research.domain;
 
   const who = session.prospect_name?.trim().split(/\s+/)[0] ?? 'your prospect';
 
@@ -76,7 +78,7 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
         A preview. Opening it here does not count as {who} looking.
       </p>
 
-      {guessedSite ? <WebsiteCheck sessionId={session.id} domain={guessedSite} /> : null}
+      {guessedSite || noSite ? <WebsiteCheck sessionId={session.id} domain={guessedSite} /> : null}
 
       <PitchTools
         sessionId={session.id}
