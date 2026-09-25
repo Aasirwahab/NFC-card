@@ -61,6 +61,11 @@ A 20-scenario walkthrough of real event conditions found three things that break
    - Confirming a website from the preview, then saving a stale details form from another tab, erases the website.
 5. **The copy-ready LinkedIn follow-up message** for prospects who haven't tapped is left for your Phase 7 (§19.3 no-tap follow-up); this branch only adds the connect button.
 
+## Ideas for after the pilot (from the research notes)
+
+- **Voice note instead of typing (your Phase 9).** Reps typing on a loud floor is the biggest adoption risk. If the pilot shows a low details-completed rate, consider pulling it forward.
+- **Claim a whole card pack in one tap.** Hand-encoding cards for every new customer won't scale. Cards could ship pre-encoded with a batch id, and the customer taps the first card to claim the whole pack to their account.
+
 ## Flags (low priority, your call)
 
 - Your local `.env.local` has `NEXT_PUBLIC_SUPABASE_SECRET_KEY` (your README notes it). Rename or delete it before anything reads it. **This repository is public**; consider making it private, and keep secrets out of any committed file.
