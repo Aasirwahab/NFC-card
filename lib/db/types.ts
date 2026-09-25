@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 13 tables by scripts/gen-types.ts.
+ * Generated from 14 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -205,6 +205,32 @@ export type Database = {
             columns: ['session_id'];
             isOneToOne: false;
             referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      event_digests: {
+        Row: {
+          event_id: string;
+          round: number;
+          queued_at: string;
+        };
+        Insert: {
+          event_id: string;
+          round: number;
+          queued_at?: string;
+        };
+        Update: {
+          event_id?: string;
+          round?: number;
+          queued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'event_digests_event_id_fkey';
+            columns: ['event_id'];
+            isOneToOne: false;
+            referencedRelation: 'events';
             referencedColumns: ['id'];
           },
         ];
@@ -687,6 +713,10 @@ export type Database = {
       save_session_details: {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
       };
       confirm_prospect_website: {
         Args: { p_session_id: string; p_user_id: string; p_website: string };

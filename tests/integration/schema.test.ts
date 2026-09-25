@@ -34,6 +34,7 @@ describe('migrations', () => {
       'card_batches',
       'cards',
       'chat_messages',
+      'event_digests',
       'events',
       'followup_drafts',
       'jobs',
@@ -135,6 +136,8 @@ describe('migrations', () => {
       'release_chat_response',
       'record_chat_turn',
       'record_booking',
+      'confirm_prospect_website',
+      'queue_event_digests',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -1055,5 +1058,52 @@ describe('the rep sees the pitch first (§14.5)', () => {
     await expect(
       db.query(`select * from public.rate_pitch($1, $2, 5::smallint, null)`, [sessionId, userId]),
     ).rejects.toThrow();
+  });
+});
+
+describe('queue_event_digests (morning-after email)', () => {
+  async function eventWithCard(eventDate: string) {
+    const fx = await seedFixture(db, { cards: 1 });
+    await db.query(`update public.events set event_date = $1 where id = $2`, [
+      eventDate,
+      fx.eventId,
+    ]);
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, null)`, [
+      crypto.randomUUID(),
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+    ]);
+    return fx;
+  }
+
+  async function digestJobs(eventId: string) {
+    const { rows } = await db.query<{ round: number }>(
+      `select (payload->>'round')::int as round from public.jobs
+        where type = 'event_digest' and payload->>'event_id' = $1 order by 1`,
+      [eventId],
+    );
+    return rows.map((r) => r.round);
+  }
+
+  it('queues round 1 at 08:00 London the morning after, exactly once', async () => {
+    const fx = await eventWithCard('2026-10-05');
+
+    await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T06:59:00Z']);
+    expect(await digestJobs(fx.eventId)).toEqual([]); // 07:59 BST — not yet
+
+    await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T07:00:00Z']);
+    await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T07:01:00Z']);
+    expect(await digestJobs(fx.eventId)).toEqual([1]);
+
+    await db.query(`select public.queue_event_digests($1)`, ['2026-10-07T07:00:00Z']);
+    expect(await digestJobs(fx.eventId)).toEqual([1, 2]);
+  });
+
+  it('never mails about an event that is long past', async () => {
+    const fx = await eventWithCard('2026-01-10');
+    await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T07:00:00Z']);
+    expect(await digestJobs(fx.eventId)).toEqual([]);
   });
 });
