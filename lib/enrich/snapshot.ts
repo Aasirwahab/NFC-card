@@ -21,6 +21,7 @@ export const snapshotSchema = z.object({
     prospect_name: text,
     prospect_company: text,
     prospect_email: text,
+    prospect_website: text.optional().catch(null),
     niche: text,
     problems: z.array(z.string()).catch([]),
     custom_problems: text,

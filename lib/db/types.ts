@@ -564,6 +564,7 @@ export type Database = {
           rep_pitch_edited_at: string | null;
           generated_pitch_prompt: string | null;
           first_view_source: string | null;
+          prospect_website: string | null;
         };
         Insert: {
           id: string;
@@ -603,6 +604,7 @@ export type Database = {
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
+          prospect_website?: string | null;
         };
         Update: {
           id?: string;
@@ -642,6 +644,7 @@ export type Database = {
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
+          prospect_website?: string | null;
         };
         Relationships: [
           {
@@ -685,12 +688,16 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
+      confirm_prospect_website: {
+        Args: { p_session_id: string; p_user_id: string; p_website: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
       void_session: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       record_prospect_view: {
-        Args: { p_session_id: string };
+        Args: { p_session_id: string; p_source?: 'nfc' | 'qr' };
         Returns: boolean;
       };
       claim_jobs: {

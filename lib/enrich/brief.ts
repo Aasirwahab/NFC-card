@@ -89,7 +89,10 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
       pricing: pricingText(snapshot),
       knowledge: knowledgeText(snapshot),
     },
-    facts: research.facts,
+    // An unconfirmed guess may be a different company with the same name. Its
+    // facts wait for the rep's "yes, that's their site" in the preview; until
+    // then the pitch is written from the conversation alone.
+    facts: research.domainSource === 'guess' ? [] : research.facts,
     eventName: snapshot.event?.name?.trim() || null,
     cta: callToAction({
       problems: session.problems,

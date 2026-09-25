@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CODE_ALPHABET, CODE_LENGTH } from '@/lib/domain/codes';
+import { domainFromWebsite } from '@/lib/enrich/domain';
 
 /**
  * The boundary schemas for capture (spec §15.4).
@@ -65,6 +66,21 @@ const optionalUrl = z
   });
 
 /**
+ * The prospect's website as a rep types it: "abc.co.uk", "www.abc.co.uk" or a
+ * full URL. Stored as the bare host, which is what the pipeline fetches.
+ */
+const optionalWebsite = z
+  .string()
+  .trim()
+  .transform((value) => (value === '' ? null : value))
+  .nullable()
+  .default(null)
+  .transform((value) => (value === null ? null : (domainFromWebsite(value) ?? value)))
+  .refine((value) => value === null || domainFromWebsite(value) === value, {
+    message: 'Enter their website, like abcservices.co.uk',
+  });
+
+/**
  * PATCH /api/sessions/[id] — phase two of capture (§10.2).
  *
  * Every field is optional because registration happens before the prospect
@@ -76,6 +92,8 @@ export const sessionDetailsSchema = z.object({
   prospect_company: optionalText(160),
   prospect_email: optionalEmail,
   prospect_phone: optionalText(40),
+  /** Beats the email domain and any guess when deciding what to research. */
+  prospect_website: optionalWebsite,
   linkedin_url: optionalUrl,
   niche: optionalText(80),
   /** Quick-select problems from the event's niche configuration (§3). */
@@ -141,4 +159,13 @@ export const repPitchSchema = z.object({
 export const pitchRatingSchema = z.object({
   rating: z.union([z.literal(1), z.literal(-1)]),
   reason: z.string().trim().max(500).optional(),
+});
+
+/** POST /api/sessions/[id]/website — the rep confirms the suggested site. */
+export const confirmWebsiteSchema = z.object({
+  website: z
+    .string()
+    .trim()
+    .transform((value) => domainFromWebsite(value))
+    .refine((value): value is string => value !== null, { message: 'Not a valid website.' }),
 });

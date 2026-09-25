@@ -291,6 +291,71 @@ describe('the happy path', () => {
   });
 });
 
+describe('the wrong-company guard (2026-09-25 review)', () => {
+  const HARBOURLINE = {
+    'https://harbourlineshipping.co.uk/':
+      '<p>Harbourline Shipping moves bulk cargo through six UK ports every week.</p>',
+  };
+
+  it('keeps a guessed site out of the pitch until the rep confirms it', async () => {
+    const { sessionId, userId } = await prospect({
+      prospect_company: 'Harbourline Shipping Ltd',
+      prospect_email: 'tom@gmail.com',
+    });
+
+    await drain(runner(deps(HARBOURLINE)), 5);
+
+    const guessed = await session(sessionId);
+    expect(guessed.enrichment_status).toBe('completed');
+    // Researched and kept, so the rep can be asked about it...
+    expect(guessed.research).toMatchObject({ domainSource: 'guess' });
+    expect(guessed.research!.facts.length).toBeGreaterThan(0);
+    // ...but a same-named stranger's facts never reach the prospect.
+    expect(guessed.generated_pitch).not.toMatch(/six UK ports/i);
+
+    // The rep taps "Yes, use it" in the preview.
+    await db.query(`select * from public.confirm_prospect_website($1, $2, $3)`, [
+      sessionId,
+      userId,
+      'harbourlineshipping.co.uk',
+    ]);
+    const { rows } = await db.query<{ id: string }>(
+      `select id from public.jobs where session_id = $1 and status = 'queued'`,
+      [sessionId],
+    );
+    expect(rows).toHaveLength(1);
+
+    await drain(runner(deps(HARBOURLINE)), 5);
+
+    const confirmed = await session(sessionId);
+    expect(confirmed.research).toMatchObject({
+      domain: 'harbourlineshipping.co.uk',
+      domainSource: 'website',
+    });
+    // Confirmed, the same fact is now allowed into the pitch.
+    expect(confirmed.generated_pitch).toMatch(/six UK ports/i);
+  });
+
+  it('researches the website the rep typed, ahead of the email domain and any guess', async () => {
+    const web = deps({
+      ...HARBOURLINE,
+      'https://buildrite.co.uk/': BUILDRITE_HOME,
+    });
+    const { sessionId } = await prospect({
+      prospect_company: 'Harbourline Shipping',
+      prospect_email: 'tom@buildrite.co.uk',
+      prospect_website: 'harbourlineshipping.co.uk',
+    });
+
+    await drain(runner(web), 5);
+
+    expect((await session(sessionId)).research).toMatchObject({
+      domain: 'harbourlineshipping.co.uk',
+      domainSource: 'website',
+    });
+  });
+});
+
 describe('untrusted research output (§22.5)', () => {
   it('keeps only facts quoted from the page — invented and injected ones are dropped', async () => {
     // A page with an instruction planted in its VISIBLE text, which survives

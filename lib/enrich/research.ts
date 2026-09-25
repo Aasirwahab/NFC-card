@@ -45,7 +45,8 @@ export type ResearchOutput = z.infer<typeof researchOutputSchema>;
 /** What step 3 checkpoints and the commit stores in sessions.research. */
 export type Research = {
   domain: string | null;
-  domainSource: 'email' | 'guess' | null;
+  /** 'website' = typed or confirmed by the rep; 'guess' = unconfirmed, never shown. */
+  domainSource: 'website' | 'email' | 'guess' | null;
   pages: string[];
   summary: string | null;
   /** Verified facts only. */

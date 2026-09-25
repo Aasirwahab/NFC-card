@@ -3,6 +3,7 @@ import {
   candidateDomains,
   companyKey,
   domainFromEmail,
+  domainFromWebsite,
   pageNamesCompany,
 } from '@/lib/enrich/domain';
 import { htmlToText } from '@/lib/enrich/html';
@@ -89,6 +90,26 @@ describe('domain resolution (step 1)', () => {
 
   it('does not treat a short single word as evidence', () => {
     expect(pageNamesCompany('Apex', 'Apex is here')).toBe(false);
+  });
+});
+
+describe('domainFromWebsite — what a rep types into "Their website"', () => {
+  it('reduces every way of writing a site to its host', () => {
+    for (const input of [
+      'abcservices.co.uk',
+      'www.abcservices.co.uk',
+      'https://www.abcservices.co.uk/about',
+      'HTTP://ABCSERVICES.CO.UK',
+      '  abcservices.co.uk/  ',
+    ]) {
+      expect(domainFromWebsite(input)).toBe('abcservices.co.uk');
+    }
+  });
+
+  it('refuses anything that is not a public company site', () => {
+    for (const input of ['', 'abc', 'gmail.com', 'not a website', 'https://', null]) {
+      expect(domainFromWebsite(input)).toBeNull();
+    }
   });
 });
 
