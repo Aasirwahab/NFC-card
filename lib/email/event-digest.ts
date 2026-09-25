@@ -52,7 +52,11 @@ export function eventDigestEmail(input: EventDigestInput): Email {
         ? `${input.eventName}: ${input.opened} opened, ${plural(missing, 'card needs', 'cards need')} details`
         : `${input.eventName}: ${input.opened} of ${input.handedOut} opened so far`;
 
-  const results = `${plural(input.handedOut, 'card', 'cards')} handed out · ${input.opened} opened · ${plural(input.booked, 'meeting', 'meetings')} booked`;
+  // "Registered", not "handed out": cards can be activated before the event, and
+  // some of those never leave the rep's hand.
+  const results = `${plural(input.handedOut, 'card', 'cards')} registered · ${input.opened} opened · ${plural(input.booked, 'meeting', 'meetings')} booked`;
+  const releaseHint =
+    'Didn’t hand some of these out? Tap each one and release it for your next event.';
 
   const lines = [
     `Hi ${input.repFirstName},`,
@@ -66,6 +70,8 @@ export function eventDigestEmail(input: EventDigestInput): Email {
     lines.push(
       `${plural(missing, 'card still needs', 'cards still need')} details. Until you add them, those people see a general page instead of one written for them:`,
       ...input.needsDetails.map((card) => `  • ${cardLabel(card)}`),
+      '',
+      releaseHint,
       '',
     );
   }
@@ -82,7 +88,8 @@ export function eventDigestEmail(input: EventDigestInput): Email {
     `<p>${escapeHtml(input.round === 2 ? `A last nudge about ${input.eventName}.` : `How ${input.eventName} went:`)}<br><strong>${escapeHtml(results)}</strong></p>`,
     missing > 0
       ? `<p>${escapeHtml(plural(missing, 'card still needs', 'cards still need'))} details. Until you add them, those people see a general page instead of one written for them:</p>` +
-        `<ul>${input.needsDetails.map((card) => `<li>${escapeHtml(cardLabel(card))}</li>`).join('')}</ul>`
+        `<ul>${input.needsDetails.map((card) => `<li>${escapeHtml(cardLabel(card))}</li>`).join('')}</ul>` +
+        `<p style="color:#6b7977">${escapeHtml(releaseHint)}</p>`
       : '',
     input.noChannel > 0
       ? `<p>${escapeHtml(plural(input.noChannel, 'person has', 'people have'))} no email or LinkedIn saved — if they never tap, you have no way to follow up.</p>`

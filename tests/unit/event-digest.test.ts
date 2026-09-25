@@ -66,10 +66,12 @@ describe('eventDigestEmail', () => {
     });
 
     expect(email.subject).toBe('Plant Hire Expo: 4 opened, 2 cards need details');
-    expect(email.text).toContain('15 cards handed out · 4 opened · 2 meetings booked');
+    expect(email.text).toContain('15 cards registered · 4 opened · 2 meetings booked');
     expect(email.text).toContain('Card 3 (Blue) — Tom');
     expect(email.text).toContain('Card 7 (Green)');
     expect(email.text).toContain('1 person has no email or LinkedIn saved');
+    // Pre-activated cards that never left the rep's hand also show as "needs details".
+    expect(email.text).toContain('release it for your next event');
     expect(email.text).toContain('https://taplead.app/dashboard');
   });
 
