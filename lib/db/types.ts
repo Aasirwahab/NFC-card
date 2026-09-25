@@ -563,6 +563,7 @@ export type Database = {
           rep_pitch: string | null;
           rep_pitch_edited_at: string | null;
           generated_pitch_prompt: string | null;
+          first_view_source: string | null;
         };
         Insert: {
           id: string;
@@ -601,6 +602,7 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
+          first_view_source?: string | null;
         };
         Update: {
           id?: string;
@@ -639,6 +641,7 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
+          first_view_source?: string | null;
         };
         Relationships: [
           {

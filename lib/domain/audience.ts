@@ -73,3 +73,16 @@ export function shouldRecordTap({
   // A second view from the same IP within 60 seconds is the same look.
   return firstInWindow;
 }
+
+/**
+ * Which sticker opened the card. The printed QR encodes `?src=qr`; everything
+ * else — the NFC tag, a typed or forwarded link — counts as 'nfc'. Only the exact
+ * value `qr` is trusted: the parameter is attacker-controlled and ends up in an
+ * analytics column, so anything else collapses to the default.
+ */
+export type ViewSource = 'nfc' | 'qr';
+
+export function viewSource(src: string | string[] | undefined): ViewSource {
+  const value = Array.isArray(src) ? src[0] : src;
+  return value === 'qr' ? 'qr' : 'nfc';
+}

@@ -33,8 +33,11 @@ export const GET = withRep(async (rep, _request, context: { params: Promise<{ id
   const origin = env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
 
   const rows = [
-    'code,url,status',
-    ...(cards ?? []).map((card) => `${card.code},${origin}/c/${card.code},${card.status}`),
+    'code,url,qr_url,status',
+    ...(cards ?? []).map(
+      (card) =>
+        `${card.code},${origin}/c/${card.code},${origin}/c/${card.code}?src=qr,${card.status}`,
+    ),
   ];
 
   const filename = `taplead-cards-${slug(batch.label) || batch.id.slice(0, 8)}.csv`;

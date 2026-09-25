@@ -543,6 +543,63 @@ describe('save_session_details (§13)', () => {
 });
 
 describe('record_prospect_view (§10.4)', () => {
+  it('records which sticker opened the card, on the first view only', async () => {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+
+    await db.query(`select public.record_prospect_view($1, $2)`, [sessionId, 'qr']);
+    // A later NFC tap does not overwrite how the card was first opened.
+    await db.query(`select public.record_prospect_view($1, $2)`, [sessionId, 'nfc']);
+
+    const { rows } = await db.query<{ first_view_source: string }>(
+      `select first_view_source from public.sessions where id = $1`,
+      [sessionId],
+    );
+    expect(rows[0]!.first_view_source).toBe('qr');
+
+    const events = await db.query<{ meta: { source: string } }>(
+      `select meta from public.session_events where session_id = $1 and type = 'prospect_viewed'`,
+      [sessionId],
+    );
+    expect(events.rows).toHaveLength(1);
+    expect(events.rows[0]!.meta.source).toBe('qr');
+  });
+
+  it('treats a missing or unknown source as nfc', async () => {
+    const fx = await seedFixture(db);
+    const [a, b] = [crypto.randomUUID(), crypto.randomUUID()];
+    for (const [id, code] of [
+      [a, fx.codes[0]!],
+      [b, fx.codes[1]!],
+    ] as const) {
+      await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+        id,
+        code,
+        fx.eventId,
+        fx.userId,
+        'Zaid',
+        null,
+      ]);
+    }
+
+    await db.query(`select public.record_prospect_view($1)`, [a]);
+    await db.query(`select public.record_prospect_view($1, $2)`, [b, "qr'; drop table x;--"]);
+
+    const { rows } = await db.query<{ id: string; first_view_source: string }>(
+      `select id, first_view_source from public.sessions where id = any($1)`,
+      [[a, b]],
+    );
+    expect(rows.map((r) => r.first_view_source)).toEqual(['nfc', 'nfc']);
+  });
+
   it('sets first_viewed_at once and counts every subsequent view', async () => {
     const fx = await seedFixture(db);
     const sessionId = crypto.randomUUID();

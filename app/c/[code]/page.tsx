@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { VIEW_DEDUPE_SECONDS, viewDedupeKey } from '@/lib/domain/bots';
-import { REP_DEVICE_COOKIE, shouldRecordTap } from '@/lib/domain/audience';
+import { REP_DEVICE_COOKIE, shouldRecordTap, viewSource } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { resolveCode } from '@/lib/db/landing';
 import { getRep } from '@/lib/db/server';
@@ -38,8 +38,9 @@ export const metadata = {
   referrer: 'strict-origin-when-cross-origin' as const,
 };
 
-export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
+export default async function CardPage({ params, searchParams }: PageProps<'/c/[code]'>) {
   const { code: raw } = await params;
+  const { src } = await searchParams;
   const code = normaliseCode(raw);
 
   const requestHeaders = await headers();
@@ -123,6 +124,7 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
 
     const { data: wasFirst, error } = await serviceClient().rpc('record_prospect_view', {
       p_session_id: sessionId,
+      p_source: viewSource(src),
     });
 
     if (error) {
