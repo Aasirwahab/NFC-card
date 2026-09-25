@@ -11,6 +11,7 @@ import { serviceClient } from '@/lib/db/service';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
+import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
 import { Unavailable } from './unavailable';
@@ -106,6 +107,12 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
         registeredBy={profile?.full_name ?? rep?.email ?? 'Unknown'}
       />
     );
+  }
+
+  if (resolved.audience === 'owner') {
+    // "One card, two jobs": a real card with no live prospect is the rep's own
+    // business card. No session, so nothing to record and no miss to count.
+    return <OwnerCard resolved={resolved} />;
   }
 
   // ---------------------------------------------------------- a real tap

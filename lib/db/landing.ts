@@ -111,6 +111,18 @@ export type Resolved =
    * and a known-card-with-no-session remain byte-identical.
    */
   | { audience: 'unavailable' }
+  /**
+   * "One card, two jobs" (2026-09-25 review): a real card with no live prospect
+   * (not yet registered, released, or voided after a mix-up) is the rep's own
+   * business card. Only the rep's public face, never session data. Unknown codes
+   * are still the generic 404.
+   */
+  | {
+      audience: 'owner';
+      code: string;
+      rep: RepProfile;
+      business: BusinessProfile | null;
+    }
   | {
       audience: 'rep';
       code: string;
@@ -182,9 +194,15 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
     .eq('status', 'active')
     .maybeSingle<ProspectSession>();
 
-  // A known card with no live session returns the SAME generic 404 as an unknown
-  // code. Nothing in the response distinguishes the two (§22.2).
-  if (!session) return { audience: 'missing' };
+  // A known card with no live session is the rep's own business card (2026-09-25
+  // review). This deliberately relaxes §22.2's "byte-identical to an unknown
+  // code": a valid code now looks different from an invalid one. What it shows
+  // is only the rep's public profile, and guessing a valid code in a 31^8 space
+  // under the miss limiter is not practical. See docs/handoff for the trade-off.
+  if (!session) {
+    const face = await repFace(card.user_id);
+    return face ? { audience: 'owner', code, ...face } : { audience: 'missing' };
+  }
 
   return prospectView(code, session);
 }
@@ -201,29 +219,47 @@ async function prospectView(
 ): Promise<ProspectResolved | { audience: 'missing' }> {
   const db = serviceClient();
 
-  const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
-    db
-      .from('profiles')
-      .select('full_name, title, photo_url, booking_url, linkedin_url')
-      .eq('id', session.user_id)
-      .single(),
-    db
-      .from('business_profiles')
-      .select('company_name, tagline, logo_url, services')
-      .eq('user_id', session.user_id)
-      .maybeSingle(),
+  const [face, { data: event }] = await Promise.all([
+    repFace(session.user_id),
     db.from('events').select('name').eq('id', session.event_id).maybeSingle(),
   ]);
 
   // Without a profile there is no rep name to sign the page with. Rather than
   // render something broken, treat it as a miss.
-  if (!profile) return { audience: 'missing' };
+  if (!face) return { audience: 'missing' };
 
   return {
     audience: 'prospect',
     code,
     session,
     view: viewForSession(session),
+    ...face,
+    eventName: event?.name ?? null,
+  };
+}
+
+/** The rep's public face: what any page on their card may show about them. */
+async function repFace(
+  userId: string,
+): Promise<{ rep: RepProfile; business: BusinessProfile | null } | null> {
+  const db = serviceClient();
+
+  const [{ data: profile }, { data: business }] = await Promise.all([
+    db
+      .from('profiles')
+      .select('full_name, title, photo_url, booking_url, linkedin_url')
+      .eq('id', userId)
+      .maybeSingle(),
+    db
+      .from('business_profiles')
+      .select('company_name, tagline, logo_url, services')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
+
+  if (!profile) return null;
+
+  return {
     rep: {
       fullName: profile.full_name,
       title: profile.title,
@@ -239,7 +275,6 @@ async function prospectView(
           services: business.services,
         }
       : null,
-    eventName: event?.name ?? null,
   };
 }
 
@@ -288,16 +323,22 @@ export async function previewForRep(
 export async function contactForCode(code: string): Promise<ContactCard | null> {
   const db = serviceClient();
 
-  const { data: card } = await db.from('cards').select('id').eq('code', code).maybeSingle();
+  const { data: card } = await db
+    .from('cards')
+    .select('id, user_id')
+    .eq('code', code)
+    .maybeSingle();
   if (!card) return null;
 
-  const { data: session } = await db
+  const { data: live } = await db
     .from('sessions')
     .select('user_id, event_id')
     .eq('card_id', card.id)
     .eq('status', 'active')
     .maybeSingle();
-  if (!session) return null;
+  // No live prospect: the card is the rep's own business card, so the contact
+  // is still theirs — just without "Met at {event}".
+  const session = live ?? { user_id: card.user_id, event_id: null };
 
   const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
     db
@@ -310,7 +351,9 @@ export async function contactForCode(code: string): Promise<ContactCard | null> 
       .select('company_name, website')
       .eq('user_id', session.user_id)
       .maybeSingle(),
-    db.from('events').select('name').eq('id', session.event_id).maybeSingle(),
+    session.event_id
+      ? db.from('events').select('name').eq('id', session.event_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   if (!profile) return null;
 

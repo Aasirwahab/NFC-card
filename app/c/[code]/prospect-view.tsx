@@ -144,7 +144,7 @@ function initials(fullName: string): string {
   return (first + last).toUpperCase();
 }
 
-function Header({
+export function Header({
   rep,
   business,
 }: {
@@ -290,7 +290,7 @@ function CallToActionBlock({
  * and Android open straight into "Add contact". It is a real, working button —
  * the rule for this page is that nothing on it pretends to work.
  */
-function SaveContact({ code, repName }: { code: string; repName: string }) {
+export function SaveContact({ code, repName }: { code: string; repName: string }) {
   return (
     <a
       href={`/c/${code}/contact`}
@@ -302,9 +302,19 @@ function SaveContact({ code, repName }: { code: string; repName: string }) {
   );
 }
 
-function Footer() {
+export function Footer() {
   return (
     <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
+      {/*
+       * The acquisition loop (2026-09-25 review): whoever is holding this card
+       * goes to events and hands out cards — exactly who TapLead is for.
+       */}
+      <Link
+        href="/?ref=card"
+        className="text-ink-2 hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
+      >
+        Get your own TapLead card
+      </Link>
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">
         <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">
