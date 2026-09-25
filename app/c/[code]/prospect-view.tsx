@@ -9,6 +9,8 @@ import { env } from '@/lib/env';
 import { Booking } from './booking';
 import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
+import { linkedinHref } from '@/lib/domain/linkedin';
+import { LinkedInConnect } from './linkedin-connect';
 import { Crafting } from './crafting';
 
 /**
@@ -51,6 +53,7 @@ export function ProspectView({
   const fallbackPitch = templatePitch(pitchInput);
   // No link, no button: a dead button on this page is worse than none (§16).
   const bookingLink = parseBookingUrl(rep.bookingUrl);
+  const linkedin = linkedinHref(rep.linkedinUrl);
   const cta = callToAction({
     problems: session.problems,
     customProblems: session.custom_problems,
@@ -101,6 +104,14 @@ export function ProspectView({
         </CallToActionBlock>
 
         <SaveContact code={code} repName={firstName(rep.fullName)} />
+        {linkedin ? (
+          <LinkedInConnect
+            code={code}
+            href={linkedin}
+            repName={firstName(rep.fullName)}
+            preview={Boolean(preview)}
+          />
+        ) : null}
 
         <ChatWidget
           code={code}

@@ -87,6 +87,8 @@ export type RepProfile = {
   photoUrl: string | null;
   /** The rep's Cal.com event (§19.1). Null: no booking embed, and no dead button. */
   bookingUrl: string | null;
+  /** The rep's own LinkedIn profile, from Setup. */
+  linkedinUrl: string | null;
 };
 
 export type BusinessProfile = {
@@ -202,7 +204,7 @@ async function prospectView(
   const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, title, photo_url, booking_url')
+      .select('full_name, title, photo_url, booking_url, linkedin_url')
       .eq('id', session.user_id)
       .single(),
     db
@@ -227,6 +229,7 @@ async function prospectView(
       title: profile.title,
       photoUrl: profile.photo_url,
       bookingUrl: profile.booking_url,
+      linkedinUrl: profile.linkedin_url,
     },
     business: business
       ? {
