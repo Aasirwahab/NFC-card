@@ -66,6 +66,10 @@ A 20-scenario walkthrough of real event conditions found three things that break
 - Your local `.env.local` has `NEXT_PUBLIC_SUPABASE_SECRET_KEY` (your README notes it). Rename or delete it before anything reads it. **This repository is public**; consider making it private, and keep secrets out of any committed file.
 - `lib/security/rate-limit.ts` fails open when Redis is unreachable (deliberate, §24.3). Consider an alert on `rate_limit_unavailable`.
 
+## Landing page
+
+Structure, copy and look are agreed in [`2026-09-25-landing-page-brief.md`](./2026-09-25-landing-page-brief.md). The design and build are yours.
+
 ## Zaid's parallel track
 
 Ordering cards and stickers; setting up the DeepSeek key, domain, Resend and Cal.com; drafting the go-to-market plan.
