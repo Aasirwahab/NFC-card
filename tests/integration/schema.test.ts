@@ -138,6 +138,7 @@ describe('migrations', () => {
       'record_booking',
       'confirm_prospect_website',
       'queue_event_digests',
+      'release_card',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -1105,5 +1106,73 @@ describe('queue_event_digests (morning-after email)', () => {
     const fx = await eventWithCard('2026-01-10');
     await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T07:00:00Z']);
     expect(await digestJobs(fx.eventId)).toEqual([]);
+  });
+});
+
+describe('release_card (pre-activated, never handed out)', () => {
+  async function registered() {
+    const fx = await seedFixture(db, { cards: 1 });
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, null)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+    ]);
+    return { ...fx, sessionId };
+  }
+
+  it('puts an untouched card back so it can be registered again', async () => {
+    const fx = await registered();
+    await db.query(`select * from public.release_card($1, $2)`, [fx.sessionId, fx.userId]);
+
+    const card = await db.query<{ status: string }>(
+      `select status from public.cards where code = $1`,
+      [fx.codes[0]!],
+    );
+    expect(card.rows[0]!.status).toBe('available');
+
+    // A second registration now succeeds, and the old session stays as audit.
+    const again = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, null)`, [
+      again,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+    ]);
+    const { rows } = await db.query<{ status: string }>(
+      `select status from public.sessions where card_id = (select id from public.cards where code = $1) order by registered_at`,
+      [fx.codes[0]!],
+    );
+    expect(rows.map((r) => r.status)).toEqual(['voided', 'active']);
+  });
+
+  it('refuses once a prospect has opened the card', async () => {
+    const fx = await registered();
+    await db.query(`select public.record_prospect_view($1)`, [fx.sessionId]);
+    await expect(
+      db.query(`select * from public.release_card($1, $2)`, [fx.sessionId, fx.userId]),
+    ).rejects.toThrow(/card_not_releasable/);
+  });
+
+  it('refuses once details were added — the card was handed to someone', async () => {
+    const fx = await registered();
+    await db.query(`select * from public.save_session_details($1, $2, $3::jsonb)`, [
+      fx.sessionId,
+      fx.userId,
+      JSON.stringify({ prospect_name: 'Tom' }),
+    ]);
+    await expect(
+      db.query(`select * from public.release_card($1, $2)`, [fx.sessionId, fx.userId]),
+    ).rejects.toThrow(/card_not_releasable/);
+  });
+
+  it("refuses another rep's session", async () => {
+    const fx = await registered();
+    await expect(
+      db.query(`select * from public.release_card($1, $2)`, [fx.sessionId, crypto.randomUUID()]),
+    ).rejects.toThrow(/card_not_releasable/);
   });
 });

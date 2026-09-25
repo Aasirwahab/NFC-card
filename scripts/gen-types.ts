@@ -77,6 +77,10 @@ const FUNCTIONS = `    {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
+      release_card: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
       queue_event_digests: {
         Args: { p_now?: string };
         Returns: number;
