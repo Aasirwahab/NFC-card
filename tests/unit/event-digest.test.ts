@@ -3,6 +3,7 @@ import { eventDigestEmail } from '@/lib/email/event-digest';
 import type { OutgoingEmail } from '@/lib/email/mailer';
 import { createEventDigestHandler, type EventDigestData } from '@/lib/notify/digest';
 import type { Job, JobContext } from '@/lib/jobs/types';
+import { eventSchema } from '@/lib/schemas/sessions';
 
 /**
  * The morning-after event email (2026-09-25 review).
@@ -114,5 +115,21 @@ describe('the event_digest handler', () => {
   it('refuses a malformed payload permanently rather than retrying it', async () => {
     const { handler, context } = harness(expo);
     await expect(handler(context({ round: 1 }))).rejects.toThrow(/bad payload/);
+  });
+});
+
+describe('an event always has a date', () => {
+  // The digest is timed from the event date. Without one it fell back to the day
+  // of the first registration, which for cards activated the evening before is
+  // the day BEFORE the event: round 1 went out on the morning of the event.
+  it('refuses an event without a date', () => {
+    expect(eventSchema.safeParse({ name: 'Plant Hire Expo' }).success).toBe(false);
+    expect(eventSchema.safeParse({ name: 'Plant Hire Expo', event_date: '' }).success).toBe(false);
+  });
+
+  it('accepts an event with a date', () => {
+    expect(
+      eventSchema.safeParse({ name: 'Plant Hire Expo', event_date: '2026-10-05' }).success,
+    ).toBe(true);
   });
 });

@@ -131,11 +131,9 @@ export const cardBatchSchema = z.object({
 /** POST /api/events */
 export const eventSchema = z.object({
   name: z.string().trim().min(1).max(160),
-  event_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
+  // Required: the morning-after email is timed from it. Cards are activated the
+  // day before, so the registration date is not the event date.
+  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Pick the date of the event.' }),
   location: z.string().trim().max(160).optional(),
   niches: z
     .array(
