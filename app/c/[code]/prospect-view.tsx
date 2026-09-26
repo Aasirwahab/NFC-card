@@ -9,6 +9,8 @@ import { env } from '@/lib/env';
 import { Booking } from './booking';
 import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
+import { linkedinHref } from '@/lib/domain/linkedin';
+import { LinkedInConnect } from './linkedin-connect';
 import { Crafting } from './crafting';
 
 /**
@@ -51,6 +53,7 @@ export function ProspectView({
   const fallbackPitch = templatePitch(pitchInput);
   // No link, no button: a dead button on this page is worse than none (§16).
   const bookingLink = parseBookingUrl(rep.bookingUrl);
+  const linkedin = linkedinHref(rep.linkedinUrl);
   const cta = callToAction({
     problems: session.problems,
     customProblems: session.custom_problems,
@@ -101,6 +104,14 @@ export function ProspectView({
         </CallToActionBlock>
 
         <SaveContact code={code} repName={firstName(rep.fullName)} />
+        {linkedin ? (
+          <LinkedInConnect
+            code={code}
+            href={linkedin}
+            repName={firstName(rep.fullName)}
+            preview={Boolean(preview)}
+          />
+        ) : null}
 
         <ChatWidget
           code={code}
@@ -133,7 +144,7 @@ function initials(fullName: string): string {
   return (first + last).toUpperCase();
 }
 
-function Header({
+export function Header({
   rep,
   business,
 }: {
@@ -279,7 +290,7 @@ function CallToActionBlock({
  * and Android open straight into "Add contact". It is a real, working button —
  * the rule for this page is that nothing on it pretends to work.
  */
-function SaveContact({ code, repName }: { code: string; repName: string }) {
+export function SaveContact({ code, repName }: { code: string; repName: string }) {
   return (
     <a
       href={`/c/${code}/contact`}
@@ -291,9 +302,19 @@ function SaveContact({ code, repName }: { code: string; repName: string }) {
   );
 }
 
-function Footer() {
+export function Footer() {
   return (
     <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
+      {/*
+       * The acquisition loop (2026-09-25 review): whoever is holding this card
+       * goes to events and hands out cards — exactly who TapLead is for.
+       */}
+      <Link
+        href="/?ref=card"
+        className="text-ink-2 hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
+      >
+        Get your own TapLead card
+      </Link>
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">
         <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">

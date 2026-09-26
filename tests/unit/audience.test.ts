@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decideAudience, shouldRecordTap, type Audience } from '@/lib/domain/audience';
+import { decideAudience, shouldRecordTap, viewSource, type Audience } from '@/lib/domain/audience';
 import { isNonHumanAgent } from '@/lib/domain/bots';
 import { viewForSession } from '@/lib/domain/render-state';
 
@@ -211,5 +211,19 @@ describe('viewForSession — the four render states (§16)', () => {
     expect(viewForSession({ enrichment_status: 'something_new', generated_pitch: null })).toEqual({
       state: 'pending',
     });
+  });
+});
+
+describe('viewSource (pilot: NFC vs QR)', () => {
+  it('reads the QR marker', () => {
+    expect(viewSource('qr')).toBe('qr');
+    expect(viewSource(['qr', 'nfc'])).toBe('qr');
+  });
+
+  it('treats everything else as the NFC tag or a plain link', () => {
+    expect(viewSource(undefined)).toBe('nfc');
+    expect(viewSource('')).toBe('nfc');
+    expect(viewSource('QR')).toBe('nfc');
+    expect(viewSource('qr<script>')).toBe('nfc');
   });
 });

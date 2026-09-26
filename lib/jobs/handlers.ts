@@ -3,6 +3,8 @@ import { pitchUsesMock } from '@/lib/ai/models';
 import { productionEnrichDeps } from '@/lib/enrich/deps';
 import { createEnrichHandler } from '@/lib/enrich/pipeline';
 import { env } from '@/lib/env';
+import { createEventDigestHandler } from '@/lib/notify/digest';
+import { productionEventDigestDeps } from '@/lib/notify/digest-deps';
 import { productionNotifyTapDeps } from '@/lib/notify/deps';
 import { createNotifyTapHandler } from '@/lib/notify/tap';
 import type { Handlers } from './types';
@@ -37,9 +39,17 @@ if (!enrichEnabled) {
 const notifyTap: Handlers[string] = (context) =>
   createNotifyTapHandler(productionNotifyTapDeps())(context);
 
+/**
+ * `event_digest` — the morning-after event email (2026-09-25 review). Always
+ * registered, for the same reason as notify_tap.
+ */
+const eventDigest: Handlers[string] = (context) =>
+  createEventDigestHandler(productionEventDigestDeps())(context);
+
 export const handlers: Handlers = enrichEnabled
   ? {
       enrich: (context) => createEnrichHandler(productionEnrichDeps())(context),
       notify_tap: notifyTap,
+      event_digest: eventDigest,
     }
-  : { notify_tap: notifyTap };
+  : { notify_tap: notifyTap, event_digest: eventDigest };

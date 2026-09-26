@@ -4,7 +4,9 @@ import { ProspectView } from '@/app/c/[code]/prospect-view';
 import { previewForRep, shownPitch } from '@/lib/db/landing';
 import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
+import type { Research } from '@/lib/enrich/research';
 import { PitchTools } from './pitch-tools';
+import { WebsiteCheck } from './website-check';
 
 export const metadata = { title: 'Preview', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -42,6 +44,22 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
         .maybeSingle()
     : { data: null };
 
+  // Read separately from the prospect loader: research never goes near the
+  // prospect's page, only the rep's question about a guessed site does.
+  const { data: stored } = await serviceClient()
+    .from('sessions')
+    .select('research')
+    .eq('id', session.id)
+    .eq('user_id', rep.userId)
+    .maybeSingle();
+  const research = (stored?.research ?? null) as Partial<Research> | null;
+  const guessedSite =
+    research?.domainSource === 'guess' && typeof research.domain === 'string'
+      ? research.domain
+      : null;
+  // Enrichment ran and found no site to research at all.
+  const noSite = research !== null && !research.domain;
+
   const who = session.prospect_name?.trim().split(/\s+/)[0] ?? 'your prospect';
 
   return (
@@ -59,6 +77,8 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
       <p className="text-ink-3 mt-1 text-[13px]">
         A preview. Opening it here does not count as {who} looking.
       </p>
+
+      {guessedSite || noSite ? <WebsiteCheck sessionId={session.id} domain={guessedSite} /> : null}
 
       <PitchTools
         sessionId={session.id}

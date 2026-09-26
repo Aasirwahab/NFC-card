@@ -39,6 +39,7 @@ export function DetailsForm({
 
   const [name, setName] = useState(session.prospect_name ?? '');
   const [company, setCompany] = useState(session.prospect_company ?? '');
+  const [website, setWebsite] = useState(session.prospect_website ?? '');
   const [email, setEmail] = useState(session.prospect_email ?? '');
   const [phone, setPhone] = useState(session.prospect_phone ?? '');
   const [linkedin, setLinkedin] = useState(session.linkedin_url ?? '');
@@ -77,6 +78,7 @@ export function DetailsForm({
       await apiSend(`/api/sessions/${session.id}`, 'PATCH', {
         prospect_name: name,
         prospect_company: company,
+        prospect_website: website,
         prospect_email: email,
         prospect_phone: phone,
         linkedin_url: linkedin,
@@ -164,6 +166,22 @@ export function DetailsForm({
             id="company"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
+            autoComplete="off"
+          />
+        </Field>
+
+        <Field
+          label="Their website"
+          htmlFor="website"
+          hint="Optional. Makes sure we research the right company — worth it for a gmail address or a common name."
+        >
+          <Input
+            id="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="abcservices.co.uk"
+            inputMode="url"
+            autoCapitalize="none"
             autoComplete="off"
           />
         </Field>

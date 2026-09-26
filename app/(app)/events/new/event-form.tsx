@@ -53,7 +53,7 @@ export function EventForm() {
     try {
       const { event } = await apiSend<{ event: { id: string } }>('/api/events', 'POST', {
         name,
-        event_date: date || undefined,
+        event_date: date,
         location: location || undefined,
         // Drop the empty rows the editor leaves behind rather than storing them.
         niches: niches
@@ -84,7 +84,13 @@ export function EventForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Date" htmlFor="date">
-          <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input
+            id="date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
         </Field>
         <Field label="Location" htmlFor="location">
           <Input
@@ -169,7 +175,7 @@ export function EventForm() {
         </p>
       ) : null}
 
-      <Button size="block" onClick={save} disabled={saving || name.trim() === ''}>
+      <Button size="block" onClick={save} disabled={saving || name.trim() === '' || date === ''}>
         {saving ? 'Creating…' : 'Create event'}
       </Button>
     </div>

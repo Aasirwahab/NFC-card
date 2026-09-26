@@ -5,11 +5,15 @@
  * researching none: the pitch would cite a stranger's facts to a prospect who
  * would notice at once. So a domain is used only when there is real evidence:
  *
+ *   0. The website the rep recorded, or confirmed in the preview. A person
+ *      checked it, so it outranks everything else.
  *   1. The prospect's own email domain, unless it is a free mail provider.
  *      Strongest signal there is — it is their employer's mail server.
  *   2. Otherwise, domains guessed from the company name — and a guess counts
  *      ONLY when that site's own homepage names the company (the caller checks,
- *      using `pageNamesCompany`).
+ *      using `pageNamesCompany`). Even then it is only a SUGGESTION: every
+ *      "ABC Services" site names "ABC Services". Its facts stay off the
+ *      prospect's page until the rep confirms the site (brief.ts).
  *   3. Otherwise, none. The pipeline carries on without site research (§24.3:
  *      "a company site unreachable → pitch from remaining signals").
  *
@@ -80,6 +84,25 @@ export function domainFromEmail(email: string | null): string | null {
   const domain = email?.trim().toLowerCase().split('@')[1];
   if (!domain || !domain.includes('.') || FREE_MAIL.has(domain)) return null;
   return domain.split('.').every((label) => LABEL.test(label)) ? domain : null;
+}
+
+/**
+ * The host of a website the rep typed — "abc.co.uk", "www.abc.co.uk/about" or
+ * "https://abc.co.uk" all give "abc.co.uk". Null for anything that is not a
+ * plausible public hostname, so a typo never becomes a fetch target.
+ */
+export function domainFromWebsite(website: string | null): string | null {
+  const raw = website?.trim().toLowerCase();
+  if (!raw) return null;
+  let host: string;
+  try {
+    host = new URL(/^[a-z][a-z0-9+.-]*:\/\//.test(raw) ? raw : `https://${raw}`).hostname;
+  } catch {
+    return null;
+  }
+  host = host.replace(/^www\./, '');
+  if (!host.includes('.') || FREE_MAIL.has(host)) return null;
+  return host.split('.').every((label) => LABEL.test(label)) ? host : null;
 }
 
 /** The company name reduced to the words that could appear in its domain. */

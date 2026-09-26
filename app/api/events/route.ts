@@ -31,7 +31,7 @@ export const POST = withRep(async (rep, request) => {
     .insert({
       user_id: rep.userId,
       name,
-      event_date: event_date ?? null,
+      event_date,
       location: location ?? null,
       niches,
     })

@@ -77,12 +77,24 @@ const FUNCTIONS = `    {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
+      release_card: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      confirm_prospect_website: {
+        Args: { p_session_id: string; p_user_id: string; p_website: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
       void_session: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       record_prospect_view: {
-        Args: { p_session_id: string };
+        Args: { p_session_id: string; p_source?: 'nfc' | 'qr' };
         Returns: boolean;
       };
       claim_jobs: {

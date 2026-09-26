@@ -109,6 +109,65 @@ function AlreadyRegistered({ session }: { session: NonNullable<RepResolved['sess
           They have tapped it — {relativeTime(session.first_viewed_at)}.
         </p>
       ) : null}
+
+      {!session.details_completed_at && !session.first_viewed_at ? (
+        <ReleaseCard sessionId={session.id} />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A card activated before the event but never handed out goes back into the pile
+ * for the next one. Offered only while there is no sign it left the rep's hand;
+ * the server re-checks (release_card).
+ */
+function ReleaseCard({ sessionId }: { sessionId: string }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function release() {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiSend(`/api/sessions/${sessionId}/release`, 'POST', {});
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not release. Try again.');
+      setBusy(false);
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="text-ink-3 hover:text-ink-2 mt-6 text-[13px] underline underline-offset-2"
+      >
+        Didn&rsquo;t hand this one out? Release it for another event
+      </button>
+    );
+  }
+
+  return (
+    <div className="border-line mt-6 rounded-2xl border p-4">
+      <p className="text-ink text-[15px] font-semibold">Is this card still in your hand?</p>
+      <p className="text-ink-2 mt-1 text-[13px] leading-snug">
+        Only release a card you&rsquo;re holding. If someone already has it, they would later see
+        the next person&rsquo;s page.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <Button type="button" onClick={release} disabled={busy}>
+          {busy ? 'Releasing…' : 'Yes, release it'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setConfirming(false)}>
+          Cancel
+        </Button>
+      </div>
+      {error ? <p className="text-warn mt-2 text-[13px]">{error}</p> : null}
     </div>
   );
 }

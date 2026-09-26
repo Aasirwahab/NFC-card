@@ -7,7 +7,13 @@ import {
   type JobHandler,
 } from '@/lib/jobs/types';
 import { composeBrief, type Brief } from './brief';
-import { candidateDomains, companyKey, domainFromEmail, pageNamesCompany } from './domain';
+import {
+  candidateDomains,
+  companyKey,
+  domainFromEmail,
+  domainFromWebsite,
+  pageNamesCompany,
+} from './domain';
 import { qualityGate, type GateFailure } from './gate';
 import { htmlToText } from './html';
 import { PITCH_PROMPT_VERSION, pitchPrompt, researchPrompt } from './prompts';
@@ -101,13 +107,17 @@ const SEMAPHORE_PATIENCE_MS = 10_000;
 /** How far into the future a deferred job is put back. */
 const DEFER_SECONDS = 30;
 
-type Resolved = { domain: string | null; source: 'email' | 'guess' | null };
+type Resolved = { domain: string | null; source: Research['domainSource'] };
 type Site = { text: string; pages: string[] };
 
 // ------------------------------------------------------------- step 1
 
 async function resolveDomain(snapshot: Snapshot, deps: EnrichDeps): Promise<Resolved> {
-  // The prospect's own work address is the strongest evidence there is.
+  // A site the rep typed or confirmed: a person checked it.
+  const fromWebsite = domainFromWebsite(snapshot.session.prospect_website ?? null);
+  if (fromWebsite) return { domain: fromWebsite, source: 'website' };
+
+  // The prospect's own work address is the next strongest evidence.
   const fromEmail = domainFromEmail(snapshot.session.prospect_email);
   if (fromEmail) return { domain: fromEmail, source: 'email' };
 

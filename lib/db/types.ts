@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 13 tables by scripts/gen-types.ts.
+ * Generated from 14 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -205,6 +205,32 @@ export type Database = {
             columns: ['session_id'];
             isOneToOne: false;
             referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      event_digests: {
+        Row: {
+          event_id: string;
+          round: number;
+          queued_at: string;
+        };
+        Insert: {
+          event_id: string;
+          round: number;
+          queued_at?: string;
+        };
+        Update: {
+          event_id?: string;
+          round?: number;
+          queued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'event_digests_event_id_fkey';
+            columns: ['event_id'];
+            isOneToOne: false;
+            referencedRelation: 'events';
             referencedColumns: ['id'];
           },
         ];
@@ -563,6 +589,8 @@ export type Database = {
           rep_pitch: string | null;
           rep_pitch_edited_at: string | null;
           generated_pitch_prompt: string | null;
+          first_view_source: string | null;
+          prospect_website: string | null;
         };
         Insert: {
           id: string;
@@ -601,6 +629,8 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
+          first_view_source?: string | null;
+          prospect_website?: string | null;
         };
         Update: {
           id?: string;
@@ -639,6 +669,8 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           generated_pitch_prompt?: string | null;
+          first_view_source?: string | null;
+          prospect_website?: string | null;
         };
         Relationships: [
           {
@@ -682,12 +714,24 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
+      release_card: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      confirm_prospect_website: {
+        Args: { p_session_id: string; p_user_id: string; p_website: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
       void_session: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       record_prospect_view: {
-        Args: { p_session_id: string };
+        Args: { p_session_id: string; p_source?: 'nfc' | 'qr' };
         Returns: boolean;
       };
       claim_jobs: {

@@ -99,9 +99,12 @@ export async function POST(request: Request) {
   }
 
   const stored = session.research as Partial<Research> | null;
-  const facts = Array.isArray(stored?.facts)
-    ? stored.facts.filter((f): f is string => typeof f === 'string')
-    : [];
+  // Same rule as the pitch (brief.ts): facts from an unconfirmed guessed site
+  // may belong to a different company with the same name.
+  const facts =
+    stored?.domainSource !== 'guess' && Array.isArray(stored?.facts)
+      ? stored.facts.filter((f): f is string => typeof f === 'string')
+      : [];
   const context = chatContext(snapshot.data, facts);
 
   // §18.1: claim BEFORE the model call, so a burst cannot exceed the cap.

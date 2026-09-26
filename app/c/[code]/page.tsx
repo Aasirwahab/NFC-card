@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { VIEW_DEDUPE_SECONDS, viewDedupeKey } from '@/lib/domain/bots';
-import { REP_DEVICE_COOKIE, shouldRecordTap } from '@/lib/domain/audience';
+import { REP_DEVICE_COOKIE, shouldRecordTap, viewSource } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { resolveCode } from '@/lib/db/landing';
 import { getRep } from '@/lib/db/server';
@@ -11,6 +11,7 @@ import { serviceClient } from '@/lib/db/service';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
+import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
 import { Unavailable } from './unavailable';
@@ -38,8 +39,9 @@ export const metadata = {
   referrer: 'strict-origin-when-cross-origin' as const,
 };
 
-export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
+export default async function CardPage({ params, searchParams }: PageProps<'/c/[code]'>) {
   const { code: raw } = await params;
+  const { src } = await searchParams;
   const code = normaliseCode(raw);
 
   const requestHeaders = await headers();
@@ -107,6 +109,12 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
     );
   }
 
+  if (resolved.audience === 'owner') {
+    // "One card, two jobs": a real card with no live prospect is the rep's own
+    // business card. No session, so nothing to record and no miss to count.
+    return <OwnerCard resolved={resolved} />;
+  }
+
   // ---------------------------------------------------------- a real tap
   const userAgent = requestHeaders.get('user-agent');
   const sessionId = resolved.session.id;
@@ -123,6 +131,7 @@ export default async function CardPage({ params }: PageProps<'/c/[code]'>) {
 
     const { data: wasFirst, error } = await serviceClient().rpc('record_prospect_view', {
       p_session_id: sessionId,
+      p_source: viewSource(src),
     });
 
     if (error) {
