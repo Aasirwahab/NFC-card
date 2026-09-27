@@ -9,7 +9,7 @@
     "lint": "eslint",
     "prebuild": "tsx scripts/check-env.ts",
     "postbuild": "node scripts/check-client-bundle.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
