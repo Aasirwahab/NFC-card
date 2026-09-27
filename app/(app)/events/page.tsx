@@ -33,19 +33,22 @@ export default async function EventsPage() {
       ) : (
         <ul className="mt-5 flex flex-col gap-2">
           {events.map((event) => (
-            <li
-              key={event.id}
-              className="border-line bg-surface flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-ink truncate text-[15px] font-medium">{event.name}</p>
-                <p className="text-ink-3 mt-0.5 text-[13px]">
-                  {[event.event_date, event.location].filter(Boolean).join(' · ') || 'No date set'}
-                </p>
-              </div>
-              <span className="text-ink-3 shrink-0 font-mono text-[11px]">
-                {event.next_card_sequence - 1} handed out
-              </span>
+            <li key={event.id}>
+              <Link
+                href={`/events/${event.id}/results`}
+                className="border-line bg-surface hover:border-ink-3 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-ink truncate text-[15px] font-medium">{event.name}</p>
+                  <p className="text-ink-3 mt-0.5 text-[13px]">
+                    {[event.event_date, event.location].filter(Boolean).join(' · ') ||
+                      'No date set'}
+                  </p>
+                </div>
+                <span className="text-ink-3 shrink-0 font-mono text-[11px]">
+                  {event.next_card_sequence - 1} registered · results →
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
