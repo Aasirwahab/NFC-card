@@ -66,6 +66,13 @@ export const serverEnvSchema = z
     // Set by Vercel on every deployment. Absent locally.
     VERCEL_ENV: blankAsUnset(z.enum(['production', 'preview', 'development']).optional()),
 
+    /**
+     * Retention (§23): sessions with no activity for this many months are deleted
+     * by the daily purge. 12 is the spec's default and what /privacy says. Change
+     * both together.
+     */
+    RETENTION_MONTHS: blankAsUnset(z.coerce.number().int().min(1).max(120).default(12)),
+
     // Phase 5 — email and booking.
     RESEND_API_KEY: blankAsUnset(z.string().optional()),
     /** The sender, e.g. "TapLead <alerts@taplead.app>". Required with a Resend key. */

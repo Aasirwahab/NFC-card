@@ -139,6 +139,11 @@ describe('migrations', () => {
       'confirm_prospect_website',
       'queue_event_digests',
       'release_card',
+      'queue_no_tap_followups',
+      'save_followup_draft',
+      'mark_followup_sent',
+      'delete_session',
+      'purge_expired_sessions',
     ];
     const { rows } = await db.query<{ fn: string; ok: boolean }>(
       `select p.proname as fn, has_function_privilege('service_role', p.oid, 'execute') as ok
@@ -1174,5 +1179,156 @@ describe('release_card (pre-activated, never handed out)', () => {
     await expect(
       db.query(`select * from public.release_card($1, $2)`, [fx.sessionId, crypto.randomUUID()]),
     ).rejects.toThrow(/card_not_releasable/);
+  });
+});
+
+describe('Phase 7: no-tap follow-up, deletion, retention', () => {
+  async function detailed(registeredAt: string) {
+    const fx = await seedFixture(db, { cards: 1 });
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, null)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+    ]);
+    await db.query(`select * from public.save_session_details($1, $2, $3::jsonb)`, [
+      sessionId,
+      fx.userId,
+      JSON.stringify({ prospect_name: 'Tom', linkedin_url: 'https://www.linkedin.com/in/tom' }),
+    ]);
+    // The enrich job from the save would block nothing here, but keep the queue clean.
+    await db.query(`delete from public.jobs where session_id = $1`, [sessionId]);
+    await db.query(`update public.sessions set registered_at = $1 where id = $2`, [
+      registeredAt,
+      sessionId,
+    ]);
+    return { ...fx, sessionId };
+  }
+
+  const followupJobs = async (sessionId: string) =>
+    (
+      await db.query(`select id from public.jobs where session_id = $1 and type = 'followup'`, [
+        sessionId,
+      ])
+    ).rows.length;
+
+  it('queues one follow-up per unopened session after 24 hours, however often it runs', async () => {
+    const fx = await detailed('2026-10-05T18:00:00Z');
+
+    await db.query(`select public.queue_no_tap_followups($1)`, ['2026-10-06T10:00:00Z']);
+    expect(await followupJobs(fx.sessionId)).toBe(0); // only 16 hours
+
+    await db.query(`select public.queue_no_tap_followups($1)`, ['2026-10-06T19:00:00Z']);
+    await db.query(`select public.queue_no_tap_followups($1)`, ['2026-10-06T19:01:00Z']);
+    expect(await followupJobs(fx.sessionId)).toBe(1);
+
+    // The job's commit: one draft, however often it is saved.
+    await db.query(`select public.save_followup_draft($1, 'linkedin', 'a')`, [fx.sessionId]);
+    await db.query(`select public.save_followup_draft($1, 'linkedin', 'b')`, [fx.sessionId]);
+    const drafts = await db.query<{ draft_text: string }>(
+      `select draft_text from public.followup_drafts where session_id = $1`,
+      [fx.sessionId],
+    );
+    expect(drafts.rows.map((r) => r.draft_text)).toEqual(['a']);
+
+    // Once a draft exists, nothing more is queued.
+    await db.query(`update public.jobs set status = 'succeeded' where session_id = $1`, [
+      fx.sessionId,
+    ]);
+    await db.query(`select public.queue_no_tap_followups($1)`, ['2026-10-07T19:00:00Z']);
+    expect(await followupJobs(fx.sessionId)).toBe(1);
+  });
+
+  it('never queues a follow-up for a card that was opened', async () => {
+    const fx = await detailed('2026-10-05T18:00:00Z');
+    await db.query(`select public.record_prospect_view($1)`, [fx.sessionId]);
+    await db.query(`delete from public.jobs where session_id = $1`, [fx.sessionId]);
+    await db.query(`select public.queue_no_tap_followups($1)`, ['2026-10-06T19:00:00Z']);
+    expect(await followupJobs(fx.sessionId)).toBe(0);
+  });
+
+  it('marks a draft sent only for its own rep', async () => {
+    const fx = await detailed('2026-10-05T18:00:00Z');
+    await db.query(`select public.save_followup_draft($1, 'linkedin', 'x')`, [fx.sessionId]);
+    const other = await db.query<{ mark_followup_sent: boolean }>(
+      `select public.mark_followup_sent($1, $2)`,
+      [fx.sessionId, crypto.randomUUID()],
+    );
+    expect(other.rows[0]!.mark_followup_sent).toBe(false);
+    const own = await db.query<{ mark_followup_sent: boolean }>(
+      `select public.mark_followup_sent($1, $2)`,
+      [fx.sessionId, fx.userId],
+    );
+    expect(own.rows[0]!.mark_followup_sent).toBe(true);
+  });
+
+  it('deletes a session with its messages, events, drafts and bookings, and voids the card', async () => {
+    const fx = await detailed('2026-10-05T18:00:00Z');
+    await db.query(
+      `insert into public.chat_messages(session_id, role, content) values ($1, 'user', 'hi')`,
+      [fx.sessionId],
+    );
+    await db.query(`select public.save_followup_draft($1, 'linkedin', 'x')`, [fx.sessionId]);
+    await db.query(
+      `insert into public.bookings(session_id, provider_event_id, prospect_email) values ($1, 'b1', 'tom@x.com')`,
+      [fx.sessionId],
+    );
+
+    const wrong = await db.query<{ delete_session: boolean }>(
+      `select public.delete_session($1, $2)`,
+      [fx.sessionId, crypto.randomUUID()],
+    );
+    expect(wrong.rows[0]!.delete_session).toBe(false);
+
+    await db.query(`select public.delete_session($1, $2)`, [fx.sessionId, fx.userId]);
+
+    for (const table of [
+      'sessions',
+      'chat_messages',
+      'session_events',
+      'followup_drafts',
+      'bookings',
+    ]) {
+      const column = table === 'sessions' ? 'id' : 'session_id';
+      const { rows } = await db.query(`select 1 from public.${table} where ${column} = $1`, [
+        fx.sessionId,
+      ]);
+      expect(rows, table).toHaveLength(0);
+    }
+    const booking = await db.query(`select 1 from public.bookings where provider_event_id = 'b1'`);
+    expect(booking.rows).toHaveLength(0);
+    const card = await db.query<{ status: string }>(
+      `select status from public.cards where code = $1`,
+      [fx.codes[0]!],
+    );
+    expect(card.rows[0]!.status).toBe('voided');
+  });
+
+  it('purges sessions with no activity for the retention period, and only those', async () => {
+    const old = await detailed('2025-01-01T00:00:00Z');
+    const recent = await detailed('2026-09-01T00:00:00Z');
+    // The updated_at trigger stamps now() on every write, so it is paused to backdate.
+    await db.exec(`alter table public.sessions disable trigger sessions_set_updated_at`);
+    await db.query(`update public.sessions set updated_at = registered_at where id = any($1)`, [
+      [old.sessionId, recent.sessionId],
+    ]);
+    await db.exec(`alter table public.sessions enable trigger sessions_set_updated_at`);
+
+    const { rows } = await db.query<{ purge_expired_sessions: number }>(
+      `select public.purge_expired_sessions(12, $1)`,
+      ['2026-10-01T00:00:00Z'],
+    );
+    expect(rows[0]!.purge_expired_sessions).toBeGreaterThanOrEqual(1);
+
+    const left = await db.query<{ id: string }>(
+      `select id from public.sessions where id = any($1)`,
+      [[old.sessionId, recent.sessionId]],
+    );
+    expect(left.rows.map((r) => r.id)).toEqual([recent.sessionId]);
+    await expect(db.query(`select public.purge_expired_sessions(0)`)).rejects.toThrow(
+      /at least one month/,
+    );
   });
 });

@@ -714,6 +714,26 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string; p_details: Json };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
+      queue_no_tap_followups: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      save_followup_draft: {
+        Args: { p_session_id: string; p_channel: string; p_text: string };
+        Returns: boolean;
+      };
+      mark_followup_sent: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      delete_session: {
+        Args: { p_session_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      purge_expired_sessions: {
+        Args: { p_months: number; p_now?: string };
+        Returns: number;
+      };
       release_card: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];

@@ -126,6 +126,24 @@ export function DetailsForm({
     }
   }
 
+  async function deleteSession() {
+    if (
+      !confirm(
+        'Delete this lead completely?\n\nTheir details, page, messages and any booking are ' +
+          'removed for good. Use this when someone asks to be forgotten. The card stops working.',
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await apiSend(`/api/sessions/${session.id}`, 'DELETE');
+      router.push('/dashboard');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not delete the lead.');
+    }
+  }
+
   const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6B7977';
 
   return (
@@ -358,6 +376,14 @@ export function DetailsForm({
           className="text-crit mt-2 self-center text-[13px] underline underline-offset-2"
         >
           Wrong card — void this session
+        </button>
+
+        <button
+          type="button"
+          onClick={deleteSession}
+          className="text-ink-3 hover:text-crit self-center text-[13px] underline underline-offset-2"
+        >
+          Delete this lead completely
         </button>
       </div>
     </div>

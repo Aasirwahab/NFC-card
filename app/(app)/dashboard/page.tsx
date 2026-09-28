@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { buttonStyles } from '@/components/ui/button';
 import { SessionRow } from '@/components/session-row';
-import { listEvents, listSessions, type SessionListItem } from '@/lib/db/rep';
+import { FollowupCard } from '@/components/followup-card';
+import { listEvents, listFollowups, listSessions, type SessionListItem } from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
 
 export const metadata = { title: 'Today' };
@@ -18,17 +19,22 @@ export const dynamic = 'force-dynamic';
  *                        is explicit that this case is SURFACED, not hidden: it is
  *                        the feedback loop that makes reps capture a LinkedIn URL
  *                        next time (§19.3).
- *   3. EVERYTHING ELSE — newest first.
+ *   3. FOLLOW UP       — a day on and still not opened: a draft to send by hand
+ *                        (§19.3). Never mentions that they haven't opened it.
+ *   4. EVERYTHING ELSE — newest first.
  */
 export default async function DashboardPage({ searchParams }: PageProps<'/dashboard'>) {
   const rep = await requireRep();
   const { event } = await searchParams;
   const eventId = typeof event === 'string' ? event : undefined;
 
-  const [events, sessions] = await Promise.all([
+  const [events, sessions, allFollowups] = await Promise.all([
     listEvents(rep.userId),
     listSessions(rep.userId, { eventId }),
+    listFollowups(rep.userId),
   ]);
+  const shown = new Set(sessions.map((s) => s.id));
+  const followups = allFollowups.filter((f) => shown.has(f.sessionId));
 
   const needsDetails = sessions.filter((s) => !s.details_completed_at);
   const noChannel = sessions.filter(
@@ -67,6 +73,23 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
             sessions={noChannel}
             tone="warn"
           />
+
+          {followups.length > 0 ? (
+            <section>
+              <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
+                Follow up · {followups.length}
+              </h2>
+              <p className="text-ink-3 mt-1 text-[13px] leading-snug">
+                A day on and they haven&rsquo;t opened their card. A note to send yourself. It
+                follows up on the conversation and says nothing about the card.
+              </p>
+              <div className="mt-2.5 flex flex-col gap-2">
+                {followups.map((item) => (
+                  <FollowupCard key={item.sessionId} item={item} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <Group title="Everything else" sessions={rest} />
         </div>

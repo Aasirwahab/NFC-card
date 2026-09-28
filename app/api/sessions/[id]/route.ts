@@ -58,3 +58,24 @@ export const PATCH = withRep(async (rep, request, context: { params: Promise<{ i
 
   return json({ session });
 });
+
+/**
+ * DELETE /api/sessions/[id] — remove a lead completely (spec §23, Phase 7).
+ *
+ * For "please delete my data" and for a rep removing a lead. The session and
+ * everything hanging off it are deleted, bookings included; the card is voided,
+ * because it may be in someone's pocket and must never show a second person's
+ * page. Irreversible; the UI confirms first.
+ */
+export const DELETE = withRep(
+  async (rep, _request, context: { params: Promise<{ id: string }> }) => {
+    const { id } = await context.params;
+    const { data, error } = await serviceClient().rpc('delete_session', {
+      p_session_id: id,
+      p_user_id: rep.userId,
+    });
+    if (error) throw new Error(`delete_session failed: ${error.message}`);
+    if (!data) return fail('session_not_found', 404);
+    return json({ ok: true });
+  },
+);

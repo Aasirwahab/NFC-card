@@ -153,3 +153,59 @@ export async function getBusinessProfile(userId: string): Promise<Row<'business_
     .maybeSingle();
   return data;
 }
+
+/** A no-tap follow-up draft waiting for the rep to send by hand (§19.3). */
+export type FollowupItem = {
+  sessionId: string;
+  channel: 'linkedin' | 'email' | 'none';
+  text: string;
+  prospectName: string | null;
+  prospectCompany: string | null;
+  linkedinUrl: string | null;
+  prospectEmail: string | null;
+  sequence: number;
+  colour: string;
+};
+
+/** Unsent drafts for live sessions that still haven't been opened. */
+export async function listFollowups(userId: string): Promise<FollowupItem[]> {
+  const db = serviceClient();
+  const { data: sessions } = await db
+    .from('sessions')
+    .select(
+      'id, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag',
+    )
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .is('first_viewed_at', null);
+  if (!sessions?.length) return [];
+
+  const { data: drafts } = await db
+    .from('followup_drafts')
+    .select('session_id, channel, draft_text')
+    .in(
+      'session_id',
+      sessions.map((s) => s.id),
+    )
+    .is('sent_at', null)
+    .order('generated_at', { ascending: true });
+
+  const byId = new Map(sessions.map((s) => [s.id, s]));
+  return (drafts ?? []).flatMap((d) => {
+    const s = byId.get(d.session_id);
+    if (!s) return [];
+    return [
+      {
+        sessionId: d.session_id,
+        channel: d.channel as FollowupItem['channel'],
+        text: d.draft_text,
+        prospectName: s.prospect_name,
+        prospectCompany: s.prospect_company,
+        linkedinUrl: s.linkedin_url,
+        prospectEmail: s.prospect_email,
+        sequence: s.event_sequence_number,
+        colour: s.colour_tag,
+      },
+    ];
+  });
+}

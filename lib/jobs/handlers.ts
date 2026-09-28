@@ -3,6 +3,8 @@ import { pitchUsesMock } from '@/lib/ai/models';
 import { productionEnrichDeps } from '@/lib/enrich/deps';
 import { createEnrichHandler } from '@/lib/enrich/pipeline';
 import { env } from '@/lib/env';
+import { productionFollowupDeps } from '@/lib/followup/deps';
+import { createFollowupHandler } from '@/lib/followup/handler';
 import { createEventDigestHandler } from '@/lib/notify/digest';
 import { productionEventDigestDeps } from '@/lib/notify/digest-deps';
 import { productionNotifyTapDeps } from '@/lib/notify/deps';
@@ -46,10 +48,18 @@ const notifyTap: Handlers[string] = (context) =>
 const eventDigest: Handlers[string] = (context) =>
   createEventDigestHandler(productionEventDigestDeps())(context);
 
+/**
+ * `followup` — the no-tap draft (§19.3). A deterministic template, no model call,
+ * so it is always registered.
+ */
+const followup: Handlers[string] = (context) =>
+  createFollowupHandler(productionFollowupDeps())(context);
+
 export const handlers: Handlers = enrichEnabled
   ? {
       enrich: (context) => createEnrichHandler(productionEnrichDeps())(context),
       notify_tap: notifyTap,
       event_digest: eventDigest,
+      followup,
     }
-  : { notify_tap: notifyTap, event_digest: eventDigest };
+  : { notify_tap: notifyTap, event_digest: eventDigest, followup };
