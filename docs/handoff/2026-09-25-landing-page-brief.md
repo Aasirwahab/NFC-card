@@ -2,7 +2,9 @@
 
 **From:** Zaid (drafted with Claude)
 **For:** Aasir, to design and build. Structure and copy are agreed; **the design is yours.** Push back on anything that doesn't work on the page.
-**Status:** pre-launch page for the founding programme. Name **TapLead is a placeholder** and may change.
+**Status:** pre-launch page for the founding programme.
+
+> **Update 2026-09-28 (Zaid):** the name is now **INSIGNAR** (subject to a clean UK trademark search; insignar.com is being registered). New hero: **"Make every introduction worth more."** Brand line: **"Your name carries weight."** Any Stitch/AI mock-ups you may see were brainstorm only. **The design is entirely yours**; the sections and copy below are guidance, and the Rules at the bottom are the part that must hold.
 
 ---
 
@@ -42,7 +44,7 @@ Wordmark · How it works · The founding ten · Questions · **Apply**
 
 ### 2. Hero
 
-> # Quiet authority.
+> # Make every introduction worth more.
 >
 > Hand over your card. They open a brief written for them alone, grounded in their business, not a template.
 >
@@ -107,11 +109,11 @@ Below it, for everyone else: **waitlist** (email only), plus an optional "Who ga
 
 ### 10. Close
 
-> ## Be the one they remember.
+> ## Your name carries weight.
 >
 > **[Apply for the founding ten]**
 
-Footer: How it works · Privacy · © TapLead
+Footer: How it works · Privacy · © INSIGNAR (no "Inc." or "Ltd" until a company is registered)
 
 ---
 
@@ -123,6 +125,9 @@ Footer: How it works · Privacy · © TapLead
 4. **Tracking:** keep `?ref=` from the URL (cards link to `/?ref=card`) and store it with the application or waitlist entry, so we can see which signups came from someone else's card.
 5. **Data:** applications and waitlist entries are personal data. Add a one-line consent/purpose note by the form and a deletion path; list it on the privacy page.
 6. The **prospect page keeps its current design for now.** Aligning it with this look is a later conversation.
+7. **Call the prospect's page a "brief" (or "note"), never a "dossier"**, and no "telemetry" or "intelligence" wording aimed at prospects. To the person receiving it, "a dossier on you" reads as surveillance.
+8. **No certifications or hardware specs we don't have:** no ISO27001, no "data residency" claim, no steel/NTAG424/"zero-clone" specs, no "custom-milled". No real firm names (e.g. banks) in mock-ups; use fictional ones.
+9. **No unbuilt features:** no deck/memo embeds, "alerts when forwarded", meeting prep, interaction memory or deal tracking. They can appear only as "coming later".
 
 ## Needs deciding on your side
 
