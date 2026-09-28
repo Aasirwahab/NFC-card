@@ -14,7 +14,7 @@ export const metadata = {
  *      below marked TODO are the facts only Zaid can supply.
  *   2. The retention period is an open decision (§28). Twelve months from last
  *      activity is the spec's defensible default and is what is written here; the
- *      purge cron in Phase 7 must be built to whatever number ends up on this page.
+ *      Phase 7's purge duration must match the final approved number.
  */
 
 const CONTROLLER = 'TapLead'; // TODO(zaid): registered company name

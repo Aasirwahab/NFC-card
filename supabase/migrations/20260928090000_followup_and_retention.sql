@@ -13,7 +13,8 @@
 --                           email). The card is voided: it may be in someone's
 --                           pocket and must never be registered to a second person.
 --   purge_expired_sessions  retention (§23): sessions with no activity for
---                           p_months are deleted the same way. Run daily.
+--                           p_months and no live booking are deleted the same
+--                           way. Run daily.
 
 create function public.queue_no_tap_followups(p_now timestamptz default now())
 returns int
@@ -115,6 +116,9 @@ begin
   return true;
 end $fn$;
 
+create index bookings_live_session on public.bookings(session_id)
+  where status in ('confirmed', 'rescheduled');
+
 create function public.purge_expired_sessions(p_months int, p_now timestamptz default now())
 returns int
 language plpgsql
@@ -133,7 +137,12 @@ begin
     into v_ids, v_cards
     from public.sessions s
    where greatest(s.updated_at, s.registered_at, coalesce(s.first_viewed_at, s.registered_at))
-         < p_now - make_interval(months => p_months);
+         < p_now - make_interval(months => p_months)
+     and not exists (
+       select 1 from public.bookings b
+        where b.session_id = s.id
+          and b.status in ('confirmed', 'rescheduled')
+     );
 
   if v_ids is null then
     return 0;

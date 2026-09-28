@@ -16,20 +16,20 @@ explains, so the source is readable without it.
 
 ## Status
 
-| Phase | What                                                                                        | State       |
-| ----- | ------------------------------------------------------------------------------------------- | ----------- |
-| 0     | Foundations — repo, env schema, CI gates, auth                                              | **Done**    |
-| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture                     | **Done**    |
-| 2     | The landing page, all four states                                                           | **Done**    |
-| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                       | **Done**    |
-| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                         | **Done\***  |
-| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | **Built†**  |
-| 5b    | Field pilot — 20 cards at one real event, before Phase 6                                    | Not started |
-| 6     | Offline hardening — service worker, outbox, sync badge                                      | Not started |
-| 7     | Follow-up and export — plus results for each event                                          | Not started |
-| 8     | Physical production and live test — plus a QR code on every card                            | Not started |
-| 9     | _After v1:_ faster capture — business-card photo, voice note                                | Not started |
-| 10    | _After v1:_ team accounts and CRM connectors                                                | Not started |
+| Phase | What                                                                                        | State                         |
+| ----- | ------------------------------------------------------------------------------------------- | ----------------------------- |
+| 0     | Foundations — repo, env schema, CI gates, auth                                              | **Done**                      |
+| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture                     | **Done**                      |
+| 2     | The landing page, all four states                                                           | **Done**                      |
+| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                       | **Done**                      |
+| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                         | **Done\***                    |
+| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | **Built†**                    |
+| 5b    | Field pilot — 20 cards at one real event, before Phase 6                                    | Not started                   |
+| 6     | Offline hardening — service worker, outbox, sync badge                                      | Not started                   |
+| 7     | Follow-up and export — plus results for each event                                          | Built, pending review/staging |
+| 8     | Physical production and live test — plus a QR code on every card                            | Not started                   |
+| 9     | _After v1:_ faster capture — business-card photo, voice note                                | Not started                   |
+| 10    | _After v1:_ team accounts and CRM connectors                                                | Not started                   |
 
 \* Phase 4 runs end to end against an offline **mock** model. Three of its four
 done-when tests pass. The fourth — "a real tap shows a researched pitch that is
@@ -274,8 +274,8 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   address. The wording should be checked by someone qualified before the product
   is sold (§23).
 - **Retention period** — 12 months from last activity is written on the privacy
-  page as the spec's defensible default. The Phase 7 purge cron must be built to
-  whatever number ends up there.
+  page as the spec's defensible default. The Phase 7 purge is implemented but
+  remains unapproved for deployment; its duration must match the final policy.
 - **Model provider** (§28) — the one thing standing between Phase 4 and a real
   pitch, and it decides whether §23.2 needs a transfer risk assessment. Once
   chosen: create an AI Gateway key, then set `MODEL_API_KEY`, `MODEL_PITCH` (the

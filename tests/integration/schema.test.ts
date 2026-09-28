@@ -1331,4 +1331,39 @@ describe('Phase 7: no-tap follow-up, deletion, retention', () => {
       /at least one month/,
     );
   });
+
+  it('keeps old sessions with live bookings, but not cancelled bookings', async () => {
+    const booked = await detailed('2025-01-01T00:00:00Z');
+    const rescheduled = await detailed('2025-01-01T00:00:00Z');
+    const cancelled = await detailed('2025-01-01T00:00:00Z');
+    await db.query(
+      `insert into public.bookings(session_id, provider_event_id, status)
+       values ($1, 'retention-confirmed', 'confirmed'),
+              ($2, 'retention-rescheduled', 'rescheduled'),
+              ($3, 'retention-cancelled', 'cancelled')`,
+      [booked.sessionId, rescheduled.sessionId, cancelled.sessionId],
+    );
+    await db.exec(`alter table public.sessions disable trigger sessions_set_updated_at`);
+    await db.query(`update public.sessions set updated_at = registered_at where id = any($1)`, [
+      [booked.sessionId, rescheduled.sessionId, cancelled.sessionId],
+    ]);
+    await db.exec(`alter table public.sessions enable trigger sessions_set_updated_at`);
+
+    await db.query(`select public.purge_expired_sessions(12, $1)`, ['2026-10-01T00:00:00Z']);
+
+    const kept = await db.query(`select 1 from public.sessions where id = $1`, [booked.sessionId]);
+    const keptRescheduled = await db.query(`select 1 from public.sessions where id = $1`, [
+      rescheduled.sessionId,
+    ]);
+    const purged = await db.query(`select 1 from public.sessions where id = $1`, [
+      cancelled.sessionId,
+    ]);
+    const booking = await db.query(`select 1 from public.bookings where session_id = $1`, [
+      booked.sessionId,
+    ]);
+    expect(kept.rows).toHaveLength(1);
+    expect(keptRescheduled.rows).toHaveLength(1);
+    expect(booking.rows).toHaveLength(1);
+    expect(purged.rows).toHaveLength(0);
+  });
 });
