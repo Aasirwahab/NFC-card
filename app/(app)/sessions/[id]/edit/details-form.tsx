@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,94 @@ export function DetailsForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // The newest field values, for callbacks that finish later (a scan, a lookup): a
+  // callback made at click time would otherwise see the form as it was then.
+  const latest = useRef({ name, company, website, email, phone, customProblems });
+  useEffect(() => {
+    latest.current = { name, company, website, email, phone, customProblems };
+  });
+
+  // An unsaved draft survives the phone locking, the app being backgrounded to check a
+  // face on LinkedIn, or the tab being reclaimed. Kept on this phone only, never the
+  // private note, and cleared once the lead is saved.
+  const draftKey = `insignar:draft:${session.id}`;
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    if (session.details_completed_at) return;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw) as Record<string, unknown>;
+      startTransition(() => {
+        if (typeof d.name === 'string') setName(d.name);
+        if (typeof d.company === 'string') setCompany(d.company);
+        if (typeof d.website === 'string') setWebsite(d.website);
+        if (typeof d.email === 'string') setEmail(d.email);
+        if (typeof d.phone === 'string') setPhone(d.phone);
+        if (typeof d.linkedin === 'string') setLinkedin(d.linkedin);
+        if (typeof d.niche === 'string' && d.niche) setNiche(d.niche);
+        if (Array.isArray(d.problems))
+          setProblems(d.problems.filter((p): p is string => typeof p === 'string'));
+        if (typeof d.customProblems === 'string') setCustomProblems(d.customProblems);
+        setRestored(true);
+      });
+    } catch {
+      /* no draft, or storage unavailable */
+    }
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (session.details_completed_at) return;
+    const timer = setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            name,
+            company,
+            website,
+            email,
+            phone,
+            linkedin,
+            niche,
+            problems,
+            customProblems,
+          }),
+        );
+      } catch {
+        /* storage unavailable: the draft is a convenience */
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [
+    draftKey,
+    session.details_completed_at,
+    name,
+    company,
+    website,
+    email,
+    phone,
+    linkedin,
+    niche,
+    problems,
+    customProblems,
+  ]);
+  const clearDraft = () => {
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const setSiteApi = useCallback((api: { run: (o?: Record<string, unknown>) => void }) => {
+    siteLookup.current = api;
+  }, []);
+  const setProfileApi = useCallback((api: { run: (o?: Record<string, unknown>) => void }) => {
+    profileLookup.current = api;
+  }, []);
+
   const siteLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
   const profileLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
 
@@ -109,6 +197,7 @@ export function DetailsForm({
         memorable_info: memorable,
       });
 
+      clearDraft();
       setSaved(true);
       router.refresh();
     } catch (caught) {
@@ -204,6 +293,12 @@ export function DetailsForm({
         </p>
       ) : null}
 
+      {restored ? (
+        <p className="bg-warn-bg text-warn mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
+          Restored your unsaved draft.
+        </p>
+      ) : null}
+
       {justRegistered && !session.details_completed_at && !session.first_viewed_at ? (
         <button
           type="button"
@@ -218,34 +313,37 @@ export function DetailsForm({
         niches={niches}
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
-          const fullName = card.name ?? name;
-          const companyName = card.company ?? company;
-          if (card.name && !name.trim()) setName(card.name);
-          if (card.company && !company.trim()) setCompany(card.company);
-          if (card.email && !email.trim()) setEmail(card.email);
-          if (card.phone && !phone.trim()) setPhone(card.phone);
-          if (card.website && !website.trim()) setWebsite(card.website);
+          // Fill only what is still empty NOW (not what was empty when the photo was taken).
+          const now = latest.current;
+          const fullName = now.name.trim() || card.name || '';
+          const companyName = now.company.trim() || card.company || '';
+          const fillIfEmpty = (value: string | null) => (current: string) =>
+            current.trim() ? current : (value ?? current);
+          if (card.name) setName(fillIfEmpty(card.name));
+          if (card.company) setCompany(fillIfEmpty(card.company));
+          if (card.email) setEmail(fillIfEmpty(card.email));
+          if (card.phone) setPhone(fillIfEmpty(card.phone));
+          if (card.website) setWebsite(fillIfEmpty(card.website));
           // The scan starts the lookups: the rep only taps the right answers below.
           if (lookupEnabled) {
-            if (!card.website && companyName.trim().length >= 2) {
-              siteLookup.current?.run({ name: companyName.trim() });
+            if (!card.website && !now.website.trim() && companyName.length >= 2) {
+              siteLookup.current?.run({ name: companyName });
             }
-            if (fullName.trim().split(/\s+/).length >= 2) {
-              profileLookup.current?.run({
-                name: fullName.trim(),
-                company: companyName.trim() || undefined,
-              });
+            if (fullName.split(/\s+/).length >= 2) {
+              profileLookup.current?.run({ name: fullName, company: companyName || undefined });
             }
           }
         }}
         onFill={(fill) => {
-          if (fill.name && !name.trim()) setName(fill.name);
-          if (fill.company && !company.trim()) setCompany(fill.company);
+          const fillIfEmpty = (value: string) => (current: string) =>
+            current.trim() ? current : value;
+          if (fill.name) setName(fillIfEmpty(fill.name));
+          if (fill.company) setCompany(fillIfEmpty(fill.company));
           if (fill.niche) setNiche(fill.niche);
           if (fill.problems.length > 0) {
             setProblems((current) => [...new Set([...current, ...fill.problems])]);
           }
-          if (fill.extra && !customProblems.trim()) setCustomProblems(fill.extra);
+          if (fill.extra) setCustomProblems(fillIfEmpty(fill.extra));
         }}
       />
 
@@ -256,6 +354,8 @@ export function DetailsForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </Field>
 
@@ -265,6 +365,8 @@ export function DetailsForm({
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </Field>
 
@@ -299,9 +401,7 @@ export function DetailsForm({
                 }))
               }
               onPick={setWebsite}
-              onReady={(api) => {
-                siteLookup.current = api;
-              }}
+              onReady={setSiteApi}
               emptyText="Nothing found. Type the website if you know it."
             />
           ) : null}
@@ -432,9 +532,7 @@ export function DetailsForm({
                     }))
                   }
                   onPick={setLinkedin}
-                  onReady={(api) => {
-                    profileLookup.current = api;
-                  }}
+                  onReady={setProfileApi}
                   emptyText="No profile found. Paste the link if they shared it."
                 />
               ) : null}
@@ -669,7 +767,7 @@ function QuickNote({
       onScan(card);
       setMessage(
         found > 0
-          ? 'Read their card. Check it below, and tap the right website and LinkedIn when they appear.'
+          ? 'Read their card. Tap any field below to correct it, and tap the right website and LinkedIn when they appear.'
           : 'Could not read that card. Try again in better light, or type it.',
       );
     } catch {
@@ -693,6 +791,7 @@ function QuickNote({
         value={line}
         onChange={(e) => setLine(e.target.value)}
         placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
+        maxLength={600}
         className="mt-2"
       />
       <button

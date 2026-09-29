@@ -92,9 +92,7 @@ export function cleanFill(
   ];
   // If problems came back without a niche, the niche is the one that owns them.
   const owner =
-    niche ??
-    niches.find((n) => problems.length > 0 && problems.every((p) => n.problems.includes(p))) ??
-    null;
+    niche ?? niches.find((n) => problems.length > 0 && n.problems.includes(problems[0]!)) ?? null;
 
   return {
     name: inLine(raw.name),
@@ -114,7 +112,7 @@ export async function extractNote(input: {
     const { output } = await generateText({
       model: input.model,
       instructions: noteInstructions(input.niches),
-      prompt: `<line>\n${input.line.replace(/<\/?line>/gi, ' ')}\n</line>`,
+      prompt: `<line>\n${input.line.replace(/<\/?line[^>]*>/gi, ' ')}\n</line>`,
       output: Output.object({ schema: outputSchema }),
       abortSignal: AbortSignal.timeout(20_000),
     });

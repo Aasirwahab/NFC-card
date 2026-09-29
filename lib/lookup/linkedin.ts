@@ -115,7 +115,7 @@ export function profileUrl(raw: string): string | null {
 /** "Name - Role - Company | LinkedIn" -> the pieces. */
 export function splitHeadline(title: string): { name: string; rest: string } {
   const cleaned = title.replace(/\s*[|·]\s*LinkedIn.*$/i, '').trim();
-  const [first, ...rest] = cleaned.split(/\s+[-–—]\s+/);
+  const [first, ...rest] = cleaned.split(/\s+(?:[-–—]|\|)\s+/);
   return { name: (first ?? '').trim(), rest: rest.join(' - ').trim() };
 }
 
@@ -148,6 +148,7 @@ export async function findLinkedInProfile(input: {
     snippet: string;
     relation: NameRelation;
     rest: string;
+    candidateName: string;
   }[] = [];
   for (const r of results) {
     const url = profileUrl(r.url);
@@ -160,13 +161,17 @@ export async function findLinkedInProfile(input: {
       snippet: r.snippet,
       relation: nameRelation(input.name, name),
       rest,
+      candidateName: name,
     });
     if (parsed.length === MAX_CANDIDATES) break;
   }
 
   const candidates = await Promise.all(
     parsed.map(async (p): Promise<ProfileCandidate> => {
-      const company$ = await companyRelation(input.jev, company, p.rest, p.snippet);
+      const company$ = await companyRelation(input.jev, company, p.rest, p.snippet, [
+        input.name,
+        p.candidateName,
+      ]);
       const { label, score } = classify(p.relation, company$);
       return { url: p.url, headline: p.headline, snippet: p.snippet, label, score };
     }),
@@ -187,14 +192,38 @@ export async function findLinkedInProfile(input: {
 
 const PAST_ROLE = /\b(former|formerly|ex-|previously|past|retired|until \d{4})\b/i;
 
+const escapeRe = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Blank the given people out of a text (case-insensitive): each full name as a
+ * phrase, and each first name on its own. A surname ALONE is left, because it is
+ * often part of the company ("Whitlock Homes") and blanking it would destroy the
+ * very evidence Jev is asked to judge. PURE; exported for tests.
+ */
+export function redactNames(text: string, names: string[]): string {
+  const phrases = names.map((n) => n.replace(/\s+/g, ' ').trim()).filter((n) => n.length >= 3);
+  const firsts = names
+    .map((n) => normaliseName(n)[0])
+    .filter((w): w is string => Boolean(w && w.length >= 2));
+  let out = text;
+  for (const phrase of phrases.sort((a, b) => b.length - a.length)) {
+    out = out.replace(new RegExp(escapeRe(phrase), 'gi'), 'PERSON');
+  }
+  for (const first of new Set(firsts)) {
+    out = out.replace(new RegExp(`\\b${escapeRe(first)}\\b`, 'gi'), 'PERSON');
+  }
+  return out;
+}
+
 async function companyRelation(
   jev: JevClient | null,
   company: string | null,
   employerText: string,
   snippet: string,
+  names: string[],
 ): Promise<{ relation: CompanyRelation; sameProbability: number | null }> {
   if (!company) return { relation: 'not_stated', sameProbability: null };
-  const text = `${employerText}. ${snippet}`.trim();
+  const text = redactNames(`${employerText}. ${snippet}`.trim(), names);
   // "Former Director at X" is not "works at X": the strongest signal for a likely
   // match must be a CURRENT employer (found in the labelled test: 1 false match).
   if (PAST_ROLE.test(text)) return { relation: 'not_stated', sameProbability: null };

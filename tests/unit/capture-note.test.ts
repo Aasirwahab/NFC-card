@@ -56,6 +56,15 @@ describe('cleanFill', () => {
     expect(fill.niche).toBe('Property developers');
   });
 
+  it('finds the niche from the first matched problem when the model gave none', () => {
+    const fill = cleanFill(
+      raw({ problems: ['Late revaluations', 'Refurb costs keep overrunning'] }),
+      niches,
+      line,
+    );
+    expect(fill.niche).toBe('Surveyors');
+  });
+
   it('ignores a niche that is not in the list', () => {
     expect(cleanFill(raw({ niche: 'Astronauts' }), niches, line).niche).toBeNull();
   });

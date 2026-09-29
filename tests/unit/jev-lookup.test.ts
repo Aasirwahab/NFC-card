@@ -5,6 +5,7 @@ import {
   findLinkedInProfile,
   nameRelation,
   phrase,
+  redactNames,
   profileUrl,
   splitHeadline,
 } from '@/lib/lookup/linkedin';
@@ -299,5 +300,47 @@ describe('search query hygiene', () => {
       company: 'Whitlock "Homes"',
     });
     expect(seen).toBe('site:linkedin.com/in "Sarah x Whitlock" "Whitlock Homes"');
+  });
+});
+
+describe('names never reach the decision model', () => {
+  it('blanks the target and candidate names out of a snippet', () => {
+    expect(
+      redactNames('Sarah Whitlock is a director at Whitlock Homes. Sarah leads sales.', [
+        'Sarah Whitlock',
+      ]),
+    ).toBe('PERSON is a director at Whitlock Homes. PERSON leads sales.');
+  });
+
+  it('holds when the snippet itself contains the name', async () => {
+    const log: string[] = [];
+    await findLinkedInProfile({
+      search: async () => [
+        {
+          url: 'https://www.linkedin.com/in/sw',
+          title: 'Sarah Whitlock | Director - Whitlock Homes | LinkedIn',
+          snippet: 'Sarah Whitlock is a director at Whitlock Homes in Manchester.',
+        },
+      ],
+      jev: {
+        yes: async () => null,
+        pick: async ({ state }) => {
+          log.push(state);
+          return {
+            choice: 'same_company',
+            confidence: 0.9,
+            probabilities: { same_company: 0.9 },
+          } as never;
+        },
+      },
+      name: 'Sarah Whitlock',
+      company: 'Whitlock Homes',
+    });
+    expect(log).toHaveLength(1);
+    expect(log[0]).not.toMatch(/Sarah/);
+  });
+
+  it('splits a pipe headline too', () => {
+    expect(splitHeadline('Sarah Whitlock | Director | LinkedIn').name).toBe('Sarah Whitlock');
   });
 });

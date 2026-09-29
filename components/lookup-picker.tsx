@@ -87,7 +87,7 @@ export function LookupPicker({
       ) : null}
 
       {items && items.length > 0 ? (
-        <ul className="mt-2 flex flex-col gap-2">
+        <ul className="mt-2 flex flex-col gap-2" aria-live="polite">
           {items.map((item) => (
             <li key={item.key}>
               <button
@@ -124,7 +124,7 @@ export function LookupPicker({
               onClick={() => setItems(null)}
               className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
             >
-              None of these
+              None of these? Type it in the field above.
             </button>
           </li>
         </ul>
