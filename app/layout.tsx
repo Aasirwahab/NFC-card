@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     default: 'INSIGNAR',
     template: '%s · INSIGNAR',
   },
-  description: 'Turn a handshake into a booked meeting.',
+  description: 'Make every introduction worth more.',
   // The prospect page is a private link handed to one person. Nothing here
   // should ever appear in a search index.
   robots: { index: false, follow: false },
@@ -38,7 +38,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0e6b62',
+  themeColor: '#f6f3ec',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

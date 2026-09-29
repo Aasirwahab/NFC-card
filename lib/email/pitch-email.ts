@@ -49,7 +49,7 @@ export function pitchEmail(input: PitchEmailInput): Email {
     `<p>${escapeHtml(first ? `Hi ${first},` : 'Hi,')}</p>`,
     ...paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`),
     `<p><a href="${escapeHtml(input.pageUrl)}">Book a time or ask a question</a></p>`,
-    `<p style="color:#6b7977">${escapeHtml(signature)}</p>`,
+    `<p style="color:#6f685f">${escapeHtml(signature)}</p>`,
   ].join('\n');
 
   return { subject: `Your note from ${repFirst}`, text, html };

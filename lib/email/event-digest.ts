@@ -89,7 +89,7 @@ export function eventDigestEmail(input: EventDigestInput): Email {
     missing > 0
       ? `<p>${escapeHtml(plural(missing, 'card still needs', 'cards still need'))} details. Until you add them, those people see a general page instead of one written for them:</p>` +
         `<ul>${input.needsDetails.map((card) => `<li>${escapeHtml(cardLabel(card))}</li>`).join('')}</ul>` +
-        `<p style="color:#6b7977">${escapeHtml(releaseHint)}</p>`
+        `<p style="color:#6f685f">${escapeHtml(releaseHint)}</p>`
       : '',
     input.noChannel > 0
       ? `<p>${escapeHtml(plural(input.noChannel, 'person has', 'people have'))} no email or LinkedIn saved — if they never tap, you have no way to follow up.</p>`

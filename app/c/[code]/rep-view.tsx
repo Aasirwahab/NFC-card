@@ -59,7 +59,7 @@ export function RepView({
 }
 
 function CardBadge({ sequence, colour }: { sequence: number; colour: string }) {
-  const hex = COLOUR_HEX[colour as ColourTag] ?? '#6B7977';
+  const hex = COLOUR_HEX[colour as ColourTag] ?? '#6F685F';
 
   return (
     <div className="flex items-center gap-2.5">

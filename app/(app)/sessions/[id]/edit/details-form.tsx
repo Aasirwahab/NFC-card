@@ -144,7 +144,7 @@ export function DetailsForm({
     }
   }
 
-  const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6B7977';
+  const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6F685F';
 
   return (
     <div className="pb-4">

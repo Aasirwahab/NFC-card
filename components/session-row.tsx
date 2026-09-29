@@ -12,7 +12,7 @@ import type { SessionListItem } from '@/lib/db/rep';
  * Never shows `memorable_info`. The list query does not even select it.
  */
 export function SessionRow({ session }: { session: SessionListItem }) {
-  const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6B7977';
+  const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6F685F';
   const who = [session.prospect_name, session.prospect_company].filter(Boolean).join(' · ');
 
   return (

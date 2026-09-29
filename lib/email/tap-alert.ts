@@ -63,7 +63,7 @@ export function tapAlertEmail(input: TapAlertInput): Email {
       '</p>',
     '<p>Now is a good moment to get in touch, while it is fresh.</p>',
     `<p><a href="${escapeHtml(input.sessionUrl)}">Open the session</a></p>`,
-    '<p style="color:#6b7977">When you do, follow up on your conversation. ' +
+    '<p style="color:#6f685f">When you do, follow up on your conversation. ' +
       'Don’t mention that you saw them open the page — it reads as being watched.</p>',
     '<p>— INSIGNAR</p>',
   ].join('\n');

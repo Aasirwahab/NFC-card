@@ -1,13 +1,15 @@
+import Image from 'next/image';
 import { cn } from '@/lib/cn';
 
 /**
- * The wordmark. Deliberately typographic: the cards themselves are cardboard and
- * the whole product's credibility comes from specificity, not decoration.
+ * The wordmark: the INSIGNAR round mark beside the name in capitals. Typographic
+ * on purpose, so it reads the same at header size on a phone.
  */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('font-display text-ink text-lg font-bold tracking-tight', className)}>
-      Tap<span className="text-accent">Lead</span>
+    <span className={cn('font-display text-ink inline-flex items-center gap-2', className)}>
+      <Image src="/brand/insignar-mark-black.png" alt="" width={24} height={24} priority />
+      <span className="text-[17px] font-bold tracking-[0.14em]">INSIGNAR</span>
     </span>
   );
 }
