@@ -53,6 +53,8 @@ export const serverEnvSchema = z
     // pipeline offline (§25.1) and is never used for real prospects in production
     // (lib/jobs/handlers.ts).
     MODEL_API_KEY: blankAsUnset(z.string().optional()),
+    /** Dev/pilot option: route through OpenRouter instead of the Vercel AI Gateway. */
+    MODEL_PROVIDER: blankAsUnset(z.enum(['gateway', 'openrouter']).default('gateway')),
     /** The pitch — the product's only differentiator. The best model (§14.3). */
     MODEL_PITCH: blankAsUnset(z.string().default('mock')),
     /** The chatbot — high volume, low stakes. A cheap model (§14.3). */

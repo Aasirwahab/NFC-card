@@ -1,5 +1,6 @@
 import 'server-only';
 import { createGateway, type LanguageModel } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { env } from '@/lib/env';
 import { mockChatModel, mockPitchModel, mockResearchModel } from './mock';
 
@@ -21,7 +22,11 @@ export type ResolvedModel = {
   model: LanguageModel;
 };
 
-const gateway = env.MODEL_API_KEY ? createGateway({ apiKey: env.MODEL_API_KEY }) : null;
+const gateway = env.MODEL_API_KEY
+  ? env.MODEL_PROVIDER === 'openrouter'
+    ? createOpenRouter({ apiKey: env.MODEL_API_KEY })
+    : createGateway({ apiKey: env.MODEL_API_KEY })
+  : null;
 
 function idFor(role: ModelRole): string {
   if (role === 'pitch') return env.MODEL_PITCH;
@@ -44,7 +49,7 @@ export function modelFor(role: ModelRole): ResolvedModel {
     throw new Error(`MODEL_API_KEY is required to use model "${id}"`);
   }
 
-  return { id, model: gateway(id) };
+  return { id, model: gateway(id) as LanguageModel };
 }
 
 /** True when the pitch would be written by the offline mock rather than a real model. */
