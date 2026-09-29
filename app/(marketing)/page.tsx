@@ -10,7 +10,7 @@ export default function HomePage() {
 
       <p className="text-ink-2 mt-4 text-lg">
         The best sales reps take out a pen and write, on the back of the card, the one specific
-        reason that person should call them. TapLead does that for every card you hand out.
+        reason that person should call them. INSIGNAR does that for every card you hand out.
       </p>
 
       <p className="text-ink-2 mt-4">

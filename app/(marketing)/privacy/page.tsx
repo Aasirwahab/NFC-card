@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'Privacy notice',
-  description: 'What TapLead collects, why, and how to have it deleted.',
+  description: 'What INSIGNAR collects, why, and how to have it deleted.',
 };
 
 /**
@@ -17,7 +17,7 @@ export const metadata = {
  *      Phase 7's purge duration must match the final approved number.
  */
 
-const CONTROLLER = 'TapLead'; // TODO(zaid): registered company name
+const CONTROLLER = 'INSIGNAR'; // TODO(zaid): registered company name
 const CONTACT_EMAIL = 'privacy@taplead.app'; // TODO(zaid): a monitored address
 const RETENTION = '12 months from the last activity on your record';
 
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="Who else processes it">
-        <p>We use a small number of service providers to run TapLead:</p>
+        <p>We use a small number of service providers to run INSIGNAR:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>Hosting and application delivery</li>
           <li>Database and authentication</li>

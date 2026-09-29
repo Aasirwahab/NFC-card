@@ -25,8 +25,8 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: {
-    default: 'TapLead',
-    template: '%s · TapLead',
+    default: 'INSIGNAR',
+    template: '%s · INSIGNAR',
   },
   description: 'Turn a handshake into a booked meeting.',
   // The prospect page is a private link handed to one person. Nothing here

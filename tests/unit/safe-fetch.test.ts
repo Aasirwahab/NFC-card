@@ -243,6 +243,6 @@ describe('what comes back', () => {
     const headers = (fetchImpl.mock.calls[0]![1] as { headers: Record<string, string> }).headers;
     expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain('cookie');
     expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain('authorization');
-    expect(headers['user-agent']).toMatch(/TapLeadBot/);
+    expect(headers['user-agent']).toMatch(/INSIGNARBot/);
   });
 });

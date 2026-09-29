@@ -8,7 +8,7 @@ import { apiSend } from '@/lib/http/client';
 
 /**
  * One no-tap follow-up draft (spec §19.3). Sent BY HAND: copy it, open LinkedIn or
- * email, then mark it sent. TapLead never sends it and never tells the prospect
+ * email, then mark it sent. INSIGNAR never sends it and never tells the prospect
  * anything about whether they opened their card.
  */
 export function FollowupCard({ item }: { item: FollowupItem }) {

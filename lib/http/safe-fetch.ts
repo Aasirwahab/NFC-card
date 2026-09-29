@@ -198,7 +198,7 @@ const defaultFetch: FetchLike = (url, init) =>
 
 const REQUEST_HEADERS: Record<string, string> = {
   // An honest user agent that says where to find out what we are (§16).
-  'user-agent': 'TapLeadBot/1.0 (+https://taplead.app/how-it-works)',
+  'user-agent': 'INSIGNARBot/1.0 (+https://taplead.app/how-it-works)',
   accept: 'text/html,application/xhtml+xml;q=0.9,text/plain;q=0.8',
   'accept-language': 'en-GB,en;q=0.8',
 };

@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn';
 
 /**
  * The rep's tools above the preview (spec §14.5): edit the pitch, go back to the
- * generated one, and rate what TapLead wrote.
+ * generated one, and rate what INSIGNAR wrote.
  *
  * Editing is optional and never asked for. The whole design assumes reps will not
  * review anything at an event; this is for the rep who looks and wants to fix one
@@ -67,7 +67,7 @@ export function PitchTools({
   }
 
   async function reset() {
-    if (!confirm('Go back to the pitch TapLead wrote? Your edit will be discarded.')) return;
+    if (!confirm('Go back to the pitch INSIGNAR wrote? Your edit will be discarded.')) return;
     setBusy(true);
     setError(null);
     try {
@@ -92,7 +92,7 @@ export function PitchTools({
             disabled={busy}
             className="text-accent font-medium underline underline-offset-2"
           >
-            Use TapLead&rsquo;s version
+            Use INSIGNAR&rsquo;s version
           </button>
         </div>
       ) : null}
@@ -171,7 +171,7 @@ export function PitchTools({
 }
 
 /**
- * Thumbs up or down on the pitch TapLead wrote — not on the rep's own edit.
+ * Thumbs up or down on the pitch INSIGNAR wrote — not on the rep's own edit.
  * Until real pitches are judged by people who were in the room, the prompts are
  * tuned blind (§14.5).
  */
@@ -214,7 +214,7 @@ function RatePitch({ sessionId, initial }: { sessionId: string; initial: Rating 
 
   return (
     <div className="border-line-soft flex flex-col gap-2 border-t pt-3">
-      <p className="text-ink-2 text-sm font-medium">How good is the pitch TapLead wrote?</p>
+      <p className="text-ink-2 text-sm font-medium">How good is the pitch INSIGNAR wrote?</p>
       <div className="flex flex-wrap gap-2">
         {choice(1, 'Good', ThumbsUp)}
         {choice(-1, 'Not right', ThumbsDown)}

@@ -41,7 +41,7 @@ describe('server environment (§22.3)', () => {
       serverEnvSchema.safeParse({
         ...valid,
         RESEND_API_KEY: 're_123',
-        EMAIL_FROM: 'TapLead <alerts@taplead.app>',
+        EMAIL_FROM: 'INSIGNAR <alerts@taplead.app>',
       }).success,
     ).toBe(true);
   });

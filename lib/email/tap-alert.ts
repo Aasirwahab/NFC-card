@@ -53,7 +53,7 @@ export function tapAlertEmail(input: TapAlertInput): Email {
     '',
     'When you do, follow up on your conversation. Don’t mention that you saw them open the page — it reads as being watched.',
     '',
-    '— TapLead',
+    '— INSIGNAR',
   ];
 
   const html = [
@@ -65,7 +65,7 @@ export function tapAlertEmail(input: TapAlertInput): Email {
     `<p><a href="${escapeHtml(input.sessionUrl)}">Open the session</a></p>`,
     '<p style="color:#6b7977">When you do, follow up on your conversation. ' +
       'Don’t mention that you saw them open the page — it reads as being watched.</p>',
-    '<p>— TapLead</p>',
+    '<p>— INSIGNAR</p>',
   ].join('\n');
 
   return { subject, text: lines.join('\n'), html };

@@ -75,7 +75,7 @@ export const serverEnvSchema = z
 
     // Phase 5 — email and booking.
     RESEND_API_KEY: blankAsUnset(z.string().optional()),
-    /** The sender, e.g. "TapLead <alerts@taplead.app>". Required with a Resend key. */
+    /** The sender, e.g. "INSIGNAR <alerts@taplead.app>". Required with a Resend key. */
     EMAIL_FROM: blankAsUnset(z.string().optional()),
     CAL_WEBHOOK_SECRET: blankAsUnset(z.string().optional()),
 
@@ -112,7 +112,7 @@ export const serverEnvSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['EMAIL_FROM'],
-        message: 'required when RESEND_API_KEY is set, e.g. "TapLead <alerts@taplead.app>"',
+        message: 'required when RESEND_API_KEY is set, e.g. "INSIGNAR <alerts@taplead.app>"',
       });
     }
   });

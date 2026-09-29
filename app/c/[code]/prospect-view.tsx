@@ -307,13 +307,13 @@ export function Footer() {
     <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
       {/*
        * The acquisition loop (2026-09-25 review): whoever is holding this card
-       * goes to events and hands out cards — exactly who TapLead is for.
+       * goes to events and hands out cards — exactly who INSIGNAR is for.
        */}
       <Link
         href="/?ref=card"
         className="text-ink-2 hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
       >
-        Get your own TapLead card
+        Get your own INSIGNAR card
       </Link>
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">

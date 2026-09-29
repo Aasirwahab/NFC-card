@@ -359,7 +359,7 @@ export function DetailsForm({
         {session.rep_pitch ? (
           <p className="text-ink-3 text-[13px]">
             You edited their pitch, so saving or regenerating keeps your version. Switch back to
-            TapLead&rsquo;s on the preview.
+            INSIGNAR&rsquo;s on the preview.
           </p>
         ) : null}
 

@@ -81,7 +81,7 @@ export function eventDigestEmail(input: EventDigestInput): Email {
       '',
     );
   }
-  lines.push(`Open your dashboard: ${input.dashboardUrl}`, '', '— TapLead');
+  lines.push(`Open your dashboard: ${input.dashboardUrl}`, '', '— INSIGNAR');
 
   const html = [
     `<p>Hi ${escapeHtml(input.repFirstName)},</p>`,
@@ -95,7 +95,7 @@ export function eventDigestEmail(input: EventDigestInput): Email {
       ? `<p>${escapeHtml(plural(input.noChannel, 'person has', 'people have'))} no email or LinkedIn saved — if they never tap, you have no way to follow up.</p>`
       : '',
     `<p><a href="${escapeHtml(input.dashboardUrl)}">Open your dashboard</a></p>`,
-    '<p>— TapLead</p>',
+    '<p>— INSIGNAR</p>',
   ]
     .filter(Boolean)
     .join('\n');

@@ -1,4 +1,4 @@
--- TapLead seed data.
+-- INSIGNAR seed data.
 --
 -- Phase 2's done-when (§26) is: "each of the four states can be produced on
 -- demand and screenshotted". This file is how. It creates four cards with fixed,

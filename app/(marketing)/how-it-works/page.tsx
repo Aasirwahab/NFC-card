@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'How it works',
-  description: 'What happens when you tap a TapLead card.',
+  description: 'What happens when you tap a INSIGNAR card.',
 };
 
 /**
