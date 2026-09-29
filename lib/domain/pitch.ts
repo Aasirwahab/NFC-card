@@ -122,12 +122,12 @@ export function templatePitch(input: PitchInput): string {
 
   sentences.push(
     problem
-      ? `The honest answer to whether we can help with ${midSentence(problem)} takes about fifteen minutes to give properly, and I would rather give you a straight one than a brochure.`
-      : `The honest answer to whether we can help takes about fifteen minutes to give properly, and I would rather give you a straight one than a brochure.`,
+      ? `Let's see how we could help with ${midSentence(problem)}. A short conversation is the quickest way to find out, and I will come with specifics rather than a brochure.`
+      : `Let's see how we could help. A short conversation is the quickest way to find out, and I will come with specifics rather than a brochure.`,
   );
 
   sentences.push(
-    `If it is useful, pick a time below. If it is not, no hard feelings — ${input.repName}.`,
+    `If it is useful, pick a time below. If not, there is nothing you need to do — ${input.repName}.`,
   );
 
   return sentences.join(' ');

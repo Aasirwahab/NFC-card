@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CreditCard, LayoutGrid, Settings, Tags } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
+import { TimezoneSync } from '@/components/timezone-sync';
 import { requireRep } from '@/lib/db/server';
 import { signOutAction } from '../(auth)/actions';
 
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <TimezoneSync />
       <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <Link href="/dashboard">

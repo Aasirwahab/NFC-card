@@ -15,6 +15,9 @@ beforeAll(async () => {
 const today = "(now() at time zone 'Europe/London')::date";
 
 async function tapRegister(userId: string, code: string, by = 'prospect_tap') {
+  // "Today" is the rep's own day (profiles.timezone). These tests build their dates in
+  // London time, so the rep is set to London; a separate test covers another zone.
+  await db.query(`update public.profiles set timezone = 'Europe/London' where id = $1`, [userId]);
   return db.query<{ id: string; event_id: string; event_sequence_number: number }>(
     `select * from public.tap_register_card($1, $2, $3, $4)`,
     [crypto.randomUUID(), code, userId, by],
@@ -105,6 +108,34 @@ describe('tap_register_card', () => {
 
     const stranger = await seedFixture(db, { cards: 1 });
     await expect(tapRegister(stranger.userId, codes[0]!)).rejects.toThrow(/card_not_found/);
+  });
+});
+
+describe('the rep own time zone', () => {
+  it('decides which event is "on": an event dated today in Auckland is on for an Auckland rep', async () => {
+    const { userId, eventId, codes } = await seedFixture(db, { cards: 1 });
+    await db.query(`update public.profiles set timezone = 'Pacific/Auckland' where id = $1`, [
+      userId,
+    ]);
+    await db.query(
+      `update public.events set event_date = (now() at time zone 'Pacific/Auckland')::date where id = $1`,
+      [eventId],
+    );
+    const { rows } = await db.query<{ event_id: string }>(
+      `select * from public.tap_register_card($1, $2, $3, 'rep')`,
+      [crypto.randomUUID(), codes[0], userId],
+    );
+    expect(rows[0]!.event_id).toBe(eventId);
+  });
+
+  it('falls back to UTC for a zone name Postgres does not know', async () => {
+    const { userId, codes } = await seedFixture(db, { cards: 1 });
+    await db.query(`update public.profiles set timezone = 'Not/AZone' where id = $1`, [userId]);
+    const { rows } = await db.query<{ id: string }>(
+      `select * from public.tap_register_card($1, $2, $3, 'rep')`,
+      [crypto.randomUUID(), codes[0], userId],
+    );
+    expect(rows).toHaveLength(1);
   });
 });
 

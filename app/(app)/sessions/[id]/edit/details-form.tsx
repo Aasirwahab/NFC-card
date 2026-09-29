@@ -581,6 +581,15 @@ export function DetailsForm({
           </p>
         ) : null}
 
+        {saved && !error ? (
+          <Link
+            href="/dashboard"
+            className="border-line bg-surface text-ink hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+          >
+            Next card
+          </Link>
+        ) : null}
+
         <Button size="block" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save details'}
         </Button>
