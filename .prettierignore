@@ -12,3 +12,7 @@ supabase/.temp
 .agents
 .claude/skills
 skills-lock.json
+
+# The static beta page is hand-written HTML with its own inline CSS/JS and is deployed on
+# its own (Vercel root: beta-site). A formatter should not reflow it.
+beta-site/index.html
