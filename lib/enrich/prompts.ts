@@ -15,7 +15,7 @@ export type Prompt = { instructions: string; prompt: string };
 
 /** Strips anything that could close our own delimiter from inside hostile text. */
 function fence(text: string): string {
-  return text.replace(/<\/?(website|brief|private_tone_note)[^>]*>/gi, ' ');
+  return text.replace(/<\/?(website|brief)[^>]*>/gi, ' ');
 }
 
 // ------------------------------------------------------------ research (3)
@@ -66,8 +66,6 @@ const PITCH_RULES = [
   '- You may use up to two of the public facts about their company, only as stated.',
   '  Never say how you know them — no "I looked at your website", no "I noticed".',
   '- Never mention competitors or other companies.',
-  '- The private tone note is ONLY to set the tone. Never quote it, paraphrase it, or',
-  '  refer to anything in it, however indirectly.',
   '- Claim only what the business actually offers, as described. Never state a price,',
   '  a percentage or a credential that is not given in the brief.',
   '- Never mention AI, never use placeholders or brackets, and no stock openers such',
@@ -109,8 +107,8 @@ export function pitchPrompt(brief: Brief, failures: GateFailure[] = []): Prompt 
           ...failures.map((f) => `- ${f.detail}`),
         ].join('\n');
 
-  // The note is deliberately NOT in the brief block: it travels separately, so
-  // it can be fenced and labelled as tone-only.
+  // The rep's private note is deliberately absent from everything the model sees
+  // (see Brief.privateNote). The quality gate still checks the output against it.
   const prompt = [
     '<brief>',
     fence(
@@ -132,15 +130,6 @@ export function pitchPrompt(brief: Brief, failures: GateFailure[] = []): Prompt 
       ),
     ),
     '</brief>',
-    ...(brief.toneNote
-      ? [
-          '',
-          '<private_tone_note>',
-          fence(brief.toneNote),
-          '</private_tone_note>',
-          '(Tone only. Never mention anything in the note above.)',
-        ]
-      : []),
   ].join('\n');
 
   return { instructions, prompt };

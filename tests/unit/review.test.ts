@@ -13,7 +13,7 @@ const brief: Brief = {
   primaryProblem: 'Idle machine tracking',
   customProblem: null,
   niche: 'plant hire',
-  toneNote: 'Arsenal fan, two kids',
+  privateNote: 'Arsenal fan, two kids',
   rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
   business: {
     name: 'TMA',

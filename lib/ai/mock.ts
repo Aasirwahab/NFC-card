@@ -160,7 +160,7 @@ export function mockChatModel(): MockLanguageModelV4 {
         .map((line) => line.trim())
         // A sentence, not the bare company name that heads the block.
         .find((line) => line.length >= 20);
-      const rep = system.match(/^You are (\S+?)’s assistant/m)?.[1] ?? 'The team';
+      const rep = system.match(/^You are (\S+?)’s AI assistant/m)?.[1] ?? 'The team';
 
       return reply(
         first

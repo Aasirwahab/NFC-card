@@ -114,7 +114,7 @@ describe('checkReply (§18.2)', () => {
 describe('openingLine (§18)', () => {
   it('is tied to what was actually discussed', () => {
     expect(openingLine('Zaid', 'Idle machine tracking')).toBe(
-      'Hi — I’m Zaid’s assistant. Want to know more about how we handle idle machine tracking?',
+      'Hi — I’m Zaid’s AI assistant. Want to know more about how we handle idle machine tracking?',
     );
   });
 

@@ -20,7 +20,7 @@ function brief(overrides: Partial<Brief> = {}): Brief {
     primaryProblem: 'Idle machine tracking',
     customProblem: null,
     niche: 'plant hire',
-    toneNote: 'Arsenal fan, two kids, hates spreadsheets',
+    privateNote: 'Arsenal fan, two kids, hates spreadsheets',
     rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
     business: {
       name: 'TMA',

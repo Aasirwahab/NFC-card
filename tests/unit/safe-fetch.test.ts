@@ -246,3 +246,21 @@ describe('what comes back', () => {
     expect(headers['user-agent']).toMatch(/INSIGNARBot/);
   });
 });
+
+describe('sites we never fetch', () => {
+  it.each([
+    'https://www.linkedin.com/in/someone',
+    'https://linkedin.com/company/acme',
+    'https://uk.linkedin.com/in/x',
+    'https://lnkd.in/abc',
+    'https://media.licdn.com/dms/image/x',
+    'https://LINKEDIN.COM/in/y',
+  ])('refuses %s before any network', (url) => {
+    expect(() => validateUrl(url)).toThrowError(/never fetched/);
+  });
+
+  it('does not refuse a look-alike host', () => {
+    expect(() => validateUrl('https://notlinkedin.com/')).not.toThrow();
+    expect(() => validateUrl('https://linkedin.com.example.org/')).not.toThrow();
+  });
+});

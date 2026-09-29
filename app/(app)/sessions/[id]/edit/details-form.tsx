@@ -302,7 +302,7 @@ export function DetailsForm({
           label="To remember them by"
           // §23.1 — the sharp edge. A rep typing quickly at a networking event
           // will not be drawing the special-category line, so the form does.
-          hint="Business-relevant details only — no health, religion, politics or personal circumstances. Never shown to them."
+          hint="Only for you. Never shown to them and never seen by the AI. Business-relevant details only: no health, religion, politics or personal circumstances."
           htmlFor="memorable"
         >
           <Textarea

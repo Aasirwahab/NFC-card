@@ -35,7 +35,8 @@ export type SafeFetchFailure =
   | 'too_many_redirects'
   | 'too_large'
   | 'timeout'
-  | 'network';
+  | 'network'
+  | 'blocked_site';
 
 export class SafeFetchError extends Error {
   constructor(
@@ -68,6 +69,14 @@ const DEFAULTS = { timeoutMs: 8_000, maxBytes: 2 * 1024 * 1024, maxRedirects: 3 
 /** Only these are read. A PDF or an image has nothing the pipeline can use. */
 const TEXTUAL = /^(text\/html|application\/xhtml\+xml|text\/plain)\b/i;
 
+/**
+ * Sites we never load, however a URL got here (decision 2026-09-29): LinkedIn's
+ * user agreement forbids automated access and it is enforced. Rep-supplied links
+ * to these sites are stored and shown, never fetched. Only search-result text is
+ * ever used to find a profile.
+ */
+const NEVER_FETCH = /(^|\.)(linkedin\.com|lnkd\.in|licdn\.com)$/i;
+
 /** Names that can only mean "somewhere inside", refused before any DNS. */
 const INTERNAL_NAME = /(^|\.)(localhost|local|internal|intranet|lan|home|corp|localdomain)$/i;
 
@@ -96,6 +105,10 @@ export function validateUrl(input: string | URL): URL {
   }
 
   const host = url.hostname.replace(/^\[|\]$/g, '');
+
+  if (NEVER_FETCH.test(host)) {
+    throw new SafeFetchError('blocked_site', `${host} is never fetched`);
+  }
 
   // An IP literal never reaches the DNS lookup below, so it is judged here.
   if (isIP(host)) {

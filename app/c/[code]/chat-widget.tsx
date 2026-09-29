@@ -90,13 +90,13 @@ export function ChatWidget({
       {open ? (
         <div
           role="dialog"
-          aria-label={`${repFirstName}’s assistant`}
+          aria-label={`${repFirstName}’s AI assistant`}
           onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
           className="bg-surface border-line shadow-lifted fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-20 flex max-h-[min(34rem,80dvh)] flex-col overflow-hidden rounded-2xl border sm:inset-x-auto sm:right-4 sm:w-[24rem]"
         >
           <header className="border-line-soft flex items-center justify-between border-b px-4 py-3">
             <span className="font-display text-ink text-[15px] font-semibold">
-              {repFirstName}&rsquo;s assistant
+              {repFirstName}&rsquo;s AI assistant
             </span>
             <button
               type="button"

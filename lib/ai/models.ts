@@ -24,7 +24,14 @@ export type ResolvedModel = {
 
 const gateway = env.MODEL_API_KEY
   ? env.MODEL_PROVIDER === 'openrouter'
-    ? createOpenRouter({ apiKey: env.MODEL_API_KEY })
+    ? createOpenRouter({
+        apiKey: env.MODEL_API_KEY,
+        // Prompts hold prospect and business text: route only to endpoints that keep
+        // nothing and train on nothing. If no such endpoint serves the model, the
+        // call fails, and the pipeline falls back to the template rather than
+        // sending the text anywhere less private.
+        extraBody: { provider: { zdr: true, data_collection: 'deny' } },
+      })
     : createGateway({ apiKey: env.MODEL_API_KEY })
   : null;
 

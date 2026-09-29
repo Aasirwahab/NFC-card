@@ -18,11 +18,12 @@ export type Brief = {
   customProblem: string | null;
   niche: string | null;
   /**
-   * The rep's private note. It sets the TONE only. It is never to be quoted,
-   * paraphrased or alluded to (§5, §16, §23.1) — the gate rejects any pitch that
-   * echoes it.
+   * The rep's private note. It is NEVER put in a prompt (decision 2026-09-29,
+   * after an A/B test: with it, half the drafts echoed it and were rejected, and
+   * two of six fell back to the template; without it, none did). It stays here
+   * only so the quality gate can still refuse a note that happens to echo it.
    */
-  toneNote: string | null;
+  privateNote: string | null;
   rep: {
     firstName: string;
     fullName: string;
@@ -85,7 +86,7 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
     }),
     customProblem: session.custom_problems?.trim() || null,
     niche: session.niche?.trim() || null,
-    toneNote: session.memorable_info?.trim() || null,
+    privateNote: session.memorable_info?.trim() || null,
     rep: {
       firstName: repFirstName,
       fullName: repFullName,

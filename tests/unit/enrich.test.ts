@@ -177,7 +177,7 @@ describe('the prompts keep data out of the instructions (§22.5)', () => {
     primaryProblem: 'Idle machine tracking',
     customProblem: null,
     niche: null,
-    toneNote: 'Arsenal fan',
+    privateNote: 'Arsenal fan',
     rep: { firstName: 'Zaid', fullName: 'Zaid', title: null, language: 'en-GB' },
     business: { name: 'TMA', tagline: null, services: [], pricing: null, knowledge: '' },
     facts: [],
@@ -185,12 +185,13 @@ describe('the prompts keep data out of the instructions (§22.5)', () => {
     cta: 'Book 15 minutes on idle machine tracking',
   };
 
-  it('keeps the private note out of the brief and labels it tone-only', () => {
-    const { prompt } = pitchPrompt(brief);
-    const briefBlock = prompt.match(/<brief>([\s\S]*?)<\/brief>/)![1]!;
-    expect(briefBlock).not.toContain('Arsenal');
-    expect(prompt).toMatch(/<private_tone_note>\s*Arsenal fan\s*<\/private_tone_note>/);
-    expect(prompt).toMatch(/Never mention anything in the note/);
+  it('never puts the private note in anything the model sees', () => {
+    const pitch = pitchPrompt(brief);
+    const retry = pitchPrompt(brief, [{ check: 'echoes_note', detail: 'x' }]);
+    for (const text of [pitch.instructions, pitch.prompt, retry.instructions, retry.prompt]) {
+      expect(text).not.toContain('Arsenal');
+      expect(text).not.toMatch(/private_tone_note|tone note/i);
+    }
   });
 
   it('names the previous failures on the stricter retry', () => {

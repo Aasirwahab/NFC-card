@@ -247,8 +247,8 @@ export function qualityGate(body: string, brief: Brief): GateResult {
   // 2. Does not echo the note. "You mentioned you support Arsenal" reads as
   //    surveillance. Words the note shares with the legitimate context (the
   //    problem, the company, the services) are not evidence of an echo.
-  if (brief.toneNote) {
-    const distinctive = [...stems(brief.toneNote)].filter((s) => !contextStems.has(s));
+  if (brief.privateNote) {
+    const distinctive = [...stems(brief.privateNote)].filter((s) => !contextStems.has(s));
     const echoed = distinctive.filter((s) => bodyStems.has(s));
     if (echoed.length > 0) {
       fail('echoes_note', `repeats the private note (${echoed.join(', ')})`);
