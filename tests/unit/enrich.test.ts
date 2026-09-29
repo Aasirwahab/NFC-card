@@ -177,6 +177,7 @@ describe('the prompts keep data out of the instructions (§22.5)', () => {
     primaryProblem: 'Idle machine tracking',
     customProblem: null,
     niche: null,
+    guidance: null,
     privateNote: 'Arsenal fan',
     rep: { firstName: 'Zaid', fullName: 'Zaid', title: null, language: 'en-GB' },
     business: { name: 'TMA', tagline: null, services: [], pricing: null, knowledge: '' },
@@ -200,5 +201,34 @@ describe('the prompts keep data out of the instructions (§22.5)', () => {
     ]);
     expect(instructions).toMatch(/REJECTED/);
     expect(instructions).toContain('repeats the private note (arsenal)');
+  });
+});
+
+describe('the rep style request', () => {
+  const base = {
+    revision: 1,
+    prospect: { firstName: 'Tom', company: 'BuildRite' },
+    problems: ['Idle machine tracking'],
+    primaryProblem: 'Idle machine tracking',
+    customProblem: null,
+    niche: null,
+    guidance: null as string | null,
+    privateNote: null,
+    rep: { firstName: 'Zaid', fullName: 'Zaid', title: null, language: 'en-GB' as const },
+    business: { name: 'TMA', tagline: null, services: [], pricing: null, knowledge: '' },
+    facts: [],
+    eventName: null,
+    cta: 'Book 15 minutes',
+  };
+
+  it('is passed as a style request and framed as never a source of facts', () => {
+    const withGuidance = pitchPrompt({ ...base, guidance: 'Shorter. Warmer' });
+    expect(withGuidance.prompt).toContain('salesperson_style_request');
+    expect(withGuidance.prompt).toContain('Shorter. Warmer');
+    expect(withGuidance.instructions).toMatch(/style only/);
+  });
+
+  it('is absent from the prompt when there is none', () => {
+    expect(pitchPrompt(base).prompt).not.toContain('salesperson_style_request');
   });
 });

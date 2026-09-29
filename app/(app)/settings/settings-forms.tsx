@@ -1,13 +1,16 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import { PhotoUpload } from './photo-upload';
 import {
   saveBusinessAction,
+  deletePlaybookAction,
   saveKnowledgeAction,
+  savePlaybookAction,
   saveProfileAction,
   type SettingsState,
 } from './actions';
@@ -286,5 +289,199 @@ function KnowledgeTopic({
         <Status state={state} />
       </div>
     </form>
+  );
+}
+
+// ------------------------------------------------------------------ playbook
+
+export type PlaybookRow = {
+  id: string;
+  problem: string;
+  why: string | null;
+  checks: string[];
+  resource_url: string | null;
+};
+
+/**
+ * The rep's playbook: for each problem they hear, why it usually happens, up to three
+ * things worth checking, and one link. The prospect reads it as written, so it is the
+ * useful part of the note and the AI never adds to it.
+ */
+export function PlaybookForm({
+  entries,
+  suggestions,
+  draftEnabled,
+}: {
+  entries: PlaybookRow[];
+  /** Problems from the rep's events that have no entry yet. */
+  suggestions: string[];
+  draftEnabled: boolean;
+}) {
+  const [starting, setStarting] = useState<string | null>(null);
+
+  return (
+    <Panel
+      title="Your playbook"
+      hint="For each problem you hear: why it usually happens, three things worth checking, and one link. Your prospect reads it exactly as you write it, so keep it true and short."
+    >
+      {entries.map((entry) => (
+        <details
+          key={entry.id}
+          className="border-line-soft border-t pt-3 first:border-t-0 first:pt-0"
+        >
+          <summary className="text-ink cursor-pointer text-[15px] font-medium">
+            {entry.problem}
+          </summary>
+          <PlaybookEntry entry={entry} draftEnabled={draftEnabled} />
+        </details>
+      ))}
+
+      {suggestions.length > 0 ? (
+        <div>
+          <p className="text-ink-3 text-[13px]">Problems from your events with no entry yet:</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {suggestions.slice(0, 8).map((problem) => (
+              <button
+                key={problem}
+                type="button"
+                onClick={() => setStarting(problem)}
+                className="border-line bg-surface text-ink-2 hover:bg-surface-2 rounded-full border px-3 py-2 text-left text-[13px] font-medium"
+              >
+                + {problem}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <details open={starting !== null} className="border-line-soft border-t pt-3">
+        <summary className="text-accent cursor-pointer text-[15px] font-medium">
+          Add an entry
+        </summary>
+        <PlaybookEntry
+          key={starting ?? 'new'}
+          entry={{ id: '', problem: starting ?? '', why: null, checks: [], resource_url: null }}
+          draftEnabled={draftEnabled}
+        />
+      </details>
+    </Panel>
+  );
+}
+
+function PlaybookEntry({ entry, draftEnabled }: { entry: PlaybookRow; draftEnabled: boolean }) {
+  const [state, action] = useActionState(savePlaybookAction, {});
+  const [problem, setProblem] = useState(entry.problem);
+  const [why, setWhy] = useState(entry.why ?? '');
+  const [checks, setChecks] = useState<string[]>([
+    entry.checks[0] ?? '',
+    entry.checks[1] ?? '',
+    entry.checks[2] ?? '',
+  ]);
+  const [drafting, setDrafting] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function draft() {
+    setDrafting(true);
+    setNote(null);
+    try {
+      const result = await apiSend<{ why: string | null; checks: string[] }>(
+        '/api/playbook/draft',
+        'POST',
+        {
+          problem,
+        },
+      );
+      if (!result.why && result.checks.length === 0) {
+        setNote('Your notes do not say enough about this yet. Write it in your own words.');
+      } else {
+        if (result.why) setWhy(result.why);
+        setChecks([result.checks[0] ?? '', result.checks[1] ?? '', result.checks[2] ?? '']);
+        setNote('A first draft from your own notes. Check every line, then save.');
+      }
+    } catch {
+      setNote('Could not draft that. Write it in your own words.');
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <form action={action} className="flex flex-col gap-3">
+        <input type="hidden" name="id" value={entry.id} />
+        <Field
+          label="The problem"
+          hint="In the wording you tap at events."
+          htmlFor={`pb-problem-${entry.id}`}
+        >
+          <Input
+            id={`pb-problem-${entry.id}`}
+            name="problem"
+            value={problem}
+            onChange={(e) => setProblem(e.target.value)}
+            required
+          />
+        </Field>
+        {draftEnabled ? (
+          <button
+            type="button"
+            onClick={() => void draft()}
+            disabled={drafting || problem.trim().length < 2}
+            className="border-line bg-surface text-ink hover:border-ink-3 h-11 self-start rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
+          >
+            {drafting ? 'Drafting…' : 'Draft it from my notes'}
+          </button>
+        ) : null}
+        {note ? <p className="text-ink-2 text-[13px]">{note}</p> : null}
+        <Field
+          label="Why it usually happens"
+          hint="One plain sentence."
+          htmlFor={`pb-why-${entry.id}`}
+        >
+          <Textarea
+            id={`pb-why-${entry.id}`}
+            name="why"
+            rows={2}
+            maxLength={300}
+            value={why}
+            onChange={(e) => setWhy(e.target.value)}
+          />
+        </Field>
+        {[0, 1, 2].map((i) => (
+          <Field key={i} label={`Worth checking ${i + 1}`} htmlFor={`pb-check-${entry.id}-${i}`}>
+            <Input
+              id={`pb-check-${entry.id}-${i}`}
+              name={`check${i + 1}`}
+              maxLength={200}
+              value={checks[i]}
+              onChange={(e) => setChecks((c) => c.map((v, j) => (j === i ? e.target.value : v)))}
+            />
+          </Field>
+        ))}
+        <Field
+          label="A useful link (optional)"
+          hint="A guide, article or case study you would happily send. Must start with https://"
+          htmlFor={`pb-link-${entry.id}`}
+        >
+          <Input
+            id={`pb-link-${entry.id}`}
+            name="resource_url"
+            type="url"
+            defaultValue={entry.resource_url ?? ''}
+            placeholder="https://"
+          />
+        </Field>
+        <Status state={state} />
+        <SaveButton label={entry.id ? 'Save entry' : 'Add entry'} />
+      </form>
+      {entry.id ? (
+        <form action={deletePlaybookAction}>
+          <input type="hidden" name="id" value={entry.id} />
+          <button type="submit" className="text-crit text-[13px] underline underline-offset-2">
+            Delete this entry
+          </button>
+        </form>
+      ) : null}
+    </div>
   );
 }

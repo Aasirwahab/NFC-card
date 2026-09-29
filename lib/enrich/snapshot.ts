@@ -27,6 +27,8 @@ export const snapshotSchema = z.object({
     custom_problems: text,
     /** Shapes the tone; never quoted (§5, §23.1). The gate enforces the second half. */
     memorable_info: text,
+    /** A short style request from the rep for this draft ("shorter", "warmer"). Style only. */
+    pitch_guidance: text.optional().catch(null),
   }),
   rep: z
     .object({

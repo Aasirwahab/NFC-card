@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CardCodeLookup } from '@/components/card-code-lookup';
+import { TapGuide } from '@/components/tap-guide';
 import { SessionRow } from '@/components/session-row';
 import { FollowupCard } from '@/components/followup-card';
 import { listEvents, listFollowups, listSessions, type SessionListItem } from '@/lib/db/rep';
@@ -173,12 +174,12 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
 
 function EmptyState() {
   return (
-    <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6 text-center">
-      <p className="text-ink font-medium">No leads yet</p>
-      <p className="text-ink-2 mx-auto mt-1.5 max-w-sm text-sm">
-        Hand a card over. Tap it on your phone if you like, or type its code above later. Anyone who
-        taps it shows up here.
+    <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6">
+      <p className="text-ink text-center font-medium">No leads yet</p>
+      <p className="text-ink-2 mx-auto mt-1.5 max-w-sm text-center text-sm">
+        Hand a card over. Anyone who taps it, and any card you tap yourself, shows up here.
       </p>
+      <TapGuide />
     </div>
   );
 }

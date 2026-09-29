@@ -40,6 +40,7 @@ describe('migrations', () => {
       'jobs',
       'knowledge_base',
       'pitch_ratings',
+      'playbook_entries',
       'profiles',
       'session_events',
       'sessions',

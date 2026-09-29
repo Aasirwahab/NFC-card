@@ -37,7 +37,7 @@ export function ProspectView({
   /** The rep's own preview (§14.5): the page as-is, but nothing that spends the prospect's questions. */
   preview?: boolean;
 }) {
-  const { session, rep, business, eventName, view, code } = resolved;
+  const { session, rep, business, eventName, view, code, playbook } = resolved;
 
   const pitchInput = {
     prospectName: session.prospect_name,
@@ -83,6 +83,8 @@ export function ProspectView({
             repName={firstName(rep.fullName)}
           />
         )}
+
+        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
 
         {business && business.services.length > 0 && view.state !== 'crafting' ? (
           <SolutionPoints services={business.services} companyName={business.companyName} />
@@ -130,6 +132,52 @@ export function ProspectView({
 
       <Footer />
     </div>
+  );
+}
+
+/**
+ * What the rep wrote about this problem, shown as they wrote it: why it usually
+ * happens, up to three things worth checking, and an optional link. Nothing here is
+ * generated, so nothing here can be invented. It is the "something for you" in the note.
+ */
+function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['playbook']> }) {
+  return (
+    <section className="border-line bg-surface mt-7 rounded-2xl border p-5">
+      {playbook.why ? (
+        <>
+          <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
+            Why this usually happens
+          </h2>
+          <p className="text-ink-2 mt-1.5 text-[16px] leading-relaxed">{playbook.why}</p>
+        </>
+      ) : null}
+      {playbook.checks.length > 0 ? (
+        <>
+          <h2
+            className={`text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase ${
+              playbook.why ? 'mt-5' : ''
+            }`}
+          >
+            Worth checking this week
+          </h2>
+          <ol className="text-ink-2 mt-1.5 list-decimal space-y-1.5 pl-5 text-[16px] leading-relaxed">
+            {playbook.checks.map((check) => (
+              <li key={check}>{check}</li>
+            ))}
+          </ol>
+        </>
+      ) : null}
+      {playbook.resourceUrl ? (
+        <a
+          href={playbook.resourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent mt-5 inline-block text-[15px] font-medium underline underline-offset-2"
+        >
+          A useful read
+        </a>
+      ) : null}
+    </section>
   );
 }
 

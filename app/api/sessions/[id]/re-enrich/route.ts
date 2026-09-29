@@ -1,5 +1,6 @@
 import { after } from 'next/server';
-import { fail, json, withRep } from '@/lib/api';
+import { z } from 'zod';
+import { fail, json, readJson, withRep } from '@/lib/api';
 import { serviceClient } from '@/lib/db/service';
 import { kickWorkers } from '@/lib/jobs/kick';
 
@@ -11,12 +12,19 @@ import { kickWorkers } from '@/lib/jobs/kick';
  * run already in flight commits `stale` and restarts rather than overwriting the
  * newer request.
  */
-export const POST = withRep(async (rep, _request, context: { params: Promise<{ id: string }> }) => {
+const bodySchema = z.object({ guidance: z.string().trim().max(200).optional() });
+
+export const POST = withRep(async (rep, request, context: { params: Promise<{ id: string }> }) => {
   const { id } = await context.params;
+  // Optional body: a short style request for the next draft. No body regenerates as before.
+  const raw = await readJson(request);
+  const parsed = bodySchema.safeParse(raw ?? {});
+  if (!parsed.success) return fail('invalid_request', 400);
 
   const { data: session, error } = await serviceClient().rpc('requeue_enrichment', {
     p_session_id: id,
     p_user_id: rep.userId,
+    p_guidance: parsed.data.guidance ?? null,
   });
 
   if (error) {

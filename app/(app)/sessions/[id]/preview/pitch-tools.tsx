@@ -131,18 +131,31 @@ export function PitchTools({
           </div>
         </div>
       ) : (
-        <Button
-          variant="secondary"
-          onClick={() => {
-            // Start from what is on the page now, not from an earlier edit.
-            setText(shownPitch);
-            setEditing(true);
-          }}
-          className="self-start"
-        >
-          Edit the pitch
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              // Start from what is on the page now, not from an earlier edit.
+              setText(shownPitch);
+              setEditing(true);
+            }}
+          >
+            Edit the pitch
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              // Their own words from a blank page. Optional, and it replaces the AI's version.
+              setText('');
+              setEditing(true);
+            }}
+          >
+            Write my own
+          </Button>
+        </div>
       )}
+
+      {!editing ? <TryAgain sessionId={sessionId} edited={edited} /> : null}
 
       {error ? (
         <p className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium" role="alert">
@@ -249,6 +262,105 @@ function RatePitch({ sessionId, initial }: { sessionId: string; initial: Rating 
           Could not save that. Try again.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+const STYLE_CHIPS = ['Shorter', 'Warmer', 'More direct', 'Less formal', 'More formal'] as const;
+
+/**
+ * "Try again": another AI draft, optionally steered. The steering is a style request
+ * only (length, warmth, directness); it never adds a fact, and the same checks run on
+ * the new draft. If the rep has written their own pitch, that stays what the prospect
+ * sees; the new draft is kept for them to switch to.
+ */
+function TryAgain({ sessionId, edited }: { sessionId: string; edited: boolean }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [chips, setChips] = useState<string[]>([]);
+  const [extra, setExtra] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const guidance = [...chips, extra.trim()].filter(Boolean).join('. ').slice(0, 200);
+      await apiSend(`/api/sessions/${sessionId}/re-enrich`, 'POST', guidance ? { guidance } : {});
+      setMessage(
+        edited
+          ? 'Writing a new version. Your own pitch stays what they see until you switch.'
+          : 'Writing a new version. This page updates in about a minute.',
+      );
+      setOpen(false);
+      setChips([]);
+      setExtra('');
+      router.refresh();
+    } catch {
+      setMessage('Could not start a new version. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <div>
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          Try again
+        </Button>
+        {message ? (
+          <p className="text-ink-2 mt-2 text-[13px]" role="status">
+            {message}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-line bg-surface rounded-xl border p-4">
+      <p className="text-ink text-[15px] font-semibold">What should change?</p>
+      <p className="text-ink-3 mt-0.5 text-[13px]">
+        Optional. It only changes the style, never the facts.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {STYLE_CHIPS.map((chip) => {
+          const on = chips.includes(chip);
+          return (
+            <button
+              key={chip}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setChips((c) => (on ? c.filter((x) => x !== chip) : [...c, chip]))}
+              className={cn(
+                'rounded-full border px-3 py-2 text-[13px] font-medium',
+                on
+                  ? 'border-accent bg-accent-soft text-accent'
+                  : 'border-line bg-surface text-ink-2 hover:bg-surface-2',
+              )}
+            >
+              {chip}
+            </button>
+          );
+        })}
+      </div>
+      <Input
+        value={extra}
+        onChange={(e) => setExtra(e.target.value)}
+        maxLength={120}
+        placeholder="Anything else? e.g. open with the funding delay"
+        className="mt-3"
+      />
+      <div className="mt-3 flex gap-2">
+        <Button onClick={() => void run()} disabled={busy}>
+          {busy ? 'Starting…' : 'Write a new version'}
+        </Button>
+        <Button variant="secondary" onClick={() => setOpen(false)} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }

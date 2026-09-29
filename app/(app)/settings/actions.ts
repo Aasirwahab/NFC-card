@@ -162,3 +162,71 @@ export async function saveKnowledgeAction(
   revalidatePath('/settings');
   return { saved: true };
 }
+
+const playbookSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  problem: z.string().trim().min(2, 'Name the problem.').max(200),
+  why: blank(300),
+  check1: blank(200),
+  check2: blank(200),
+  check3: blank(200),
+  resource_url: blank(300).refine(
+    (v) => v === null || (v.startsWith('https://') && URL.canParse(v)),
+    'The link must start with https://',
+  ),
+});
+
+/** One playbook entry: what the rep tells a client about a problem. Shown to the prospect exactly as written. */
+export async function savePlaybookAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  const parsed = playbookSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const { id, problem, why, resource_url } = parsed.data;
+  const checks = [parsed.data.check1, parsed.data.check2, parsed.data.check3].filter(
+    (c): c is string => Boolean(c),
+  );
+  const row = { user_id: rep.userId, problem, why, checks, resource_url };
+
+  const db = serviceClient();
+  const { data: mine } = await db
+    .from('playbook_entries')
+    .select('id, problem')
+    .eq('user_id', rep.userId);
+  const sameProblem = (mine ?? []).find(
+    (e) => e.problem.trim().toLowerCase() === problem.toLowerCase(),
+  );
+
+  // Editing an entry, or saving a problem that already has one, updates it.
+  const targetId = id ?? sameProblem?.id;
+  if (id && sameProblem && sameProblem.id !== id) {
+    return { error: 'You already have an entry for that problem.' };
+  }
+
+  const { error } = targetId
+    ? await db.from('playbook_entries').update(row).eq('id', targetId).eq('user_id', rep.userId)
+    : await db.from('playbook_entries').insert(row);
+  if (error) return { error: 'Could not save that.' };
+
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
+export async function deletePlaybookAction(formData: FormData): Promise<void> {
+  const rep = await requireRep();
+  const id = z.string().uuid().safeParse(formData.get('id'));
+  if (!id.success) return;
+  await serviceClient()
+    .from('playbook_entries')
+    .delete()
+    .eq('id', id.data)
+    .eq('user_id', rep.userId);
+  revalidatePath('/settings');
+}

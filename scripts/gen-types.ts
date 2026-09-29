@@ -227,7 +227,7 @@ const FUNCTIONS = `    {
         Returns: Json;
       };
       requeue_enrichment: {
-        Args: { p_session_id: string; p_user_id: string };
+        Args: { p_session_id: string; p_user_id: string; p_guidance?: string | null };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       colour_for_sequence: {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CardCodeLookup } from '@/components/card-code-lookup';
+import { TapGuide } from '@/components/tap-guide';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
@@ -38,6 +39,7 @@ export function CardsOverview({
 
       <section className="border-line bg-surface shadow-card mt-6 rounded-xl border p-4">
         <CardCodeLookup />
+        <TapGuide />
       </section>
 
       <LostCard />

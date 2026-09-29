@@ -24,6 +24,8 @@ export type Brief = {
    * only so the quality gate can still refuse a note that happens to echo it.
    */
   privateNote: string | null;
+  /** The rep's style request for this draft. Style only: it never adds a fact or a claim. */
+  guidance: string | null;
   rep: {
     firstName: string;
     fullName: string;
@@ -87,6 +89,7 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
     customProblem: session.custom_problems?.trim() || null,
     niche: session.niche?.trim() || null,
     privateNote: session.memorable_info?.trim() || null,
+    guidance: session.pitch_guidance?.trim().slice(0, 200) || null,
     rep: {
       firstName: repFirstName,
       fullName: repFullName,

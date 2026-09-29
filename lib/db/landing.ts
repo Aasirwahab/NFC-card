@@ -144,7 +144,11 @@ export type Resolved =
       rep: RepProfile;
       business: BusinessProfile | null;
       eventName: string | null;
+      /** The rep's own playbook entry for the problem raised, if they wrote one. */
+      playbook: Playbook | null;
     };
+
+export type Playbook = { why: string | null; checks: string[]; resourceUrl: string | null };
 
 export type { ProspectView };
 
@@ -239,9 +243,10 @@ async function prospectView(
 ): Promise<ProspectResolved | { audience: 'missing' }> {
   const db = serviceClient();
 
-  const [face, { data: event }] = await Promise.all([
+  const [face, { data: event }, playbook] = await Promise.all([
     repFace(session.user_id),
     db.from('events').select('name').eq('id', session.event_id).maybeSingle(),
+    playbookFor(session.user_id, session.problems ?? []),
   ]);
 
   // Without a profile there is no rep name to sign the page with. Rather than
@@ -255,7 +260,31 @@ async function prospectView(
     view: viewForSession(session),
     ...face,
     eventName: event?.name ?? null,
+    playbook,
   };
+}
+
+/**
+ * The rep's own playbook entry for the first raised problem that has one. Matched by
+ * the problem's exact wording (ignoring case): nothing is guessed, so what the prospect
+ * reads is only ever what the rep wrote.
+ */
+async function playbookFor(userId: string, problems: string[]): Promise<Playbook | null> {
+  const wanted = problems.map((p) => p.trim().toLowerCase()).filter(Boolean);
+  if (wanted.length === 0) return null;
+
+  const { data } = await serviceClient()
+    .from('playbook_entries')
+    .select('problem, why, checks, resource_url')
+    .eq('user_id', userId);
+
+  for (const problem of wanted) {
+    const hit = (data ?? []).find((e) => e.problem.trim().toLowerCase() === problem);
+    if (hit && (hit.why || hit.checks.length > 0 || hit.resource_url)) {
+      return { why: hit.why, checks: hit.checks, resourceUrl: hit.resource_url };
+    }
+  }
+  return null;
 }
 
 /** The rep's public face: what any page on their card may show about them. */

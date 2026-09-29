@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 14 tables by scripts/gen-types.ts.
+ * Generated from 15 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -472,6 +472,47 @@ export type Database = {
           },
         ];
       };
+      playbook_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          problem: string;
+          why: string | null;
+          checks: string[];
+          resource_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          problem: string;
+          why?: string | null;
+          checks?: string[];
+          resource_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          problem?: string;
+          why?: string | null;
+          checks?: string[];
+          resource_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'playbook_entries_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -600,6 +641,7 @@ export type Database = {
           generated_pitch_prompt: string | null;
           first_view_source: string | null;
           prospect_website: string | null;
+          pitch_guidance: string | null;
         };
         Insert: {
           id: string;
@@ -640,6 +682,7 @@ export type Database = {
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
+          pitch_guidance?: string | null;
         };
         Update: {
           id?: string;
@@ -680,6 +723,7 @@ export type Database = {
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
+          pitch_guidance?: string | null;
         };
         Relationships: [
           {
@@ -878,7 +922,7 @@ export type Database = {
         Returns: Json;
       };
       requeue_enrichment: {
-        Args: { p_session_id: string; p_user_id: string };
+        Args: { p_session_id: string; p_user_id: string; p_guidance?: string | null };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       colour_for_sequence: {
