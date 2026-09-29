@@ -6,7 +6,11 @@ import { checkRateLimit } from '@/lib/security/rate-limit';
 import { searchClient } from '@/lib/search/server';
 
 const bodySchema = z.object({
-  name: z.string().trim().min(3).max(120),
+  name: z
+    .string()
+    .trim()
+    .max(120)
+    .regex(/\S+\s+\S+/, 'a first and last name'),
   company: z.string().trim().max(160).optional(),
 });
 

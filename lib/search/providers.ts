@@ -127,3 +127,17 @@ export function searchFor(
   if (provider === 'serper' && apiKey) return serperSearch(apiKey);
   return null;
 }
+
+/** Tries each search in turn; the first that returns anything wins. A dead vendor costs one empty answer, not the feature. */
+export function withFallback(...searches: (SearchFn | null)[]): SearchFn | null {
+  const chain = searches.filter((s): s is SearchFn => s !== null);
+  if (chain.length === 0) return null;
+  if (chain.length === 1) return chain[0]!;
+  return async (query, options) => {
+    for (const search of chain) {
+      const results = await search(query, options);
+      if (results.length > 0) return results;
+    }
+    return [];
+  };
+}

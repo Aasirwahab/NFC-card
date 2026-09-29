@@ -84,6 +84,9 @@ export const serverEnvSchema = z
     /** Web search, for finding a company's site and candidate profiles. mock = canned results for local work. */
     SEARCH_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'mock']).optional()),
     SEARCH_API_KEY: blankAsUnset(z.string().optional()),
+    /** Used when the primary returns nothing or is down (Serper first, Brave behind it, or the reverse). */
+    SEARCH_FALLBACK_PROVIDER: blankAsUnset(z.enum(['brave', 'serper']).optional()),
+    SEARCH_FALLBACK_API_KEY: blankAsUnset(z.string().optional()),
 
     // Set by Vercel on every deployment. Absent locally.
     VERCEL_ENV: blankAsUnset(z.enum(['production', 'preview', 'development']).optional()),
@@ -140,6 +143,14 @@ export const serverEnvSchema = z
         code: 'custom',
         path: ['SEARCH_API_KEY'],
         message: 'required when SEARCH_PROVIDER is brave or serper',
+      });
+    }
+
+    if (vars.SEARCH_FALLBACK_PROVIDER && !vars.SEARCH_FALLBACK_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SEARCH_FALLBACK_API_KEY'],
+        message: 'required when SEARCH_FALLBACK_PROVIDER is set',
       });
     }
 

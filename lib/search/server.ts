@@ -1,8 +1,11 @@
 import 'server-only';
 import { env } from '@/lib/env';
-import { searchFor } from './providers';
+import { searchFor, withFallback } from './providers';
 import type { SearchFn } from './types';
 
 export function searchClient(): SearchFn | null {
-  return searchFor(env.SEARCH_PROVIDER, env.SEARCH_API_KEY);
+  return withFallback(
+    searchFor(env.SEARCH_PROVIDER, env.SEARCH_API_KEY),
+    searchFor(env.SEARCH_FALLBACK_PROVIDER, env.SEARCH_FALLBACK_API_KEY),
+  );
 }

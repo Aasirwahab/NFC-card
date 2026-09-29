@@ -122,6 +122,15 @@ export function splitHeadline(title: string): { name: string; rest: string } {
 const MAX_CANDIDATES = 5;
 export const LIKELY_MIN = 0.7;
 
+/** Text going inside a quoted search phrase: no quotes, operators or line breaks. */
+export function phrase(text: string): string {
+  return text
+    .replace(/["\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
 export async function findLinkedInProfile(input: {
   search: SearchFn;
   jev: JevClient | null;
@@ -129,7 +138,7 @@ export async function findLinkedInProfile(input: {
   company?: string | null;
 }): Promise<ProfileLookup> {
   const company = input.company?.trim() || null;
-  const query = `site:linkedin.com/in "${input.name}"${company ? ` "${company}"` : ''}`;
+  const query = `site:linkedin.com/in "${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''}`;
   const results = await input.search(query, { count: 10 });
 
   const seen = new Set<string>();

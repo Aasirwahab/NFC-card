@@ -4,9 +4,11 @@ import { findCompanySite } from '@/lib/lookup/company';
 import {
   findLinkedInProfile,
   nameRelation,
+  phrase,
   profileUrl,
   splitHeadline,
 } from '@/lib/lookup/linkedin';
+import { withFallback } from '@/lib/search/providers';
 import type { SearchFn } from '@/lib/search/types';
 
 // ------------------------------------------------------------- the client
@@ -260,5 +262,42 @@ describe('findLinkedInProfile', () => {
     expect(lookup.candidates[0]!.label).toBe('exact_match');
     // Without Jev the evidence is only a substring, so the score stays under the bar.
     expect(lookup.likelyUrl).toBeNull();
+  });
+});
+
+describe('withFallback', () => {
+  const empty: SearchFn = async () => [];
+  const one: SearchFn = async () => [{ url: 'https://a.example', title: 't', snippet: 's' }];
+
+  it('uses the first search that returns something', async () => {
+    const search = withFallback(empty, one)!;
+    expect(await search('q')).toHaveLength(1);
+  });
+
+  it('is null with nothing configured, and passes a single search through', async () => {
+    expect(withFallback(null, null)).toBeNull();
+    expect(await withFallback(null, one)!('q')).toHaveLength(1);
+  });
+});
+
+describe('search query hygiene', () => {
+  it('keeps quotes and line breaks out of a quoted search phrase', () => {
+    expect(phrase('Sarah "OR site:evil.com" Whitlock\nnext')).toBe(
+      'Sarah OR site:evil.com Whitlock next',
+    );
+  });
+
+  it('builds the LinkedIn query from cleaned text', async () => {
+    let seen = '';
+    await findLinkedInProfile({
+      search: async (q) => {
+        seen = q;
+        return [];
+      },
+      jev: null,
+      name: 'Sarah "x" Whitlock',
+      company: 'Whitlock "Homes"',
+    });
+    expect(seen).toBe('site:linkedin.com/in "Sarah x Whitlock" "Whitlock Homes"');
   });
 });
