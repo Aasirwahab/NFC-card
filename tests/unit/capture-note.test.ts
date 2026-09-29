@@ -30,6 +30,11 @@ describe('cleanFill', () => {
     expect(fill.company).toBe('Whitlock Homes');
   });
 
+  it('matches whole words only: "Eve" is not inside "software developer"', () => {
+    const fill = cleanFill(raw({ name: 'Eve' }), niches, 'He is a software developer at Acme');
+    expect(fill.name).toBeNull();
+  });
+
   it('drops a name or company the model invented', () => {
     const fill = cleanFill(
       raw({ name: 'Sarah Whitlock-Jones', company: 'Whitlock Holdings PLC' }),

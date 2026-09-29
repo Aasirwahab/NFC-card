@@ -255,6 +255,8 @@ describe('sites we never fetch', () => {
     'https://lnkd.in/abc',
     'https://media.licdn.com/dms/image/x',
     'https://LINKEDIN.COM/in/y',
+    'https://linkedin.com./in/dot',
+    'https://www.linkedin.com./in/dot',
   ])('refuses %s before any network', (url) => {
     expect(() => validateUrl(url)).toThrowError(/never fetched/);
   });

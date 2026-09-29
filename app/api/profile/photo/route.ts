@@ -1,6 +1,7 @@
 import { fail, json, withRep } from '@/lib/api';
+import { readBytesCapped } from '@/lib/http/body';
 import { serviceClient } from '@/lib/db/service';
-import { checkPhoto, ownPhotoPath } from '@/lib/profile/photo';
+import { checkPhoto, MAX_PHOTO_BYTES, ownPhotoPath } from '@/lib/profile/photo';
 
 const BUCKET = 'avatars';
 
@@ -11,7 +12,8 @@ const BUCKET = 'avatars';
  * if we stored it, is removed.
  */
 export const POST = withRep(async (rep, request) => {
-  const bytes = new Uint8Array(await request.arrayBuffer());
+  const bytes = await readBytesCapped(request, MAX_PHOTO_BYTES);
+  if (bytes === null) return fail('too_large', 413);
   const check = checkPhoto(bytes);
   if (!check.ok) return fail(check.error, check.error === 'too_large' ? 413 : 400);
 

@@ -355,7 +355,23 @@ describe('names never reach the decision model', () => {
     expect(log[0]).not.toMatch(/Sarah/);
   });
 
+  it('treats accented and plain spellings as the same person', () => {
+    expect(redactNames('René Dupont is a director. Contact René.', ['Rene Dupont'])).toBe(
+      'PERSON is a director. Contact PERSON.',
+    );
+  });
+
   it('splits a pipe headline too', () => {
     expect(splitHeadline('Sarah Whitlock | Director | LinkedIn').name).toBe('Sarah Whitlock');
+  });
+});
+
+describe('readBytesCapped', () => {
+  it('reads a small body and refuses one over the cap', async () => {
+    const { readBytesCapped } = await import('@/lib/http/body');
+    const small = new Request('http://x.example', { method: 'POST', body: new Uint8Array(10) });
+    expect((await readBytesCapped(small, 100))!.length).toBe(10);
+    const big = new Request('http://x.example', { method: 'POST', body: new Uint8Array(500) });
+    expect(await readBytesCapped(big, 100)).toBeNull();
   });
 });

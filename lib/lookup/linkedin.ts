@@ -207,7 +207,11 @@ const escapeRe = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * often part of the company ("Whitlock Homes") and blanking it would destroy the
  * very evidence Jev is asked to judge. PURE; exported for tests.
  */
-export function redactNames(text: string, names: string[]): string {
+export function redactNames(rawText: string, rawNames: string[]): string {
+  // Accents are dropped from both sides so "René" and "Rene" are the same person.
+  const flat = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const text = flat(rawText);
+  const names = rawNames.map(flat);
   const phrases = names.map((n) => n.replace(/\s+/g, ' ').trim()).filter((n) => n.length >= 3);
   const firsts = names
     .map((n) => normaliseName(n)[0])

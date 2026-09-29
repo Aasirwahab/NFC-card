@@ -64,6 +64,8 @@ export function noteInstructions(niches: NoteNiche[]): string {
   ].join('\n');
 }
 
+const escapeRe = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** Whatever the model returned, cut down to what the event actually contains. PURE. */
 export function cleanFill(
   raw: z.infer<typeof outputSchema>,
@@ -75,9 +77,10 @@ export function cleanFill(
   const inLine = (value: string | null): string | null => {
     const v = value?.trim();
     if (!v) return null;
-    return v.split(/\s+/).every((word) => lower.includes(word.toLowerCase().replace(/[.,]$/, '')))
-      ? v
-      : null;
+    // Whole words only: "Eve" is not in "software developer".
+    const has = (word: string) =>
+      new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(word)}($|[^\\p{L}\\p{N}])`, 'iu').test(lower);
+    return v.split(/\s+/).every((word) => has(word.replace(/[.,]$/, ''))) ? v : null;
   };
 
   const niche =

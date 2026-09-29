@@ -212,3 +212,38 @@ export async function listFollowups(userId: string): Promise<FollowupItem[]> {
     ];
   });
 }
+
+export type SetupProgress = {
+  photo: boolean;
+  business: boolean;
+  booking: boolean;
+  playbook: boolean;
+  tapTested: boolean;
+};
+
+/** What the rep has done to get ready: drives the first-run checklist on Today. */
+export async function getSetupProgress(userId: string): Promise<SetupProgress> {
+  const db = serviceClient();
+  const [{ data: profile }, { data: business }, { count: playbook }, { count: tapped }] =
+    await Promise.all([
+      db.from('profiles').select('photo_url, booking_url').eq('id', userId).maybeSingle(),
+      db.from('business_profiles').select('services').eq('user_id', userId).maybeSingle(),
+      db
+        .from('playbook_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      // Their own tap on a card registers it under their name (a prospect's tap is 'prospect_tap').
+      db
+        .from('sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .neq('registered_by', 'prospect_tap'),
+    ]);
+  return {
+    photo: Boolean(profile?.photo_url),
+    business: Boolean(business && business.services.length > 0),
+    booking: Boolean(profile?.booking_url),
+    playbook: (playbook ?? 0) > 0,
+    tapTested: (tapped ?? 0) > 0,
+  };
+}

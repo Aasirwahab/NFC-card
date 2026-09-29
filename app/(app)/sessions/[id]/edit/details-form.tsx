@@ -72,9 +72,25 @@ export function DetailsForm({
 
   // The newest field values, for callbacks that finish later (a scan, a lookup): a
   // callback made at click time would otherwise see the form as it was then.
-  const latest = useRef({ name, company, website, email, phone, customProblems });
+  const latest = useRef({
+    name,
+    company,
+    website,
+    email,
+    phone,
+    customProblems,
+    problemCount: problems.length,
+  });
   useEffect(() => {
-    latest.current = { name, company, website, email, phone, customProblems };
+    latest.current = {
+      name,
+      company,
+      website,
+      email,
+      phone,
+      customProblems,
+      problemCount: problems.length,
+    };
   });
 
   // An unsaved draft survives the phone locking, the app being backgrounded to check a
@@ -88,6 +104,11 @@ export function DetailsForm({
       const raw = window.localStorage.getItem(draftKey);
       if (!raw) return;
       const d = JSON.parse(raw) as Record<string, unknown>;
+      // A draft older than 12 hours is dropped: it holds a prospect's details.
+      if (typeof d.savedAt !== 'number' || Date.now() - d.savedAt > 12 * 60 * 60 * 1000) {
+        window.localStorage.removeItem(draftKey);
+        return;
+      }
       startTransition(() => {
         if (typeof d.name === 'string') setName(d.name);
         if (typeof d.company === 'string') setCompany(d.company);
@@ -114,6 +135,7 @@ export function DetailsForm({
         window.localStorage.setItem(
           draftKey,
           JSON.stringify({
+            savedAt: Date.now(),
             name,
             company,
             website,
@@ -339,7 +361,8 @@ export function DetailsForm({
             current.trim() ? current : value;
           if (fill.name) setName(fillIfEmpty(fill.name));
           if (fill.company) setCompany(fillIfEmpty(fill.company));
-          if (fill.niche) setNiche(fill.niche);
+          // Never swap a niche the rep already worked in.
+          if (fill.niche && latest.current.problemCount === 0) setNiche(fill.niche);
           if (fill.problems.length > 0) {
             setProblems((current) => [...new Set([...current, ...fill.problems])]);
           }
@@ -495,7 +518,7 @@ export function DetailsForm({
           <div className="mt-3 flex flex-col gap-4">
             <Field
               label="LinkedIn"
-              hint="Find it below, or paste the link if they shared it."
+              hint="Best: paste the link. Ask to scan their LinkedIn QR code (search bar, QR icon) or copy it from the app. The search below is a helper and often wrong."
               htmlFor="linkedin"
             >
               <Input
@@ -508,13 +531,14 @@ export function DetailsForm({
               />
               {lookupEnabled ? (
                 <LookupPicker
-                  buttonLabel="Find on LinkedIn"
+                  buttonLabel="Search the web for LinkedIn"
                   disabled={name.trim().split(/\s+/).length < 2}
                   path="/api/lookup/linkedin"
                   body={() => ({ name: name.trim(), company: company.trim() || undefined })}
                   toItems={(response: ProfileLookup) =>
                     response.candidates.map((c) => ({
                       key: c.url,
+                      checkUrl: c.url,
                       primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
                       secondary: c.snippet || undefined,
                       badge:

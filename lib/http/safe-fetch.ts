@@ -75,7 +75,7 @@ const TEXTUAL = /^(text\/html|application\/xhtml\+xml|text\/plain)\b/i;
  * to these sites are stored and shown, never fetched. Only search-result text is
  * ever used to find a profile.
  */
-const NEVER_FETCH = /(^|\.)(linkedin\.com|lnkd\.in|licdn\.com)$/i;
+const NEVER_FETCH = /(^|\.)(linkedin\.com|lnkd\.in|licdn\.com)\.?$/i;
 
 /** Names that can only mean "somewhere inside", refused before any DNS. */
 const INTERNAL_NAME = /(^|\.)(localhost|local|internal|intranet|lan|home|corp|localdomain)$/i;

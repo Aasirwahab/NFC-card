@@ -47,6 +47,7 @@ export async function findCompanySite(input: {
     .replace(/["\n\r\t]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  if (name.length < 2) return { candidates: [], likelyUrl: null };
   // "<name> company website" put the right site in the top 3 for 9 of 10 companies in a
   // 2026-09-29 test; adding "official website" or the place drove that down to 5 and 2.
   // The place still goes to Jev, which judges the candidates.

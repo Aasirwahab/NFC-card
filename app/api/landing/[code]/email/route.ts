@@ -8,6 +8,7 @@ import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { emailConfigured, sendEmail } from '@/lib/email/mailer';
 import { pitchEmail } from '@/lib/email/pitch-email';
+import { profileUrl } from '@/lib/lookup/linkedin';
 import { env } from '@/lib/env';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 
@@ -34,6 +35,8 @@ const PER_CARD_PER_DAY = 3;
 
 const requestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
+  /** Optional: their own profile link, so the rep can connect. Anything that is not a profile link is dropped. */
+  linkedin: z.string().trim().max(300).optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ code: string }> }) {
@@ -117,12 +120,22 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
   }
 
   // Only after a successful send. The rep gets the address only if they had none.
+  const theirLinkedIn = parsed.data.linkedin ? profileUrl(parsed.data.linkedin) : null;
   await Promise.all([
     db
       .from('sessions')
       .update({ prospect_email: parsed.data.email })
       .eq('id', session.id)
       .is('prospect_email', null),
+    ...(theirLinkedIn
+      ? [
+          db
+            .from('sessions')
+            .update({ linkedin_url: theirLinkedIn })
+            .eq('id', session.id)
+            .is('linkedin_url', null),
+        ]
+      : []),
     db.from('session_events').insert({ session_id: session.id, type: 'page_emailed' }),
   ]);
 

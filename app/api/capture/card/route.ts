@@ -1,4 +1,5 @@
 import { fail, json, withRep } from '@/lib/api';
+import { readBytesCapped } from '@/lib/http/body';
 import { visionModel } from '@/lib/ai/models';
 import { readCard } from '@/lib/capture/card';
 import { isJpeg } from '@/lib/profile/photo';
@@ -19,9 +20,9 @@ export const POST = withRep(async (rep, request) => {
   const limit = await checkRateLimit('lookup', rep.userId);
   if (!limit.allowed) return fail('rate_limited', 429);
 
-  const bytes = new Uint8Array(await request.arrayBuffer());
+  const bytes = await readBytesCapped(request, MAX_BYTES);
+  if (bytes === null) return fail('too_large', 413);
   if (bytes.length === 0) return fail('empty', 400);
-  if (bytes.length > MAX_BYTES) return fail('too_large', 413);
   if (!isJpeg(bytes)) return fail('not_jpeg', 400);
 
   return json(await readCard({ model: vision.model, jpeg: bytes }));

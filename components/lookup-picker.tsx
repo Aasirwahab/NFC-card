@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiSend } from '@/lib/http/client';
 
 export type PickerItem = {
   key: string;
   primary: string;
   secondary?: string;
+  /** Where the rep can look at this candidate before choosing it (opens in a new tab). */
+  checkUrl?: string;
   badge?: string;
   /** Highlights the row: the one we would suggest (the rep still taps). */
   likely?: boolean;
@@ -41,13 +43,19 @@ export function LookupPicker({
   const [items, setItems] = useState<PickerItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const latest = useRef(0);
+
   async function run(override?: Record<string, unknown>) {
+    // A slow answer to an older request must never replace a newer one.
+    const mine = ++latest.current;
     setBusy(true);
     setError(null);
     try {
       const response = await apiSend<never>(path, 'POST', override ?? body());
+      if (mine !== latest.current) return;
       setItems(toItems(response));
     } catch (caught) {
+      if (mine !== latest.current) return;
       setItems(null);
       setError(
         caught instanceof Error && caught.message === 'rate_limited'
@@ -55,7 +63,7 @@ export function LookupPicker({
           : 'Could not look that up. You can type it instead.',
       );
     } finally {
-      setBusy(false);
+      if (mine === latest.current) setBusy(false);
     }
   }
 
@@ -116,6 +124,16 @@ export function LookupPicker({
                   </span>
                 ) : null}
               </button>
+              {item.checkUrl ? (
+                <a
+                  href={item.checkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink-3 hover:text-ink-2 mt-1 ml-1 inline-block text-[12px] underline underline-offset-2"
+                >
+                  Open to check
+                </a>
+              ) : null}
             </li>
           ))}
           <li>

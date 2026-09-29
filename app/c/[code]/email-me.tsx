@@ -12,6 +12,7 @@ import { ApiError, apiSend } from '@/lib/http/client';
 export function EmailMe({ code, repFirstName }: { code: string; repFirstName: string }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [linkedin, setLinkedin] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -40,7 +41,10 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
     setStatus('sending');
     setMessage(null);
     try {
-      await apiSend(`/api/landing/${code}/email`, 'POST', { email });
+      await apiSend(`/api/landing/${code}/email`, 'POST', {
+        email,
+        ...(linkedin.trim() ? { linkedin: linkedin.trim() } : {}),
+      });
       setStatus('sent');
     } catch (error) {
       const reason = error instanceof ApiError ? error.message : '';
@@ -84,6 +88,19 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
           {status === 'sending' ? 'Sending…' : 'Send'}
         </button>
       </div>
+      <label htmlFor="email-me-li" className="text-ink-2 mt-1 text-sm font-medium">
+        Your LinkedIn <span className="text-ink-3 font-normal">(optional)</span>
+      </label>
+      <input
+        id="email-me-li"
+        type="url"
+        inputMode="url"
+        autoComplete="off"
+        placeholder="linkedin.com/in/…"
+        value={linkedin}
+        onChange={(e) => setLinkedin(e.target.value)}
+        className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-11 rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+      />
       <p className="text-ink-3 text-[12px]">
         We&rsquo;ll send you this page. {repFirstName} will see your email too.
       </p>

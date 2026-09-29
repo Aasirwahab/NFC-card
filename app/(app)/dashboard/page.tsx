@@ -1,9 +1,16 @@
 import Link from 'next/link';
 import { CardCodeLookup } from '@/components/card-code-lookup';
+import { FirstRunChecklist } from '@/components/first-run-checklist';
 import { TapGuide } from '@/components/tap-guide';
 import { SessionRow } from '@/components/session-row';
 import { FollowupCard } from '@/components/followup-card';
-import { listEvents, listFollowups, listSessions, type SessionListItem } from '@/lib/db/rep';
+import {
+  getSetupProgress,
+  listEvents,
+  listFollowups,
+  listSessions,
+  type SessionListItem,
+} from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
 
 export const metadata = { title: 'Today' };
@@ -30,10 +37,11 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   const { event } = await searchParams;
   const eventId = typeof event === 'string' ? event : undefined;
 
-  const [events, sessions, allFollowups] = await Promise.all([
+  const [events, sessions, allFollowups, progress] = await Promise.all([
     listEvents(rep.userId),
     listSessions(rep.userId, { eventId }),
     listFollowups(rep.userId),
+    getSetupProgress(rep.userId),
   ]);
   const shown = new Set(sessions.map((s) => s.id));
   const followups = allFollowups.filter((f) => shown.has(f.sessionId));
@@ -56,6 +64,8 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           {sessions.length} lead{sessions.length === 1 ? '' : 's'} · {tapped} tapped
         </p>
       </div>
+
+      <FirstRunChecklist progress={progress} />
 
       {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
 
