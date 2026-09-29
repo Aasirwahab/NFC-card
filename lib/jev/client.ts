@@ -8,7 +8,7 @@
  *   - FAIL SAFE: any failure, timeout or odd answer becomes `null`, and the
  *     caller decides what null means (usually: the rep taps).
  *   - The caller sends business-level text only. No emails, phones, LinkedIn
- *     links or private notes: `assertNoPersonalFields` refuses the obvious ones.
+ *     links or private notes: `scrubPersonalFields` cuts out emails and phone numbers.
  *
  * PURE apart from the injected `post`, so it is tested without a network.
  */
@@ -37,14 +37,16 @@ export type JevClient = {
   }): Promise<JevPick<T> | null>;
 };
 
-const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i;
-const PHONE = /(?:\+|00)?\d[\d\s().-]{8,}\d/;
+const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/gi;
+const PHONE = /(?:\+|00)?\d[\d\s().-]{8,}\d/g;
 
-/** A cheap tripwire, not a privacy guarantee: callers still sanitise their input. */
-export function assertNoPersonalFields(state: string): void {
-  if (EMAIL.test(state) || PHONE.test(state)) {
-    throw new Error('jev: state contains an email address or phone number');
-  }
+/**
+ * Contact details never go to the decision model. Real search snippets often carry a
+ * company's phone number or an email address ("Call +49 89 ..."), so instead of
+ * refusing them we cut them out before sending. PURE; exported for tests.
+ */
+export function scrubPersonalFields(state: string): string {
+  return state.replace(EMAIL, '[contact removed]').replace(PHONE, '[contact removed]');
 }
 
 function asProbability(value: unknown): number | null {
@@ -55,8 +57,8 @@ export function createJev(post: JevPost, options: { model: string }): JevClient 
   const model = options.model;
 
   return {
-    async yes({ state, question, yes, no }) {
-      assertNoPersonalFields(state);
+    async yes({ state: rawState, question, yes, no }) {
+      const state = scrubPersonalFields(rawState);
       const q: Record<string, unknown> = { type: 'noul', instructions: question };
       if (yes !== undefined || no !== undefined) q.criteria = { true: yes ?? '', false: no ?? '' };
       try {
@@ -69,8 +71,8 @@ export function createJev(post: JevPost, options: { model: string }): JevClient 
       }
     },
 
-    async pick({ state, question, options: opts }) {
-      assertNoPersonalFields(state);
+    async pick({ state: rawState, question, options: opts }) {
+      const state = scrubPersonalFields(rawState);
       const criteria: Record<string, string> = { ...opts, other: 'None of the above' };
       try {
         const response = (await post({

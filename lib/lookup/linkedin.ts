@@ -138,8 +138,15 @@ export async function findLinkedInProfile(input: {
   company?: string | null;
 }): Promise<ProfileLookup> {
   const company = input.company?.trim() || null;
-  const query = `site:linkedin.com/in "${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''}`;
-  const results = await input.search(query, { count: 10 });
+  // Two shapes, measured on 8 well-known people (2026-09-29): the plain phrase query
+  // found more profiles than the site: operator, which returned lookalikes and
+  // colleagues. Try the plain one; only if it yields no profile at all, the site: one.
+  const plain = `"${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''} LinkedIn`;
+  const scoped = `site:linkedin.com/in "${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''}`;
+  let results = await input.search(plain, { count: 10 });
+  if (!results.some((r) => profileUrl(r.url))) {
+    results = await input.search(scoped, { count: 10 });
+  }
 
   const seen = new Set<string>();
   const parsed: {

@@ -5,7 +5,12 @@
  * in lib/http because that is the only place allowed to touch `fetch` (§22.4).
  */
 
-const ALLOWED_HOSTS = new Set(['openrouter.ai', 'api.search.brave.com', 'google.serper.dev']);
+const ALLOWED_HOSTS = new Set([
+  'openrouter.ai',
+  'api.search.brave.com',
+  'google.serper.dev',
+  'serpapi.com',
+]);
 
 export class FixedApiError extends Error {
   constructor(

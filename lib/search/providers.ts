@@ -62,6 +62,29 @@ export function serperSearch(apiKey: string): SearchFn {
   };
 }
 
+/** SerpApi (serpapi.com): Google results too. The key travels in the query string, so the URL is never logged. */
+export function serpApiSearch(apiKey: string): SearchFn {
+  return async (query, options) => {
+    try {
+      const url = new URL('https://serpapi.com/search.json');
+      url.searchParams.set('engine', 'google');
+      url.searchParams.set('q', query);
+      url.searchParams.set('num', String(options?.count ?? 8));
+      url.searchParams.set('api_key', apiKey);
+      const data = (await callFixedApi({ url: url.toString(), headers: {}, timeoutMs: 8_000 })) as {
+        organic_results?: unknown;
+      };
+      return collect(data?.organic_results, (r) => ({
+        url: String(r.link ?? ''),
+        title: clean(r.title),
+        snippet: clean(r.snippet),
+      }));
+    } catch {
+      return [];
+    }
+  };
+}
+
 /**
  * Canned results for local work with no search account. Deterministic and clearly
  * fake (`.example` hosts); one right answer, one look-alike, one directory. It exists
@@ -119,12 +142,13 @@ export const mockSearch: SearchFn = async (query) => {
 };
 
 export function searchFor(
-  provider: 'brave' | 'serper' | 'mock' | undefined,
+  provider: 'brave' | 'serper' | 'serpapi' | 'mock' | undefined,
   apiKey: string | undefined,
 ): SearchFn | null {
   if (provider === 'mock') return mockSearch;
   if (provider === 'brave' && apiKey) return braveSearch(apiKey);
   if (provider === 'serper' && apiKey) return serperSearch(apiKey);
+  if (provider === 'serpapi' && apiKey) return serpApiSearch(apiKey);
   return null;
 }
 

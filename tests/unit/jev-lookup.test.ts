@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertNoPersonalFields, createJev, type JevClient } from '@/lib/jev/client';
+import { createJev, scrubPersonalFields, type JevClient } from '@/lib/jev/client';
 import { findCompanySite } from '@/lib/lookup/company';
 import {
   findLinkedInProfile,
@@ -47,10 +47,22 @@ describe('createJev', () => {
     ).toBeNull();
   });
 
-  it('refuses a state that carries an email address or phone number', () => {
-    expect(() => assertNoPersonalFields('mail sarah@whitlock.example')).toThrow();
-    expect(() => assertNoPersonalFields('call +44 7700 900123')).toThrow();
-    expect(() => assertNoPersonalFields('Whitlock Homes, Manchester')).not.toThrow();
+  it('cuts emails and phone numbers out of what it sends, instead of failing', async () => {
+    expect(scrubPersonalFields('mail sarah@whitlock.example or call +49 89 1234 5678 today')).toBe(
+      'mail [contact removed] or call [contact removed] today',
+    );
+    expect(scrubPersonalFields('Whitlock Homes, Manchester')).toBe('Whitlock Homes, Manchester');
+
+    let sent = '';
+    const jev = createJev(
+      async (body) => {
+        sent = String(body.state);
+        return { answers: { answer: { noul: 0.5 } } };
+      },
+      { model: 'm' },
+    );
+    expect(await jev.yes({ state: 'Call +44 161 555 0142 now', question: 'q' })).toBe(0.5);
+    expect(sent).toBe('Call [contact removed] now');
   });
 });
 
@@ -289,17 +301,20 @@ describe('search query hygiene', () => {
   });
 
   it('builds the LinkedIn query from cleaned text', async () => {
-    let seen = '';
+    const seen: string[] = [];
     await findLinkedInProfile({
       search: async (q) => {
-        seen = q;
+        seen.push(q);
         return [];
       },
       jev: null,
       name: 'Sarah "x" Whitlock',
       company: 'Whitlock "Homes"',
     });
-    expect(seen).toBe('site:linkedin.com/in "Sarah x Whitlock" "Whitlock Homes"');
+    expect(seen).toEqual([
+      '"Sarah x Whitlock" "Whitlock Homes" LinkedIn',
+      'site:linkedin.com/in "Sarah x Whitlock" "Whitlock Homes"',
+    ]);
   });
 });
 

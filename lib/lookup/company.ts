@@ -42,13 +42,15 @@ export async function findCompanySite(input: {
   name: string;
   place?: string | null;
 }): Promise<SiteLookup> {
-  const place = input.place?.trim();
-  const results = await input.search(
-    `${input.name} ${place ?? ''} official website`.replace(/\s+/g, ' ').trim(),
-    {
-      count: 8,
-    },
-  );
+  const place = input.place?.replace(/["\n\r\t]/g, ' ').trim();
+  const name = input.name
+    .replace(/["\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // "<name> company website" put the right site in the top 3 for 9 of 10 companies in a
+  // 2026-09-29 test; adding "official website" or the place drove that down to 5 and 2.
+  // The place still goes to Jev, which judges the candidates.
+  const results = await input.search(`${name} company website`, { count: 10 });
 
   const seen = new Set<string>();
   const candidates: SiteCandidate[] = [];
@@ -71,7 +73,7 @@ export async function findCompanySite(input: {
     string
   >;
   const state =
-    `Business named: ${input.name}${place ? ` (${place})` : ''}. Candidate search results:\n` +
+    `Business named: ${name}${place ? ` (${place})` : ''}. Candidate search results:\n` +
     candidates.map((c, i) => `${i + 1}. ${c.domain}: ${c.title}. ${c.snippet}`).join('\n');
 
   const pick = await input.jev.pick({

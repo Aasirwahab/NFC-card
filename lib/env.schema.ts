@@ -82,10 +82,10 @@ export const serverEnvSchema = z
     JEV_MODEL: blankAsUnset(z.string().default('typesafe/jev-1.13')),
 
     /** Web search, for finding a company's site and candidate profiles. mock = canned results for local work. */
-    SEARCH_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'mock']).optional()),
+    SEARCH_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'serpapi', 'mock']).optional()),
     SEARCH_API_KEY: blankAsUnset(z.string().optional()),
     /** Used when the primary returns nothing or is down (Serper first, Brave behind it, or the reverse). */
-    SEARCH_FALLBACK_PROVIDER: blankAsUnset(z.enum(['brave', 'serper']).optional()),
+    SEARCH_FALLBACK_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'serpapi']).optional()),
     SEARCH_FALLBACK_API_KEY: blankAsUnset(z.string().optional()),
 
     // Set by Vercel on every deployment. Absent locally.
@@ -142,7 +142,7 @@ export const serverEnvSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['SEARCH_API_KEY'],
-        message: 'required when SEARCH_PROVIDER is brave or serper',
+        message: 'required when SEARCH_PROVIDER is brave, serper or serpapi',
       });
     }
 
