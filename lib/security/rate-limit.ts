@@ -32,6 +32,8 @@ const LIMITS = {
   chat: { tokens: 10, window: '1 m' },
   /** POST /api/landing/[code]/email */
   landingEmail: { tokens: 3, window: '1 h' },
+  /** Rep-side lookups (company site, LinkedIn candidates): each one is a paid search call. */
+  lookup: { tokens: 30, window: '10 m' },
   /** GET /api/landing/[code]/status — polled every 3s by the crafting state. */
   landingStatus: { tokens: 60, window: '1 m' },
 } as const satisfies Record<string, { tokens: number; window: `${number} ${'m' | 'h' | 's'}` }>;

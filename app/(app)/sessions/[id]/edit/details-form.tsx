@@ -8,6 +8,9 @@ import { Field, Input, Textarea } from '@/components/ui/field';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
+import { LookupPicker } from '@/components/lookup-picker';
+import type { SiteLookup } from '@/lib/lookup/company';
+import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { apiSend } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
@@ -31,6 +34,7 @@ export function DetailsForm({
   eventName,
   cardCode,
   events,
+  lookupEnabled,
   justRegistered,
 }: {
   session: Session;
@@ -39,6 +43,8 @@ export function DetailsForm({
   /** The printed code of the card, the handle for this lead. */
   cardCode: string;
   events: { id: string; name: string }[];
+  /** True when a search provider is configured, so the "find it" buttons can work. */
+  lookupEnabled: boolean;
   justRegistered: boolean;
 }) {
   const router = useRouter();
@@ -232,6 +238,26 @@ export function DetailsForm({
             autoCapitalize="none"
             autoComplete="off"
           />
+          {lookupEnabled ? (
+            <LookupPicker
+              buttonLabel="Find their website"
+              disabled={company.trim().length < 2}
+              path="/api/lookup/company"
+              body={() => ({ name: company.trim() })}
+              toItems={(response: SiteLookup) =>
+                response.candidates.map((c) => ({
+                  key: c.url,
+                  primary: c.domain,
+                  secondary: c.title,
+                  badge: c.url === response.likelyUrl ? 'Likely' : undefined,
+                  likely: c.url === response.likelyUrl,
+                  value: c.domain,
+                }))
+              }
+              onPick={setWebsite}
+              emptyText="Nothing found. Type the website if you know it."
+            />
+          ) : null}
         </Field>
 
         {niches.length > 0 ? (
@@ -322,7 +348,7 @@ export function DetailsForm({
           <div className="mt-3 flex flex-col gap-4">
             <Field
               label="LinkedIn"
-              hint="Paste the URL if they shared it. There is no automatic lookup."
+              hint="Find it below, or paste the link if they shared it."
               htmlFor="linkedin"
             >
               <Input
@@ -333,6 +359,35 @@ export function DetailsForm({
                 onChange={(e) => setLinkedin(e.target.value)}
                 placeholder="https://linkedin.com/in/…"
               />
+              {lookupEnabled ? (
+                <LookupPicker
+                  buttonLabel="Find on LinkedIn"
+                  disabled={name.trim().split(/\s+/).length < 2}
+                  path="/api/lookup/linkedin"
+                  body={() => ({ name: name.trim(), company: company.trim() || undefined })}
+                  toItems={(response: ProfileLookup) =>
+                    response.candidates.map((c) => ({
+                      key: c.url,
+                      primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
+                      secondary: c.snippet || undefined,
+                      badge:
+                        c.url === response.likelyUrl
+                          ? 'Likely'
+                          : c.label === 'exact_match'
+                            ? 'Check'
+                            : c.label === 'ambiguous'
+                              ? 'Unsure'
+                              : c.label === 'namesake'
+                                ? 'Other company'
+                                : undefined,
+                      likely: c.url === response.likelyUrl,
+                      value: c.url,
+                    }))
+                  }
+                  onPick={setLinkedin}
+                  emptyText="No profile found. Paste the link if they shared it."
+                />
+              ) : null}
             </Field>
 
             <Field label="Email" htmlFor="email">

@@ -65,6 +65,20 @@ export const serverEnvSchema = z
      */
     MODEL_RESEARCH: blankAsUnset(z.string().optional()),
 
+    /** Fast typed decisions (which website is official, which profile matches...). */
+    JEV_ENABLED: blankAsUnset(
+      z
+        .enum(['true', 'false'])
+        .default('true')
+        .transform((v) => v === 'true'),
+    ),
+    /** Pinned, because an alias like ~typesafe/jev-latest can change behaviour under us. */
+    JEV_MODEL: blankAsUnset(z.string().default('typesafe/jev-1.13')),
+
+    /** Web search, for finding a company's site and candidate profiles. mock = canned results for local work. */
+    SEARCH_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'mock']).optional()),
+    SEARCH_API_KEY: blankAsUnset(z.string().optional()),
+
     // Set by Vercel on every deployment. Absent locally.
     VERCEL_ENV: blankAsUnset(z.enum(['production', 'preview', 'development']).optional()),
 
@@ -110,6 +124,17 @@ export const serverEnvSchema = z
     }
 
     // Same reasoning: a key with no sender boots fine and fails on the first alert.
+    if (
+      (vars.SEARCH_PROVIDER === 'brave' || vars.SEARCH_PROVIDER === 'serper') &&
+      !vars.SEARCH_API_KEY
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SEARCH_API_KEY'],
+        message: 'required when SEARCH_PROVIDER is brave or serper',
+      });
+    }
+
     if (vars.RESEND_API_KEY && !vars.EMAIL_FROM) {
       ctx.addIssue({
         code: 'custom',

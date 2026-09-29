@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getEvent, getSessionForRep, listEvents } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
+import { env } from '@/lib/env';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
 
@@ -44,6 +45,7 @@ export default async function EditSessionPage({
       eventName={event?.name ?? null}
       cardCode={card?.code ?? ''}
       events={events.map((e) => ({ id: e.id, name: e.name }))}
+      lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
       justRegistered={registered === '1'}
     />
   );
