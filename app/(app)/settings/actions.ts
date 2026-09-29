@@ -31,11 +31,27 @@ const blank = (max: number) =>
     .nullable()
     .default(null);
 
+/** An IANA zone name the runtime recognises, else UTC. Never trusts the client blindly. */
+function knownTimezone(value: string): string {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value });
+    return value;
+  } catch {
+    return 'UTC';
+  }
+}
+
 const profileSchema = z.object({
   full_name: z.string().trim().min(2, 'Enter your name.').max(120),
+  language: z.enum(['en-GB', 'en-US']).default('en-GB'),
+  timezone: z
+    .string()
+    .trim()
+    .max(64)
+    .default('UTC')
+    .transform((value) => knownTimezone(value || 'UTC')),
   title: blank(120),
   bio: blank(600),
-  photo_url: blank(500),
   linkedin_url: blank(300),
   phone: blank(40),
   // The rep's Cal.com event, embedded on every prospect page (§19.1).

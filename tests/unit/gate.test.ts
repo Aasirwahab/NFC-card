@@ -21,7 +21,7 @@ function brief(overrides: Partial<Brief> = {}): Brief {
     customProblem: null,
     niche: 'plant hire',
     toneNote: 'Arsenal fan, two kids, hates spreadsheets',
-    rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder' },
+    rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
     business: {
       name: 'TMA',
       tagline: 'Vertical AI for plant hire.',
@@ -63,6 +63,27 @@ describe('the baseline', () => {
 
   it('rejects an empty pitch', () => {
     expect(checks('   ')).toEqual(['empty']);
+  });
+});
+
+describe('pitch-v2 tone: presumptuous or salesy phrasing is rejected', () => {
+  it.each([
+    ['As you know, we work on idle machine tracking every week.', 'presumes what they know'],
+    ['We specialise in idle machine tracking for hire firms.', 'brags'],
+    ['Our platform is a game-changer for idle machine tracking.', 'salesy buzzword'],
+    ['I guarantee we can fix idle machine tracking for you.', 'promises an outcome'],
+  ])('rejects %s', (phrase, tell) => {
+    const body = GOOD.replace(
+      'You mentioned idle machine tracking at',
+      `${phrase} You mentioned idle machine tracking at`,
+    );
+    const failures = qualityGate(body, brief()).failures;
+    expect(failures.map((f) => f.check)).toContain('placeholder_or_tell');
+    expect(failures.map((f) => f.detail).join(' ')).toContain(tell);
+  });
+
+  it('still passes a calm, specific note', () => {
+    expect(checks(GOOD)).toEqual([]);
   });
 });
 

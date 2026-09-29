@@ -94,6 +94,18 @@ const TELLS: readonly [RegExp, string][] = [
     'placeholder text',
   ],
   [/\b(?:TBD|TODO|XXX)\b/, 'placeholder text'],
+  // Salesy or presumptuous phrasing (pitch-v2). A closer who reads it should not
+  // cringe: nothing that assumes the reader's situation or shouts about the seller.
+  [
+    /\bas you (?:may )?know\b|\bas you(?:'re| are) (?:no doubt )?aware\b/i,
+    'presumes what they know',
+  ],
+  [/\bwe specialis[ez]e? in\b|\bwe are (?:the )?(?:leading|premier|best)\b/i, 'brags'],
+  [
+    /\b(?:game[- ]?chang(?:er|ing)|cutting[- ]edge|revolutionary|world[- ]class|best[- ]in[- ]class|supercharge|synergy|unlock(?:ing)? (?:the )?(?:power|potential))\b/i,
+    'salesy buzzword',
+  ],
+  [/\bi (?:can )?guarantee\b|\bwe guarantee\b|\bguaranteed results?\b/i, 'promises an outcome'],
 ];
 
 /** §14.4: research deep, say less. Never frame the note around competitors. */

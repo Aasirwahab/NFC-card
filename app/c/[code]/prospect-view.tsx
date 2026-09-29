@@ -133,6 +133,14 @@ export function ProspectView({
   );
 }
 
+/** "Director · Acme", but not "Director, Acme · Acme" when the title already names it. */
+function titleLine(title: string | null, company: string | null): string {
+  const t = title?.trim() || null;
+  const c = company?.trim() || null;
+  if (t && c && t.toLowerCase().includes(c.toLowerCase())) return t;
+  return [t, c].filter(Boolean).join(' · ');
+}
+
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || fullName;
 }
@@ -182,7 +190,7 @@ export function Header({
           {rep.fullName}
         </p>
         <p className="text-ink-2 truncate text-sm">
-          {[rep.title, business?.companyName].filter(Boolean).join(' · ')}
+          {titleLine(rep.title, business?.companyName ?? null)}
         </p>
       </div>
     </header>
@@ -278,7 +286,7 @@ function CallToActionBlock({
         {label}
       </p>
       <p className="text-ink-2 mt-1.5 text-sm">
-        {repName} will come prepared — no pitch deck, no discovery call before the discovery call.
+        {repName} will come prepared: no pitch deck, no warm-up questions.
       </p>
       {children}
     </section>

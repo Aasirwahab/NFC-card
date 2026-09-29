@@ -61,7 +61,7 @@ const PITCH_RULES = [
   'write one.',
   '',
   'Rules — every one is checked automatically, and a note that breaks any is rejected:',
-  '- 90 to 150 words, plain text, two or three short paragraphs.',
+  '- 80 to 130 words, plain text, two or three short paragraphs.',
   '- Tie it to the problem they described, in their words. That is the point of it.',
   '- You may use up to two of the public facts about their company, only as stated.',
   '  Never say how you know them — no "I looked at your website", no "I noticed".',
@@ -75,25 +75,35 @@ const PITCH_RULES = [
   "- Use no personal names except theirs and the salesperson's.",
   '- End with one sentence inviting them to book 15 minutes (the page has the button),',
   "  then sign off with the salesperson's first name on its own line after an em dash.",
-  '- Write like a thoughtful person, not a brochure. British English.',
+  '- Sound like a calm, senior person writing to a peer: understated, direct, warm.',
+  '  Never presume what they know or feel, never boast, never promise an outcome.',
+  '  Banned: "as you know", "we specialise in", "game-changer", "cutting-edge",',
+  '  "world-class", "unlock", "supercharge", "guarantee".',
+  '- Acknowledge the problem they raised in their own words, then connect it to ONE',
+  '  thing the business actually does. Say less rather than more.',
 ];
 
 /**
  * Recorded with every pitch, so rep ratings (§14.5) can be grouped by prompt as
  * well as by model. Bump it whenever PITCH_RULES or the prompt layout changes.
  */
-export const PITCH_PROMPT_VERSION = 'pitch-v1';
+export const PITCH_PROMPT_VERSION = 'pitch-v2';
 
 /**
  * @param failures  on the stricter second attempt (§14.2), what the first
  *                  attempt got wrong — named, so the model can fix exactly that
  */
 export function pitchPrompt(brief: Brief, failures: GateFailure[] = []): Prompt {
+  const spelling =
+    brief.rep.language === 'en-US'
+      ? '- Use American English spelling.'
+      : '- Use British English spelling.';
   const instructions =
     failures.length === 0
-      ? PITCH_RULES.join('\n')
+      ? [...PITCH_RULES, spelling].join('\n')
       : [
           ...PITCH_RULES,
+          spelling,
           '',
           'A previous draft was REJECTED for these reasons. Fix every one:',
           ...failures.map((f) => `- ${f.detail}`),

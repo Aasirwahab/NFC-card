@@ -7,10 +7,10 @@ import { apiGet } from '@/lib/http/client';
 /**
  * The `queued` / `processing` render state (spec §16).
  *
- * "Putting something together for you — one moment." It polls, and resolves in
- * place. This reads as deliberate care rather than a loading failure, and it is
- * the fourth item on the defensibility list (§5.4): a visible crafting state
- * counters the "lazy AI" read and reinforces the human-effort impression.
+ * The note is shown straight away, and a small "finishing touches" line polls and
+ * resolves in place. It reads as deliberate care rather than a loading failure
+ * (§5.4), and the prospect never faces a blank wait: the AI version can take 20 to
+ * 60 seconds, and a card is often tapped while the rep is still standing there.
  *
  * It polls a STATUS-ONLY route every 3 seconds and GIVES UP AT 90 SECONDS,
  * rendering the template pitch it was handed at render time — so the give-up path
@@ -75,27 +75,33 @@ export function Crafting({ code, fallbackPitch }: { code: string; fallbackPitch:
     );
   }
 
+  // The note is readable at once (the deterministic one, which already names the
+  // problem they raised); a sharper version replaces it in place when ready. The
+  // prospect never sits in front of a spinner.
   return (
     <div className="mt-3" aria-live="polite">
-      <p className="text-ink-2 text-[17px] leading-relaxed">
-        Putting something together for you — one moment.
-      </p>
+      <div className="text-ink-2 space-y-3.5 text-[17px] leading-relaxed">
+        <p>{fallbackPitch}</p>
+      </div>
 
-      <div className="mt-5 flex items-center gap-2" aria-hidden="true">
-        {[0, 1, 2].map((index) => (
-          <span
-            key={index}
-            className="bg-accent/45 h-2 w-2 rounded-full"
-            style={{
-              animation: 'taplead-pulse 1.4s ease-in-out infinite',
-              animationDelay: `${index * 0.18}s`,
-            }}
-          />
-        ))}
+      <div className="text-ink-3 mt-4 flex items-center gap-2 text-[13px]">
+        <span className="flex items-center gap-1" aria-hidden="true">
+          {[0, 1, 2].map((index) => (
+            <span
+              key={index}
+              className="bg-accent/45 h-1.5 w-1.5 rounded-full"
+              style={{
+                animation: 'insignar-pulse 1.4s ease-in-out infinite',
+                animationDelay: `${index * 0.18}s`,
+              }}
+            />
+          ))}
+        </span>
+        Adding the finishing touches for you
       </div>
 
       <style>{`
-        @keyframes taplead-pulse {
+        @keyframes insignar-pulse {
           0%, 100% { opacity: 0.3; transform: scale(0.85); }
           50%      { opacity: 1;   transform: scale(1); }
         }

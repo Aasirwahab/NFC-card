@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/field';
+import { PhotoUpload } from './photo-upload';
 import {
   saveBusinessAction,
   saveKnowledgeAction,
@@ -56,6 +57,23 @@ function Panel({
   );
 }
 
+/**
+ * The rep's time zone comes from the phone, so "today" is right wherever they are
+ * (which event a first tap belongs to depends on it). Sent with the profile save.
+ */
+function DeviceTimezone({ current }: { current: string }) {
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    try {
+      const device = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (device && field.current) field.current.value = device;
+    } catch {
+      /* keep the stored zone */
+    }
+  }, []);
+  return <input ref={field} type="hidden" name="timezone" defaultValue={current} />;
+}
+
 export function ProfileForm({
   profile,
 }: {
@@ -68,6 +86,8 @@ export function ProfileForm({
     phone: string | null;
     contact_email: string | null;
     booking_url: string | null;
+    language: string;
+    timezone: string;
   } | null;
 }) {
   const [state, action] = useActionState(saveProfileAction, {});
@@ -83,18 +103,7 @@ export function ProfileForm({
           <Input id="title" name="title" defaultValue={profile?.title ?? ''} />
         </Field>
 
-        <Field
-          label="Photo URL"
-          hint="A face makes the page read as a person rather than a brochure."
-          htmlFor="photo_url"
-        >
-          <Input
-            id="photo_url"
-            name="photo_url"
-            type="url"
-            defaultValue={profile?.photo_url ?? ''}
-          />
-        </Field>
+        <PhotoUpload name={profile?.full_name ?? ''} photoUrl={profile?.photo_url ?? null} />
 
         <Field label="LinkedIn" htmlFor="linkedin_url">
           <Input
@@ -136,6 +145,23 @@ export function ProfileForm({
             defaultValue={profile?.contact_email ?? ''}
           />
         </Field>
+
+        <Field
+          label="Spelling"
+          hint="Which English your pitches are written in."
+          htmlFor="language"
+        >
+          <select
+            id="language"
+            name="language"
+            defaultValue={profile?.language ?? 'en-GB'}
+            className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-12 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+          >
+            <option value="en-GB">British</option>
+            <option value="en-US">American</option>
+          </select>
+        </Field>
+        <DeviceTimezone current={profile?.timezone ?? 'UTC'} />
 
         <Field label="Short bio" htmlFor="bio">
           <Textarea id="bio" name="bio" rows={3} defaultValue={profile?.bio ?? ''} />

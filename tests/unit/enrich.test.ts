@@ -178,7 +178,7 @@ describe('the prompts keep data out of the instructions (§22.5)', () => {
     customProblem: null,
     niche: null,
     toneNote: 'Arsenal fan',
-    rep: { firstName: 'Zaid', fullName: 'Zaid', title: null },
+    rep: { firstName: 'Zaid', fullName: 'Zaid', title: null, language: 'en-GB' },
     business: { name: 'TMA', tagline: null, services: [], pricing: null, knowledge: '' },
     facts: [],
     eventName: null,

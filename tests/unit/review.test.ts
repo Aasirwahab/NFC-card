@@ -14,7 +14,7 @@ const brief: Brief = {
   customProblem: null,
   niche: 'plant hire',
   toneNote: 'Arsenal fan, two kids',
-  rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder' },
+  rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
   business: {
     name: 'TMA',
     tagline: null,

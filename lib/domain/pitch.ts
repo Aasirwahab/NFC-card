@@ -103,7 +103,7 @@ export function templatePitch(input: PitchInput): string {
     );
   } else if (company) {
     sentences.push(`I wanted to follow up properly rather than leave you with a card.`);
-    sentences.push(`We work with teams like ${company} on exactly this kind of problem.`);
+    sentences.push(`I would like to hear what matters most at ${company} right now.`);
   } else {
     sentences.push(`I wanted to follow up properly rather than leave you with a card.`);
   }

@@ -273,7 +273,7 @@ export type Database = {
           {
             foreignKeyName: 'events_user_id_fkey';
             columns: ['user_id'];
-            isOneToOne: false;
+            isOneToOne: true;
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -485,6 +485,8 @@ export type Database = {
           updated_at: string;
           contact_email: string | null;
           booking_url: string | null;
+          timezone: string;
+          language: string;
         };
         Insert: {
           id: string;
@@ -498,6 +500,8 @@ export type Database = {
           updated_at?: string;
           contact_email?: string | null;
           booking_url?: string | null;
+          timezone?: string;
+          language?: string;
         };
         Update: {
           id?: string;
@@ -511,6 +515,8 @@ export type Database = {
           updated_at?: string;
           contact_email?: string | null;
           booking_url?: string | null;
+          timezone?: string;
+          language?: string;
         };
         Relationships: [
           {

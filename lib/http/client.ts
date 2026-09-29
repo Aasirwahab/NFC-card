@@ -69,3 +69,27 @@ export async function apiSend<T>(
 
   return (await response.json()) as T;
 }
+
+/** POST a binary body (a photo) to a same-origin endpoint. Throws ApiError on non-2xx. */
+export async function apiUpload<T>(path: string, body: Blob): Promise<T> {
+  const response = await apiFetch(path, {
+    method: 'POST',
+    headers: { 'content-type': body.type || 'application/octet-stream' },
+    body,
+  });
+
+  if (!response.ok) {
+    let message = `POST ${path} failed with ${response.status}`;
+    try {
+      const parsed: unknown = await response.json();
+      if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
+        message = String((parsed as { error: unknown }).error);
+      }
+    } catch {
+      // Not JSON: keep the status-based message.
+    }
+    throw new ApiError(response.status, message);
+  }
+
+  return (await response.json()) as T;
+}

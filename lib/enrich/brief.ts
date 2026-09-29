@@ -23,7 +23,12 @@ export type Brief = {
    * echoes it.
    */
   toneNote: string | null;
-  rep: { firstName: string; fullName: string; title: string | null };
+  rep: {
+    firstName: string;
+    fullName: string;
+    title: string | null;
+    language: 'en-GB' | 'en-US';
+  };
   business: {
     name: string | null;
     tagline: string | null;
@@ -81,7 +86,12 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
     customProblem: session.custom_problems?.trim() || null,
     niche: session.niche?.trim() || null,
     toneNote: session.memorable_info?.trim() || null,
-    rep: { firstName: repFirstName, fullName: repFullName, title: snapshot.rep?.title ?? null },
+    rep: {
+      firstName: repFirstName,
+      fullName: repFullName,
+      title: snapshot.rep?.title ?? null,
+      language: snapshot.rep?.language ?? 'en-GB',
+    },
     business: {
       name: snapshot.business?.company_name?.trim() || null,
       tagline: snapshot.business?.tagline?.trim() || null,

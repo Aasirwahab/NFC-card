@@ -28,7 +28,15 @@ export const snapshotSchema = z.object({
     /** Shapes the tone; never quoted (§5, §23.1). The gate enforces the second half. */
     memorable_info: text,
   }),
-  rep: z.object({ full_name: z.string(), title: text }).nullable().catch(null),
+  rep: z
+    .object({
+      full_name: z.string(),
+      title: text,
+      /** Which spelling the pitch uses. */
+      language: z.enum(['en-GB', 'en-US']).catch('en-GB'),
+    })
+    .nullable()
+    .catch(null),
   business: z
     .object({
       company_name: z.string(),

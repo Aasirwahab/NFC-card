@@ -162,3 +162,27 @@ describe('templatePitch (§16, the `failed` state)', () => {
     expect(templatePitch(base)).toBe(templatePitch(base));
   });
 });
+
+describe('template pitch without a stated problem (pitch-v2 tone)', () => {
+  const base = {
+    prospectName: 'Sarah',
+    prospectCompany: 'Whitlock Homes',
+    problems: [],
+    customProblems: null,
+    repName: 'Daniel',
+    businessName: 'Reeve Finance',
+    services: ['Development finance'],
+    eventName: 'Property Nexus',
+  };
+
+  it('asks rather than claims when it does not know the problem', () => {
+    const text = templatePitch(base);
+    expect(text).toContain('hear what matters most at Whitlock Homes');
+    expect(text).not.toMatch(/exactly this kind of problem|as you know/i);
+  });
+
+  it('names the raised problem when there is one', () => {
+    const text = templatePitch({ ...base, problems: ['Deals stall waiting on funding'] });
+    expect(text).toContain('deals stall waiting on funding');
+  });
+});
