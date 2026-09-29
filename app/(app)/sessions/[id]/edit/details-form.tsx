@@ -9,6 +9,7 @@ import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
 import { LookupPicker } from '@/components/lookup-picker';
+import type { NoteFill } from '@/lib/capture/note';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
@@ -204,6 +205,19 @@ export function DetailsForm({
           Tapped by mistake? Put this card back
         </button>
       ) : null}
+
+      <QuickNote
+        niches={niches}
+        onFill={(fill) => {
+          if (fill.name && !name.trim()) setName(fill.name);
+          if (fill.company && !company.trim()) setCompany(fill.company);
+          if (fill.niche) setNiche(fill.niche);
+          if (fill.problems.length > 0) {
+            setProblems((current) => [...new Set([...current, ...fill.problems])]);
+          }
+          if (fill.extra && !customProblems.trim()) setCustomProblems(fill.extra);
+        }}
+      />
 
       <div className="mt-6 flex flex-col gap-4">
         <Field label="Their name" htmlFor="name">
@@ -554,5 +568,79 @@ function EventPicker({
       </select>
       {error ? <p className="text-crit mt-1 text-[13px]">{error}</p> : null}
     </div>
+  );
+}
+
+/**
+ * "Say it or type it": one line, then the form fills itself for you to check. The
+ * phone's own keyboard microphone does the dictating, so no audio ever reaches us.
+ */
+function QuickNote({
+  niches,
+  onFill,
+}: {
+  niches: { name: string; problems: string[] }[];
+  onFill: (fill: NoteFill) => void;
+}) {
+  const [line, setLine] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line, niches });
+      const parts = [
+        fill.name ? 'name' : null,
+        fill.company ? 'company' : null,
+        fill.problems.length > 0
+          ? `${fill.problems.length} problem${fill.problems.length === 1 ? '' : 's'}`
+          : null,
+      ].filter(Boolean);
+      onFill(fill);
+      setMessage(
+        parts.length > 0
+          ? `Filled in ${parts.join(', ')}. Check it below, then save.`
+          : 'Nothing to fill in from that line.',
+      );
+      setLine('');
+    } catch {
+      setMessage('Could not read that. Fill the form below instead.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="border-line bg-surface mt-6 rounded-xl border p-4">
+      <label htmlFor="quick-note" className="text-ink text-[15px] font-semibold">
+        Say it or type it
+      </label>
+      <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
+        One line is enough. Tap the microphone on your keyboard to dictate.
+      </p>
+      <Textarea
+        id="quick-note"
+        rows={2}
+        value={line}
+        onChange={(e) => setLine(e.target.value)}
+        placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
+        className="mt-2"
+      />
+      <button
+        type="button"
+        disabled={busy || line.trim().length < 3}
+        onClick={() => void run()}
+        className="bg-accent hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+      >
+        {busy ? 'Reading…' : 'Fill the form'}
+      </button>
+      {message ? (
+        <p className="text-ink-2 mt-2 text-[13px]" role="status">
+          {message}
+        </p>
+      ) : null}
+    </section>
   );
 }
