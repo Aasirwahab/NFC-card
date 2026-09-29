@@ -14,6 +14,12 @@ explains, so the source is readable without it.
 
 ---
 
+## What changed on 2026-09-30
+
+A large beta upgrade sits on stacked branches (PRs #5 to #9, on top of #1 and #2). In short: cards are now **issued to a rep** and the **first tap registers** the lead; reps add details by **saying one line or photographing the prospect's card**; the AI note is **calmer and checked harder**, the rep's **private note never reaches a model**, model calls ask for **zero data retention**, and a rep-written **playbook** gives the prospect something useful. The full map, migration order, new environment variables, review checklist and the real-phone test are in [`docs/handoff/2026-09-30-beta-upgrade-for-aasir.md`](docs/handoff/2026-09-30-beta-upgrade-for-aasir.md). Offline capture (Phase 6) is no longer required for the pilot under the new card model.
+
+---
+
 ## Status
 
 | Phase | What                                                                                        | State                         |
