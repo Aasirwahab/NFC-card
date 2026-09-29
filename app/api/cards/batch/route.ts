@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { fail, json, readJson, withRep } from '@/lib/api';
 import { serviceClient } from '@/lib/db/service';
-import { generateCodes } from '@/lib/domain/codes';
+import { issueBatch } from '@/lib/cards/issue-batch';
 import { cardBatchSchema } from '@/lib/schemas/sessions';
 
 /**
@@ -23,48 +23,17 @@ export const POST = withRep(async (rep, request) => {
   }
 
   const { size, label } = parsed.data;
-  const db = serviceClient();
-
-  const { data: batch, error: batchError } = await db
-    .from('card_batches')
-    .insert({ user_id: rep.userId, label: label ?? null, size })
-    .select('id, label, size, created_at')
-    .single();
-
-  if (batchError || !batch) {
-    throw new Error(`could not create batch: ${batchError?.message}`);
-  }
 
   // crypto.randomBytes with rejection sampling (§22.1). The domain function owns
   // the alphabet and the bias handling; this owns the entropy source.
   const random = (bytes: number) => new Uint8Array(randomBytes(bytes));
 
-  // A collision at 8 characters is vanishingly unlikely, but the unique index is
-  // the real guard and a retry is cheaper than an apology. Three attempts is
-  // already far beyond what chance requires.
-  let inserted: { code: string }[] | null = null;
-  let lastError: string | null = null;
+  const { batch, codes } = await issueBatch(serviceClient(), {
+    userId: rep.userId,
+    size,
+    label: label ?? null,
+    random,
+  });
 
-  for (let attempt = 0; attempt < 3 && inserted === null; attempt++) {
-    const codes = generateCodes(random, size);
-
-    const { data, error } = await db
-      .from('cards')
-      .insert(codes.map((code) => ({ user_id: rep.userId, batch_id: batch.id, code })))
-      .select('code');
-
-    if (error) {
-      lastError = error.message;
-      continue;
-    }
-    inserted = data;
-  }
-
-  if (inserted === null) {
-    // Leave no half-made batch behind for someone to find later.
-    await db.from('card_batches').delete().eq('id', batch.id);
-    throw new Error(`could not generate ${size} unique codes: ${lastError}`);
-  }
-
-  return json({ batch, codes: inserted.map((row) => row.code) }, { status: 201 });
+  return json({ batch, codes }, { status: 201 });
 });

@@ -97,6 +97,22 @@ const FUNCTIONS = `    {
         Args: { p_months: number; p_now?: string };
         Returns: number;
       };
+      pick_event: {
+        Args: { p_user_id: string };
+        Returns: string;
+      };
+      tap_register_card: {
+        Args: { p_session_id: string; p_code: string; p_user_id: string; p_registered_by: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      move_session_to_event: {
+        Args: { p_session_id: string; p_event_id: string; p_user_id: string };
+        Returns: Database['public']['Tables']['sessions']['Row'];
+      };
+      mark_card_lost: {
+        Args: { p_code: string; p_user_id: string };
+        Returns: undefined;
+      };
       release_card: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];

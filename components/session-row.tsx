@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { printedCode } from '@/lib/cards/issue-batch';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { SessionListItem } from '@/lib/db/rep';
 
@@ -32,6 +33,7 @@ export function SessionRow({ session }: { session: SessionListItem }) {
         </p>
         <p className="text-ink-3 mt-0.5 font-mono text-[11px]">
           Card {session.event_sequence_number} · {session.colour_tag}
+          {session.cards ? ` · ${printedCode(session.cards.code)}` : ''}
         </p>
       </div>
 

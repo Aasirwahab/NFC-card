@@ -8,6 +8,7 @@ import { Field, Input, Textarea } from '@/components/ui/field';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
+import { printedCode } from '@/lib/cards/issue-batch';
 import { apiSend } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
 
@@ -28,11 +29,16 @@ export function DetailsForm({
   session,
   niches,
   eventName,
+  cardCode,
+  events,
   justRegistered,
 }: {
   session: Session;
   niches: Niche[];
   eventName: string | null;
+  /** The printed code of the card, the handle for this lead. */
+  cardCode: string;
+  events: { id: string; name: string }[];
   justRegistered: boolean;
 }) {
   const router = useRouter();
@@ -159,9 +165,14 @@ export function DetailsForm({
         </h1>
       </header>
 
+      <p className="text-ink-3 mt-1 font-mono text-[12px] tracking-wide">{printedCode(cardCode)}</p>
       <p className="text-ink-3 mt-1 text-[13px]">
-        {eventName ? `${eventName} · ` : ''}registered by {session.registered_by}
+        {eventName ? `${eventName} · ` : ''}
+        {session.registered_by === 'prospect_tap'
+          ? 'opened by them before you registered it'
+          : `registered by ${session.registered_by}`}
       </p>
+      <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
 
       {justRegistered ? (
         <p className="bg-ok-bg text-ok mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
@@ -415,6 +426,59 @@ function EnrichmentStatus({ status, onRegenerate }: { status: string; onRegenera
           Regenerate
         </button>
       ) : null}
+    </div>
+  );
+}
+
+/** File this lead under a different event. Hidden when there is only one to pick. */
+function EventPicker({
+  sessionId,
+  eventId,
+  events,
+}: {
+  sessionId: string;
+  eventId: string;
+  events: { id: string; name: string }[];
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (events.length < 2) return null;
+
+  async function change(next: string) {
+    if (next === eventId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiSend(`/api/sessions/${sessionId}/event`, 'POST', { event_id: next });
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not move this lead.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2">
+      <label htmlFor="event-picker" className="text-ink-3 text-[12px]">
+        Filed under
+      </label>
+      <select
+        id="event-picker"
+        value={eventId}
+        disabled={busy}
+        onChange={(e) => void change(e.target.value)}
+        className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 mt-1 h-11 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+      >
+        {events.map((event) => (
+          <option key={event.id} value={event.id}>
+            {event.name}
+          </option>
+        ))}
+      </select>
+      {error ? <p className="text-crit mt-1 text-[13px]">{error}</p> : null}
     </div>
   );
 }

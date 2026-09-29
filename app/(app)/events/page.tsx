@@ -20,14 +20,15 @@ export default async function EventsPage() {
       </div>
 
       <p className="text-ink-2 mt-2 text-sm">
-        Cards are numbered per event, starting at Card 1 each time.
+        An event is a label and an optional goal. Cards tapped while it is on are filed under it.
       </p>
 
       {events.length === 0 ? (
         <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6 text-center">
           <p className="text-ink font-medium">No events yet</p>
           <p className="text-ink-2 mt-1.5 text-sm">
-            An event holds the niches and the problems you pick from when adding details.
+            An event holds the niches and the problems you pick from when adding details. Without
+            one, leads go under &ldquo;Unsorted&rdquo;.
           </p>
         </div>
       ) : (
@@ -46,7 +47,8 @@ export default async function EventsPage() {
                   </p>
                 </div>
                 <span className="text-ink-3 shrink-0 font-mono text-[11px]">
-                  {event.next_card_sequence - 1} registered · results →
+                  {event.next_card_sequence - 1}
+                  {event.target_cards ? ` of ${event.target_cards}` : ''} handed out · results →
                 </span>
               </Link>
             </li>

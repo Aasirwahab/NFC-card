@@ -24,7 +24,7 @@ export const POST = withRep(async (rep, request) => {
     });
   }
 
-  const { name, event_date, location, niches } = parsed.data;
+  const { name, event_date, location, target_cards, niches } = parsed.data;
 
   const { data: event, error } = await serviceClient()
     .from('events')
@@ -33,6 +33,7 @@ export const POST = withRep(async (rep, request) => {
       name,
       event_date,
       location: location ?? null,
+      target_cards: target_cards ?? null,
       niches,
     })
     .select('id, name, event_date, location, next_card_sequence')

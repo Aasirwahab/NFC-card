@@ -6,11 +6,12 @@ import { REP_DEVICE_COOKIE, shouldRecordTap, viewSource } from '@/lib/domain/aud
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { resolveCode } from '@/lib/db/landing';
 import { getRep } from '@/lib/db/server';
-import { getProfile, listEvents } from '@/lib/db/rep';
+import { getProfile } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
+import { recordOwnerCardTap } from '@/lib/landing/owner-tap';
 import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
@@ -91,27 +92,31 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
     // `audience: 'rep'` is only returned for a signed-in owner, so repId is set.
     const ownerId = repId!;
 
-    // The event list is only needed to register an unregistered card. Skipping it
-    // otherwise keeps the common case — checking which card this is — to one read.
-    const needsEvents = resolved.session === null && resolved.cardStatus === 'available';
-
-    const [events, profile] = await Promise.all([
-      needsEvents ? listEvents(ownerId) : Promise.resolve([]),
-      getProfile(ownerId),
-    ]);
+    const profile = await getProfile(ownerId);
 
     return (
-      <RepView
-        resolved={resolved}
-        events={events}
-        registeredBy={profile?.full_name ?? rep?.email ?? 'Unknown'}
-      />
+      <RepView resolved={resolved} registeredBy={profile?.full_name ?? rep?.email ?? 'Unknown'} />
     );
   }
 
   if (resolved.audience === 'owner') {
     // "One card, two jobs": a real card with no live prospect is the rep's own
-    // business card. No session, so nothing to record and no miss to count.
+    // business card, or a card whose brief is not ready. The page is the portfolio;
+    // a first tap by a prospect still files the lead so the rep can complete it.
+    const userAgent = requestHeaders.get('user-agent');
+    const deviceCookie = (await cookies()).get(REP_DEVICE_COOKIE)?.value;
+    after(() =>
+      recordOwnerCardTap({
+        code,
+        ownerId: resolved.ownerId,
+        cardStatus: resolved.cardStatus,
+        sessionId: resolved.sessionId,
+        userAgent,
+        ip,
+        src,
+        deviceCookie,
+      }),
+    );
     return <OwnerCard resolved={resolved} />;
   }
 

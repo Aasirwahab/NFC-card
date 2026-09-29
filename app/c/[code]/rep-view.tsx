@@ -1,23 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
-import { Field, Input } from '@/components/ui/field';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import { apiSend } from '@/lib/http/client';
-import type { EventSummary } from '@/lib/db/rep';
 import type { Resolved } from '@/lib/db/landing';
 
 /**
  * The rep view of `/c/[code]` (spec §8).
  *
- * The rep taps the card on their OWN phone before handing it over. iOS opens the
- * URL; this is what they see. It must be near-zero friction — registration is the
- * only thing that has to happen while facing a prospect (§10.2), and the target
- * is under three seconds from tap to confirmation (§27).
+ * The rep taps the card on their OWN phone. iOS opens the URL; this is what they
+ * see. Tapping an unused card registers it on the spot (operating model v2), so
+ * there is nothing to fill in while facing a prospect. Tapping is optional: a card
+ * handed over untapped is added later by its code.
  *
  * This render explicitly DOES NOT count as a tap (§10.4). The server never calls
  * record_prospect_view on this branch.
@@ -27,11 +25,9 @@ type RepResolved = Extract<Resolved, { audience: 'rep' }>;
 
 export function RepView({
   resolved,
-  events,
   registeredBy,
 }: {
   resolved: RepResolved;
-  events: EventSummary[];
   registeredBy: string;
 }) {
   return (
@@ -51,7 +47,7 @@ export function RepView({
         ) : resolved.cardStatus === 'voided' ? (
           <VoidedCard code={resolved.code} />
         ) : (
-          <RegisterCard code={resolved.code} events={events} registeredBy={registeredBy} />
+          <RegisterCard code={resolved.code} registeredBy={registeredBy} />
         )}
       </main>
     </div>
@@ -191,125 +187,61 @@ function VoidedCard({ code }: { code: string }) {
   );
 }
 
-function RegisterCard({
-  code,
-  events,
-  registeredBy,
-}: {
-  code: string;
-  events: EventSummary[];
-  registeredBy: string;
-}) {
+function RegisterCard({ code, registeredBy }: { code: string; registeredBy: string }) {
   const router = useRouter();
-  const [eventId, setEventId] = useState(events[0]?.id ?? '');
-  const [firstName, setFirstName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const started = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (events.length === 0) {
-    return (
-      <div>
-        <h1 className="font-display text-ink text-2xl font-bold tracking-tight">
-          Create an event first
-        </h1>
-        <p className="text-ink-2 mt-2 text-[15px]">
-          Cards are numbered per event, so this card needs one to belong to.
-        </p>
-        <Link href="/events/new" className="contents">
-          <Button size="block" className="mt-6">
-            New event
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  async function register() {
-    setBusy(true);
+  const register = useCallback(async () => {
     setError(null);
-
     try {
-      // The session id is generated HERE, on the device. That is what makes an
-      // offline retry idempotent without a dedupe table (§15.4, §17.1) — and it
-      // is why this contract is worth getting right before the outbox exists.
-      const sessionId = crypto.randomUUID();
-
+      // The session id is generated HERE, on the device, so a double tap or a retry
+      // lands once (§15.4). The event is chosen server-side: the one that is on.
       const { session } = await apiSend<{ session: { id: string } }>(
-        '/api/sessions/register',
+        '/api/sessions/tap-register',
         'POST',
-        {
-          session_id: sessionId,
-          code,
-          event_id: eventId,
-          registered_by: registeredBy,
-          first_name: firstName.trim() || undefined,
-        },
+        { session_id: crypto.randomUUID(), code, registered_by: registeredBy },
       );
-
       router.replace(`/sessions/${session.id}/edit?registered=1`);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : 'Could not register. Try again in a moment.',
       );
-      setBusy(false);
     }
-  }
+  }, [code, registeredBy, router]);
+
+  // Tapping an unused card IS registering it: no form between the tap and the
+  // handover. The ref stops React's dev double-mount from registering twice.
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void register();
+  }, [register]);
 
   return (
     <div>
       <p className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">Card {code}</p>
       <h1 className="font-display text-ink mt-1 text-3xl font-bold tracking-tight">
-        Register this card
+        {error ? 'Could not register this card' : 'Registering this card…'}
       </h1>
       <p className="text-ink-2 mt-2 text-[15px]">
-        Do this before you hand it over. Details can wait until you have stepped away.
+        {error
+          ? 'Hand it over anyway. You can add them later with the card code.'
+          : 'Hand it over. Add their details once you have stepped away.'}
       </p>
-
-      <div className="mt-6 flex flex-col gap-4">
-        {events.length > 1 ? (
-          <Field label="Event" htmlFor="event">
-            <select
-              id="event"
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-12 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
-            >
-              {events.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : null}
-
-        <Field
-          label="Their first name"
-          hint="Optional — two seconds now, a much easier memory later."
-          htmlFor="firstName"
-        >
-          <Input
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            autoComplete="off"
-            enterKeyHint="done"
-          />
-        </Field>
-
-        {error ? (
+      {error ? (
+        <div className="mt-6 flex flex-col gap-4">
           <p
             className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium"
             role="alert"
           >
             {error}
           </p>
-        ) : null}
-
-        <Button size="block" onClick={register} disabled={busy || !eventId}>
-          {busy ? 'Registering…' : 'Register this card'}
-        </Button>
-      </div>
+          <Button size="block" onClick={() => void register()}>
+            Try again
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

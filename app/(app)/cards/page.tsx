@@ -1,17 +1,13 @@
 import { serviceClient } from '@/lib/db/service';
 import { requireRep } from '@/lib/db/server';
-import { BatchList } from './batch-list';
+import { CardsOverview } from './cards-overview';
 
 export const metadata = { title: 'Cards' };
 export const dynamic = 'force-dynamic';
 
 /**
- * Card batches (spec §15.2, §29.2).
- *
- * Generating a batch produces codes that get written to NTAG215 stickers and
- * handed to strangers. Tags are immutable, so `cards` can never be regenerated
- * (§24.4) — which is why the CSV export here is the one artefact that must be
- * kept somewhere safe until the tags are written.
+ * The rep's cards (operating model v2). We issue batches to a rep's account with
+ * `npm run cards:issue`; the rep sees what they hold and can open a card by code.
  */
 export default async function CardsPage() {
   const rep = await requireRep();
@@ -25,8 +21,14 @@ export default async function CardsPage() {
 
   const { data: counts } = await db.from('cards').select('status').eq('user_id', rep.userId);
 
-  const available = (counts ?? []).filter((c) => c.status === 'available').length;
-  const assigned = (counts ?? []).filter((c) => c.status === 'assigned').length;
+  const count = (status: string) => (counts ?? []).filter((c) => c.status === status).length;
 
-  return <BatchList batches={batches ?? []} available={available} assigned={assigned} />;
+  return (
+    <CardsOverview
+      batches={batches ?? []}
+      inStock={count('available')}
+      handedOut={count('assigned')}
+      lost={count('voided')}
+    />
+  );
 }

@@ -35,6 +35,23 @@ export const registerRequestSchema = z.object({
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
+/**
+ * POST /api/sessions/tap-register (operating model v2): the rep's first tap on an
+ * unused card. No event and no name: the event is the one that is on, and the name
+ * belongs to the details screen. The session id is still generated on the device,
+ * so a double tap or a retry lands once.
+ */
+export const tapRegisterRequestSchema = z.object({
+  session_id: z.string().uuid(),
+  code,
+  registered_by: z.string().trim().min(1).max(120),
+});
+
+export type TapRegisterRequest = z.infer<typeof tapRegisterRequestSchema>;
+
+/** POST /api/cards/lost: an unused card the rep has lost. */
+export const lostCardSchema = z.object({ code });
+
 /** Empty strings are what an untouched form field sends; treat them as absent. */
 const optionalText = (max: number) =>
   z
@@ -135,6 +152,8 @@ export const eventSchema = z.object({
   // day before, so the registration date is not the event date.
   event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Pick the date of the event.' }),
   location: z.string().trim().max(160).optional(),
+  /** A goal, not a limit: hand out more or fewer. Only shown as progress. */
+  target_cards: z.number().int().min(1).max(10000).optional(),
   niches: z
     .array(
       z.object({

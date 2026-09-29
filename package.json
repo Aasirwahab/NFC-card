@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "check:env": "tsx scripts/check-env.ts",
     "check:bundle": "node scripts/check-client-bundle.mjs",
+    "cards:issue": "tsx --env-file=.env.local scripts/issue-cards.ts",
     "db:types": "tsx scripts/gen-types.ts && prettier --write --log-level warn lib/db/types.ts"
   },
   "dependencies": {

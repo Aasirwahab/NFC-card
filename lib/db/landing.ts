@@ -36,6 +36,7 @@ const PROSPECT_SESSION_COLUMNS = [
   'id',
   'user_id',
   'event_id',
+  'details_completed_at',
   'prospect_name',
   'prospect_company',
   'problems',
@@ -52,6 +53,7 @@ export type ProspectSession = Pick<
   | 'id'
   | 'user_id'
   | 'event_id'
+  | 'details_completed_at'
   | 'prospect_name'
   | 'prospect_company'
   | 'problems'
@@ -120,6 +122,11 @@ export type Resolved =
   | {
       audience: 'owner';
       code: string;
+      /** The card's owner, so a first tap can be filed under their account. */
+      ownerId: string;
+      cardStatus: Row<'cards'>['status'];
+      /** A live session with no details yet: the tap counts, the page stays the portfolio. */
+      sessionId: string | null;
       rep: RepProfile;
       business: BusinessProfile | null;
     }
@@ -199,9 +206,22 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   // code": a valid code now looks different from an invalid one. What it shows
   // is only the rep's public profile, and guessing a valid code in a 31^8 space
   // under the miss limiter is not practical. See docs/handoff for the trade-off.
-  if (!session) {
+  //
+  // Operating model v2 (2026-09-29): a live session with no details yet is the
+  // same page. There is no research to show, so the prospect gets the portfolio,
+  // and the tap still counts (`sessionId`).
+  if (!session || !session.details_completed_at) {
     const face = await repFace(card.user_id);
-    return face ? { audience: 'owner', code, ...face } : { audience: 'missing' };
+    return face
+      ? {
+          audience: 'owner',
+          code,
+          ownerId: card.user_id,
+          cardStatus: card.status,
+          sessionId: session?.id ?? null,
+          ...face,
+        }
+      : { audience: 'missing' };
   }
 
   return prospectView(code, session);

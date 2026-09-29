@@ -25,6 +25,7 @@ export function EventForm() {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [location, setLocation] = useState('');
+  const [target, setTarget] = useState('');
   const [niches, setNiches] = useState<Niche[]>([{ name: '', problems: [''] }]);
 
   const [saving, setSaving] = useState(false);
@@ -55,6 +56,7 @@ export function EventForm() {
         name,
         event_date: date,
         location: location || undefined,
+        target_cards: target ? Number(target) : undefined,
         // Drop the empty rows the editor leaves behind rather than storing them.
         niches: niches
           .map((niche) => ({
@@ -98,6 +100,21 @@ export function EventForm() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="NEC Birmingham"
+          />
+        </Field>
+        <Field
+          label="Cards you aim to hand out (optional)"
+          hint="A goal, not a limit. Give out more or fewer."
+          htmlFor="target"
+        >
+          <Input
+            id="target"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            placeholder="20"
           />
         </Field>
       </div>

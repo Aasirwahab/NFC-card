@@ -1,5 +1,6 @@
 import { fail, withRep } from '@/lib/api';
 import { serviceClient } from '@/lib/db/service';
+import { printedCode } from '@/lib/cards/issue-batch';
 import { env } from '@/lib/env';
 
 /**
@@ -7,7 +8,7 @@ import { env } from '@/lib/env';
  *
  * This file is the input to the NFC writing step (§29.2): the rep opens it, and
  * writes each URL to a sticker with NFC Tools, about 30 seconds each. The URL
- * column must therefore be EXACTLY what goes on the tag — `https://taplead.app/c/CODE`
+ * column must therefore be EXACTLY what goes on the tag — `https://<domain>/c/CODE`
  * — because a tag is written once and can never be re-pointed.
  */
 export const GET = withRep(async (rep, _request, context: { params: Promise<{ id: string }> }) => {
@@ -33,14 +34,14 @@ export const GET = withRep(async (rep, _request, context: { params: Promise<{ id
   const origin = env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
 
   const rows = [
-    'code,url,qr_url,status',
+    'code,print_code,url,qr_url,status',
     ...(cards ?? []).map(
       (card) =>
-        `${card.code},${origin}/c/${card.code},${origin}/c/${card.code}?src=qr,${card.status}`,
+        `${card.code},${printedCode(card.code)},${origin}/c/${card.code},${origin}/c/${card.code}?src=qr,${card.status}`,
     ),
   ];
 
-  const filename = `taplead-cards-${slug(batch.label) || batch.id.slice(0, 8)}.csv`;
+  const filename = `insignar-cards-${slug(batch.label) || batch.id.slice(0, 8)}.csv`;
 
   return new Response(rows.join('\r\n'), {
     headers: {

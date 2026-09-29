@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { buttonStyles } from '@/components/ui/button';
+import { CardCodeLookup } from '@/components/card-code-lookup';
 import { SessionRow } from '@/components/session-row';
 import { FollowupCard } from '@/components/followup-card';
 import { listEvents, listFollowups, listSessions, type SessionListItem } from '@/lib/db/rep';
@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
 /**
  * The dashboard (spec §15.2, §19.3).
  *
- * Three groups, in the order a rep actually needs them:
+ * A card code box sits at the top: the backup when a tap will not read, and how a
+ * card handed over untapped is completed later. Then groups, in the order a rep actually needs them:
  *
  *   1. NEEDS DETAILS   — registered at the table, never filled in. The most
  *                        time-sensitive group: the conversation is still fresh.
@@ -57,8 +58,10 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
       {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
 
+      <CardCodeLookup className="border-line bg-surface mt-4 rounded-xl border p-4" />
+
       {sessions.length === 0 ? (
-        <EmptyState hasEvents={events.length > 0} />
+        <EmptyState />
       ) : (
         <div className="mt-5 flex flex-col gap-6">
           <Group
@@ -168,21 +171,14 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
   );
 }
 
-function EmptyState({ hasEvents }: { hasEvents: boolean }) {
+function EmptyState() {
   return (
     <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6 text-center">
       <p className="text-ink font-medium">No leads yet</p>
       <p className="text-ink-2 mx-auto mt-1.5 max-w-sm text-sm">
-        {hasEvents
-          ? 'Tap one of your cards on this phone to register it, then add the details once you have stepped away.'
-          : 'Create an event first — cards are numbered per event, starting at Card 1.'}
+        Hand a card over. Tap it on your phone if you like, or type its code above later. Anyone who
+        taps it shows up here.
       </p>
-      <Link
-        href={hasEvents ? '/cards' : '/events/new'}
-        className={buttonStyles({ className: 'mt-5' })}
-      >
-        {hasEvents ? 'Manage cards' : 'New event'}
-      </Link>
     </div>
   );
 }

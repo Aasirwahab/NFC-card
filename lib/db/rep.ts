@@ -12,13 +12,13 @@ import type { Row } from './types';
 
 export type EventSummary = Pick<
   Row<'events'>,
-  'id' | 'name' | 'event_date' | 'location' | 'next_card_sequence'
+  'id' | 'name' | 'event_date' | 'location' | 'next_card_sequence' | 'target_cards'
 >;
 
 export async function listEvents(userId: string): Promise<EventSummary[]> {
   const { data } = await serviceClient()
     .from('events')
-    .select('id, name, event_date, location, next_card_sequence')
+    .select('id, name, event_date, location, next_card_sequence, target_cards')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -34,7 +34,7 @@ export async function getEvent(
 ): Promise<(EventSummary & { niches: Niche[] }) | null> {
   const { data } = await serviceClient()
     .from('events')
-    .select('id, name, event_date, location, next_card_sequence, niches')
+    .select('id, name, event_date, location, next_card_sequence, target_cards, niches')
     .eq('user_id', userId)
     .eq('id', eventId)
     .maybeSingle();
@@ -83,12 +83,15 @@ export type SessionListItem = Pick<
   | 'first_viewed_at'
   | 'linkedin_url'
   | 'prospect_email'
->;
+> & {
+  /** The card this lead belongs to: its printed code is the handle for the lead. */
+  cards: { code: string } | null;
+};
 
 const SESSION_LIST_COLUMNS =
   'id, event_id, event_sequence_number, colour_tag, prospect_name, prospect_company, ' +
   'registered_at, details_completed_at, enrichment_status, first_viewed_at, ' +
-  'linkedin_url, prospect_email';
+  'linkedin_url, prospect_email, cards(code)';
 
 export type SessionFilter = {
   eventId?: string;

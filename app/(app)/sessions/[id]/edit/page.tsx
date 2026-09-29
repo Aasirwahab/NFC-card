@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getEvent, getSessionForRep } from '@/lib/db/rep';
+import { getEvent, getSessionForRep, listEvents } from '@/lib/db/rep';
+import { serviceClient } from '@/lib/db/service';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
 
@@ -25,13 +26,24 @@ export default async function EditSessionPage({
   const session = await getSessionForRep(rep.userId, id);
   if (!session) notFound();
 
-  const event = await getEvent(rep.userId, session.event_id);
+  const [event, events, { data: card }] = await Promise.all([
+    getEvent(rep.userId, session.event_id),
+    listEvents(rep.userId),
+    serviceClient()
+      .from('cards')
+      .select('code')
+      .eq('id', session.card_id)
+      .eq('user_id', rep.userId)
+      .maybeSingle(),
+  ]);
 
   return (
     <DetailsForm
       session={session}
       niches={event?.niches ?? []}
       eventName={event?.name ?? null}
+      cardCode={card?.code ?? ''}
+      events={events.map((e) => ({ id: e.id, name: e.name }))}
       justRegistered={registered === '1'}
     />
   );
