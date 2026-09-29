@@ -150,6 +150,15 @@ export function DetailsForm({
     }
   }
 
+  async function undoRegistration() {
+    try {
+      await apiSend(`/api/sessions/${session.id}/release`, 'POST', {});
+      router.push('/dashboard');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not put the card back.');
+    }
+  }
+
   const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6F685F';
 
   return (
@@ -178,6 +187,16 @@ export function DetailsForm({
         <p className="bg-ok-bg text-ok mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
           Registered. Hand the card over — you can fill this in once you have stepped away.
         </p>
+      ) : null}
+
+      {justRegistered && !session.details_completed_at && !session.first_viewed_at ? (
+        <button
+          type="button"
+          onClick={() => void undoRegistration()}
+          className="text-ink-3 hover:text-ink-2 mt-2 text-[13px] underline underline-offset-2"
+        >
+          Tapped by mistake? Put this card back
+        </button>
       ) : null}
 
       <div className="mt-6 flex flex-col gap-4">

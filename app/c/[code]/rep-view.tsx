@@ -190,17 +190,20 @@ function VoidedCard({ code }: { code: string }) {
 function RegisterCard({ code, registeredBy }: { code: string; registeredBy: string }) {
   const router = useRouter();
   const started = useRef(false);
+  // One id per visit: a retry after a timeout must land on the same session, not
+  // ask the server to claim the card a second time.
+  const sessionId = useRef(crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
 
   const register = useCallback(async () => {
     setError(null);
     try {
-      // The session id is generated HERE, on the device, so a double tap or a retry
-      // lands once (§15.4). The event is chosen server-side: the one that is on.
+      // The session id is generated on the device, so a double tap or a retry lands
+      // once (§15.4). The event is chosen server-side: the one that is on.
       const { session } = await apiSend<{ session: { id: string } }>(
         '/api/sessions/tap-register',
         'POST',
-        { session_id: crypto.randomUUID(), code, registered_by: registeredBy },
+        { session_id: sessionId.current, code, registered_by: registeredBy },
       );
       router.replace(`/sessions/${session.id}/edit?registered=1`);
     } catch (caught) {

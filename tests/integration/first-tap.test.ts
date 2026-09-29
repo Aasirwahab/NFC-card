@@ -47,6 +47,17 @@ describe('tap_register_card', () => {
     expect(rows[0]!.event_id).not.toBe(other.eventId);
   });
 
+  it('picks an event dated tomorrow, and the nearest date when two are close', async () => {
+    const { userId, eventId, codes } = await seedFixture(db, { cards: 1 });
+    await db.query(`update public.events set event_date = ${today} + 1 where id = $1`, [eventId]);
+    const far = await db.query<{ id: string }>(
+      `insert into public.events(user_id, name, event_date) values ($1, 'Earlier', ${today} - 2) returning id`,
+      [userId],
+    );
+    expect(far.rows).toHaveLength(1);
+    expect((await tapRegister(userId, codes[0]!)).rows[0]!.event_id).toBe(eventId);
+  });
+
   it('falls back to one "Unsorted" event that carries the newest event\'s niches', async () => {
     const { userId, eventId, codes } = await seedFixture(db, { cards: 2 });
     await db.query(`update public.events set event_date = ${today} - 30 where id = $1`, [eventId]);

@@ -16,9 +16,14 @@ alter table public.events
 
 -- ------------------------------------------------------------- pick_event
 
--- The event a first tap belongs to: the most recent event dated today or in the
--- last two days (UK time). Otherwise "Unsorted", created on demand and carrying
--- the niches of the rep's newest event so the problem chips still work.
+-- The event a first tap belongs to: the event dated nearest to today (UK time),
+-- from two days ago to tomorrow. Tomorrow is included so cards tapped the evening
+-- before, or on a set-up day, still land under the event they are for. With none,
+-- "Unsorted": one per rep, created on demand, carrying the niches of the rep's
+-- newest event so the problem chips still work.
+create unique index events_one_unsorted_per_rep
+  on public.events (user_id) where name = 'Unsorted';
+
 create or replace function public.pick_event(p_user_id uuid)
 returns uuid
 language plpgsql
@@ -33,21 +38,15 @@ begin
     from public.events
    where user_id = p_user_id
      and name <> 'Unsorted'
-     and event_date between v_today - 2 and v_today
-   order by event_date desc, created_at desc
+     and event_date between v_today - 2 and v_today + 1
+   order by abs(event_date - v_today), event_date desc, created_at desc
    limit 1;
   if v_id is not null then
     return v_id;
   end if;
 
-  select id into v_id
-    from public.events
-   where user_id = p_user_id and name = 'Unsorted'
-   limit 1;
-  if v_id is not null then
-    return v_id;
-  end if;
-
+  -- Concurrent first taps race to create the one Unsorted event; the unique index
+  -- lets exactly one insert win and the rest read it back.
   insert into public.events (user_id, name, niches)
   values (
     p_user_id,
@@ -57,7 +56,15 @@ begin
         where user_id = p_user_id order by created_at desc limit 1),
       '[]'::jsonb)
   )
+  on conflict (user_id) where name = 'Unsorted' do nothing
   returning id into v_id;
+  if v_id is not null then
+    return v_id;
+  end if;
+
+  select id into v_id
+    from public.events
+   where user_id = p_user_id and name = 'Unsorted';
   return v_id;
 end $fn$;
 

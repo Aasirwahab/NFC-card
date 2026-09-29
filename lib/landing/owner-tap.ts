@@ -31,7 +31,9 @@ type OwnerTap = {
  */
 export async function recordOwnerCardTap(tap: OwnerTap): Promise<void> {
   const ownerDevice = tap.deviceCookie === tap.ownerId;
-  const dedupeKey = viewDedupeKey(tap.sessionId ?? `card:${tap.code}`, tap.ip);
+  // Keyed by the card, not the session: the session appears part-way through the
+  // first tap, and a key that changed would let a double tap count twice.
+  const dedupeKey = viewDedupeKey(`card:${tap.code}`, tap.ip);
   const firstInWindow = await claimOnce(dedupeKey, VIEW_DEDUPE_SECONDS);
 
   if (

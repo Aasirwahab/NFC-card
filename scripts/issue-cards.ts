@@ -55,8 +55,8 @@ async function main() {
   });
 
   const rows = [
-    'code,print_code,url,qr_url',
-    ...codes.map((c) => `${c},${printedCode(c)},${origin}/c/${c},${origin}/c/${c}?src=qr`),
+    'code,url,qr_url,print_code',
+    ...codes.map((c) => `${c},${origin}/c/${c},${origin}/c/${c}?src=qr,${printedCode(c)}`),
   ];
   const out = arg('out') ?? `insignar-cards-${email.split('@')[0]}-${batch.id.slice(0, 8)}.csv`;
   writeFileSync(out, rows.join('\r\n'), { mode: 0o600 });

@@ -27,3 +27,7 @@ Zaid changed how cards reach reps. This branch (`zaid/mvp-model-v2`, stacked on 
 2. **`Unsorted` event name** is matched by string in `pick_event`; fine for the pilot, worth a column later.
 3. **Offline:** with no registration at handover, the offline PWA outbox is no longer needed for the pilot. What is left is a device-side draft for the details form (not built here). Offline register-by-tap on iPhone (Safari vs installed app) is moot under this model.
 4. The migrations are additive. Apply after #1 and #2 (`db push --dry-run` first).
+
+## Gemini review (09-29) and what was done
+
+Fixed: stable session id on the rep's auto-register retry; `pick_event` includes tomorrow and picks the nearest date; one-per-rep `Unsorted` guarded by a unique index; CSV keeps `code,url,qr_url,status` first and appends `print_code` (NFC writers map by column); first-tap dedupe keyed by card; "Tapped by mistake? Put this card back" undo after an accidental auto-register. Known and accepted for the pilot: `pick_event` uses UK time (all pilot reps are in the UK); bulk tapping of unused cards is bounded by the existing per-IP landing limiter.
