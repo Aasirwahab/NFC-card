@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiSend } from '@/lib/http/client';
 
 export type PickerItem = {
@@ -25,6 +25,7 @@ export function LookupPicker({
   toItems,
   onPick,
   emptyText,
+  onReady,
 }: {
   buttonLabel: string;
   disabled: boolean;
@@ -33,16 +34,18 @@ export function LookupPicker({
   toItems: (response: never) => PickerItem[];
   onPick: (value: string) => void;
   emptyText: string;
+  /** Lets a parent start the lookup itself (after a card scan), with fresh values. */
+  onReady?: (api: { run: (override?: Record<string, unknown>) => void }) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState<PickerItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run() {
+  async function run(override?: Record<string, unknown>) {
     setBusy(true);
     setError(null);
     try {
-      const response = await apiSend<never>(path, 'POST', body());
+      const response = await apiSend<never>(path, 'POST', override ?? body());
       setItems(toItems(response));
     } catch (caught) {
       setItems(null);
@@ -55,6 +58,12 @@ export function LookupPicker({
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    onReady?.({ run: (override) => void run(override) });
+    // `run` closes over state setters only; the handle stays valid for the component's life.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onReady]);
 
   return (
     <div className="mt-2">

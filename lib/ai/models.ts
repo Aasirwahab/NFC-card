@@ -63,3 +63,10 @@ export function modelFor(role: ModelRole): ResolvedModel {
 export function pitchUsesMock(): boolean {
   return idFor('pitch') === 'mock';
 }
+
+/** The card-reading model, or null when card scanning is not configured. */
+export function visionModel(): ResolvedModel | null {
+  const id = env.MODEL_VISION;
+  if (!id || id === 'mock' || !gateway) return null;
+  return { id, model: gateway(id) as LanguageModel };
+}

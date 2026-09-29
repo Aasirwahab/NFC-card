@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,13 @@ import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
 import { LookupPicker } from '@/components/lookup-picker';
+import { shrinkToJpeg } from '@/lib/browser/image';
+import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
-import { apiSend } from '@/lib/http/client';
+import { apiSend, apiUpload } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
 
 /**
@@ -36,6 +38,7 @@ export function DetailsForm({
   cardCode,
   events,
   lookupEnabled,
+  scanEnabled,
   justRegistered,
 }: {
   session: Session;
@@ -46,6 +49,8 @@ export function DetailsForm({
   events: { id: string; name: string }[];
   /** True when a search provider is configured, so the "find it" buttons can work. */
   lookupEnabled: boolean;
+  /** True when a card-reading model is configured. */
+  scanEnabled: boolean;
   justRegistered: boolean;
 }) {
   const router = useRouter();
@@ -64,6 +69,9 @@ export function DetailsForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const siteLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
+  const profileLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
 
   const quickSelect = useMemo(
     () => niches.find((n) => n.name === niche)?.problems ?? [],
@@ -208,6 +216,28 @@ export function DetailsForm({
 
       <QuickNote
         niches={niches}
+        scanEnabled={scanEnabled}
+        onScan={(card: CardFields) => {
+          const fullName = card.name ?? name;
+          const companyName = card.company ?? company;
+          if (card.name && !name.trim()) setName(card.name);
+          if (card.company && !company.trim()) setCompany(card.company);
+          if (card.email && !email.trim()) setEmail(card.email);
+          if (card.phone && !phone.trim()) setPhone(card.phone);
+          if (card.website && !website.trim()) setWebsite(card.website);
+          // The scan starts the lookups: the rep only taps the right answers below.
+          if (lookupEnabled) {
+            if (!card.website && companyName.trim().length >= 2) {
+              siteLookup.current?.run({ name: companyName.trim() });
+            }
+            if (fullName.trim().split(/\s+/).length >= 2) {
+              profileLookup.current?.run({
+                name: fullName.trim(),
+                company: companyName.trim() || undefined,
+              });
+            }
+          }
+        }}
         onFill={(fill) => {
           if (fill.name && !name.trim()) setName(fill.name);
           if (fill.company && !company.trim()) setCompany(fill.company);
@@ -269,6 +299,9 @@ export function DetailsForm({
                 }))
               }
               onPick={setWebsite}
+              onReady={(api) => {
+                siteLookup.current = api;
+              }}
               emptyText="Nothing found. Type the website if you know it."
             />
           ) : null}
@@ -399,6 +432,9 @@ export function DetailsForm({
                     }))
                   }
                   onPick={setLinkedin}
+                  onReady={(api) => {
+                    profileLookup.current = api;
+                  }}
                   emptyText="No profile found. Paste the link if they shared it."
                 />
               ) : null}
@@ -577,11 +613,17 @@ function EventPicker({
  */
 function QuickNote({
   niches,
+  scanEnabled,
+  onScan,
   onFill,
 }: {
   niches: { name: string; problems: string[] }[];
+  scanEnabled: boolean;
+  onScan: (card: CardFields) => void;
   onFill: (fill: NoteFill) => void;
 }) {
+  const camera = useRef<HTMLInputElement>(null);
+  const [scanning, setScanning] = useState(false);
   const [line, setLine] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -612,6 +654,31 @@ function QuickNote({
     }
   }
 
+  async function scan(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setScanning(true);
+    setMessage(null);
+    try {
+      const blob = await shrinkToJpeg(file, 1400);
+      const card = await apiUpload<CardFields>('/api/capture/card', blob);
+      const found = [card.name, card.company, card.email, card.phone, card.website].filter(
+        Boolean,
+      ).length;
+      onScan(card);
+      setMessage(
+        found > 0
+          ? 'Read their card. Check it below, and tap the right website and LinkedIn when they appear.'
+          : 'Could not read that card. Try again in better light, or type it.',
+      );
+    } catch {
+      setMessage('Could not read that card. Fill the form below instead.');
+    } finally {
+      setScanning(false);
+    }
+  }
+
   return (
     <section className="border-line bg-surface mt-6 rounded-xl border p-4">
       <label htmlFor="quick-note" className="text-ink text-[15px] font-semibold">
@@ -636,6 +703,27 @@ function QuickNote({
       >
         {busy ? 'Reading…' : 'Fill the form'}
       </button>
+      {scanEnabled ? (
+        <>
+          <button
+            type="button"
+            disabled={scanning}
+            onClick={() => camera.current?.click()}
+            className="border-line bg-surface text-ink hover:border-ink-3 mt-2 ml-2 h-11 rounded-lg border px-4 text-sm font-medium disabled:opacity-50"
+          >
+            {scanning ? 'Reading card…' : 'Scan their card'}
+          </button>
+          <input
+            ref={camera}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={scan}
+          />
+        </>
+      ) : null}
       {message ? (
         <p className="text-ink-2 mt-2 text-[13px]" role="status">
           {message}

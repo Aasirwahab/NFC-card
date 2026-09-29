@@ -46,6 +46,7 @@ export default async function EditSessionPage({
       cardCode={card?.code ?? ''}
       events={events.map((e) => ({ id: e.id, name: e.name }))}
       lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
+      scanEnabled={Boolean(env.MODEL_VISION)}
       justRegistered={registered === '1'}
     />
   );

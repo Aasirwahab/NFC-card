@@ -64,6 +64,12 @@ export const serverEnvSchema = z
      * research pass — but not a cheaper pitch model" as a margin lever.
      */
     MODEL_RESEARCH: blankAsUnset(z.string().optional()),
+    /**
+     * Reads a photographed business card. Optional: with none set, card scanning is
+     * off. Tested 2026-09-29 on 13 synthetic card images: deepseek/deepseek-v4-flash-vision-exp
+     * and google/gemini-3.5-flash-lite both read every field exactly and invented nothing.
+     */
+    MODEL_VISION: blankAsUnset(z.string().optional()),
 
     /** Fast typed decisions (which website is official, which profile matches...). */
     JEV_ENABLED: blankAsUnset(
@@ -113,7 +119,9 @@ export const serverEnvSchema = z
   .superRefine((vars, ctx) => {
     // A real model id with no key would boot fine and fail on the first job, hours
     // later, at an event. Fail the build instead.
-    const ids = [vars.MODEL_PITCH, vars.MODEL_CHAT, vars.MODEL_RESEARCH].filter(Boolean);
+    const ids = [vars.MODEL_PITCH, vars.MODEL_CHAT, vars.MODEL_RESEARCH, vars.MODEL_VISION].filter(
+      Boolean,
+    );
     if (ids.some((id) => id !== 'mock') && !vars.MODEL_API_KEY) {
       ctx.addIssue({
         code: 'custom',
