@@ -114,6 +114,23 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section title="If you request early access">
+        <p>
+          The form on our home page collects your name, work email, role and company, and the next
+          event you are attending, if you give one. We also note whether you arrived from one of our
+          cards. We use these details only to contact you about early access and to choose the
+          founding group. Our lawful basis is your consent, which you give by ticking the box on the
+          form and can withdraw at any time.
+        </p>
+        <p>
+          To have your request deleted, email{' '}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent underline underline-offset-2">
+            {CONTACT_EMAIL}
+          </a>{' '}
+          and we will remove it.
+        </p>
+      </Section>
+
       <Section title="What we do not do">
         <ul className="list-disc space-y-1.5 pl-5">
           <li>We do not add you to a marketing list.</li>

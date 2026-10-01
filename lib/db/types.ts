@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 15 tables by scripts/gen-types.ts.
+ * Generated from 16 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -208,6 +208,39 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      early_access_requests: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          role: string | null;
+          next_event: string | null;
+          ref: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          role?: string | null;
+          next_event?: string | null;
+          ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string;
+          role?: string | null;
+          next_event?: string | null;
+          ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       event_digests: {
         Row: {

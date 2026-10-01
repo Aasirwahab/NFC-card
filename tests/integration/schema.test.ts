@@ -34,6 +34,7 @@ describe('migrations', () => {
       'card_batches',
       'cards',
       'chat_messages',
+      'early_access_requests',
       'event_digests',
       'events',
       'followup_drafts',
