@@ -778,6 +778,15 @@
     transform: scale(2.6);
   }
 }
+/* Reduced motion: the same staggered fade, with nothing drawing, sliding or ringing. */
+.lp .tl.calm.armed::before,
+.lp .tl.calm.armed li > :not(.dot),
+.lp .tl.calm.armed .dot {
+  transform: none;
+}
+.lp .tl.calm.armed.in .dot.on::after {
+  animation: none;
+}
 
 /* 03 discretion */
 .lp .disc-sec {
