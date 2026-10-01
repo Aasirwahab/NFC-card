@@ -4,13 +4,9 @@ A cardboard business card with a penny NFC sticker. The prospect taps it once an
 gets a page written for them alone — tied to the problem they described in
 conversation, with real facts about their business.
 
-The full specification (`TAPLEAD_BUILD_SPEC.md` v3.0) is the single source of
-truth, and is **kept privately rather than in this repository** — it carries
-competitive positioning, unit economics and pricing. Ask Zaid for a copy.
-
-Section references throughout this codebase (`§16`, `§22.4`) point into it, and
-every decision that shaped the code is quoted inline next to the code it
-explains, so the source is readable without it.
+Section references throughout this codebase (`§16`, `§22.4`) point into the
+project's build specification, and every decision that shaped the code is quoted
+inline next to the code it explains, so the source is readable on its own.
 
 ---
 
