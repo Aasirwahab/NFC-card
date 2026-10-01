@@ -712,6 +712,73 @@
   margin-bottom: 12px;
 }
 
+/*
+ * Entrance, played once by TimelineReveal: the line draws in 1.6s, and each step
+ * (--i = 0..5) arrives as the line reaches its dot. Only applied once "armed",
+ * so the steps never hide without JavaScript.
+ */
+.lp .tl {
+  --ease: cubic-bezier(0.22, 0.7, 0.2, 1);
+  --step: 0.26s;
+}
+.lp .tl::before {
+  transform-origin: left center;
+}
+.lp .tl.armed::before {
+  transform: scaleX(0);
+}
+.lp .tl.armed li > :not(.dot) {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.lp .tl.armed .dot {
+  transform: scale(0.4);
+  opacity: 0;
+}
+.lp .tl.armed.in::before {
+  transform: none;
+  transition: transform 1.6s var(--ease);
+}
+.lp .tl.armed.in li > :not(.dot) {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s var(--ease),
+    transform 0.7s var(--ease);
+  transition-delay: calc(0.25s + var(--i) * var(--step));
+}
+.lp .tl.armed.in .dot {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.4s var(--ease),
+    transform 0.5s var(--ease);
+  transition-delay: calc(0.1s + var(--i) * var(--step));
+}
+/* The last step: the coral dot gives one soft ring as the line arrives. */
+.lp .tl .dot.on::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--coral);
+  opacity: 0;
+}
+.lp .tl.armed.in .dot.on::after {
+  animation: tl-ring 1.4s var(--ease) both;
+  animation-delay: calc(0.4s + var(--i) * var(--step));
+}
+@keyframes tl-ring {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
 /* 03 discretion */
 .lp .disc-sec {
   background: var(--dark);
@@ -1447,6 +1514,10 @@
     width: 1px;
     height: auto;
     background: #cfc9ba;
+    transform-origin: center top;
+  }
+  .lp .tl.armed::before {
+    transform: scaleY(0);
   }
   .lp .tl li {
     padding: 0 0 0 34px;

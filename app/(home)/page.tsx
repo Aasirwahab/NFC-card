@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 import { EarlyAccessForm } from './early-access-form';
 import { Icon, type IconName } from './icons';
 import { Scenario } from './scenario';
+import { TimelineReveal } from './timeline-reveal';
 import { TryIt } from './try-it';
 import './landing.css';
 
@@ -348,9 +349,9 @@ export default function HomePage() {
                 they open their page.
               </p>
             </div>
-            <ol className="tl">
+            <TimelineReveal>
               {TIMELINE.map((step, i) => (
-                <li key={step.title}>
+                <li key={step.title} style={{ '--i': i } as React.CSSProperties}>
                   <span className={i === TIMELINE.length - 1 ? 'dot on' : 'dot'} />
                   <span className="when">{step.when}</span>
                   <h3>{step.title}</h3>
@@ -358,7 +359,7 @@ export default function HomePage() {
                   <Status />
                 </li>
               ))}
-            </ol>
+            </TimelineReveal>
           </div>
         </section>
 
