@@ -1,3 +1,4 @@
+import { BackLink } from '@/components/back-link';
 import { getBusinessProfile, getProfile } from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
@@ -38,7 +39,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-display text-ink text-2xl font-bold tracking-tight">Setup</h1>
+      <div>
+        <BackLink href="/dashboard">Today</BackLink>
+        <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">Setup</h1>
+      </div>
       <ProfileForm profile={profile} />
       <BusinessForm business={business} />
       <PlaybookForm

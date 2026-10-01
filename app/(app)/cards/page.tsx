@@ -1,3 +1,4 @@
+import { BackLink } from '@/components/back-link';
 import { serviceClient } from '@/lib/db/service';
 import { requireRep } from '@/lib/db/server';
 import { CardsOverview } from './cards-overview';
@@ -24,11 +25,16 @@ export default async function CardsPage() {
   const count = (status: string) => (counts ?? []).filter((c) => c.status === status).length;
 
   return (
-    <CardsOverview
-      batches={batches ?? []}
-      inStock={count('available')}
-      handedOut={count('assigned')}
-      lost={count('voided')}
-    />
+    <div>
+      <BackLink href="/dashboard">Today</BackLink>
+      <div className="mt-3">
+        <CardsOverview
+          batches={batches ?? []}
+          inStock={count('available')}
+          handedOut={count('assigned')}
+          lost={count('voided')}
+        />
+      </div>
+    </div>
   );
 }
