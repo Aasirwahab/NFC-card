@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BackLink } from '@/components/back-link';
 import { buttonStyles } from '@/components/ui/button';
 import { listEvents } from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
@@ -12,7 +13,8 @@ export default async function EventsPage() {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
+      <BackLink href="/dashboard">Today</BackLink>
+      <div className="mt-3 flex items-baseline justify-between gap-3">
         <h1 className="font-display text-ink text-2xl font-bold tracking-tight">Events</h1>
         <Link href="/events/new" className={buttonStyles({ size: 'sm' })}>
           New event

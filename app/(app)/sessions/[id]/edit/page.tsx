@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { BackLink } from '@/components/back-link';
 import { getEvent, getSessionForRep, listEvents } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
 import { env } from '@/lib/env';
@@ -39,15 +40,20 @@ export default async function EditSessionPage({
   ]);
 
   return (
-    <DetailsForm
-      session={session}
-      niches={event?.niches ?? []}
-      eventName={event?.name ?? null}
-      cardCode={card?.code ?? ''}
-      events={events.map((e) => ({ id: e.id, name: e.name }))}
-      lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
-      scanEnabled={Boolean(env.MODEL_VISION)}
-      justRegistered={registered === '1'}
-    />
+    <div>
+      <BackLink href="/dashboard">Today</BackLink>
+      <div className="mt-3">
+        <DetailsForm
+          session={session}
+          niches={event?.niches ?? []}
+          eventName={event?.name ?? null}
+          cardCode={card?.code ?? ''}
+          events={events.map((e) => ({ id: e.id, name: e.name }))}
+          lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
+          scanEnabled={Boolean(env.MODEL_VISION)}
+          justRegistered={registered === '1'}
+        />
+      </div>
+    </div>
   );
 }
