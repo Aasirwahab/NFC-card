@@ -1573,8 +1573,25 @@
   .lp .hero {
     padding-top: 34px;
   }
+  .lp .nav-end {
+    gap: 8px;
+  }
   .lp .nav-end .signin {
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 14px;
+    white-space: nowrap;
+    border: 1px solid #cfc9ba;
+    border-radius: 10px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .lp .nav-end .signin:hover {
+    background: var(--bg2);
+  }
+  .lp nav.bar-top .btn {
+    padding: 0 14px;
   }
   .lp .presets button {
     min-height: 44px;
@@ -1607,6 +1624,12 @@
   }
   .lp .formcard {
     padding: 22px;
+  }
+}
+/* Too narrow for both: the hero's own "Join the pilot" sits just below. */
+@media (max-width: 360px) {
+  .lp nav.bar-top .btn {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
