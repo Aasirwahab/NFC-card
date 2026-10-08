@@ -214,3 +214,27 @@ describe('write callback trust', () => {
     expect(isTrustedNavigation('same-site')).toBe(false);
   });
 });
+
+describe('what a staff tap does', () => {
+  it('first check previews, even for the owner; repeat taps depend on who taps', async () => {
+    const { decideStaffTap } = await import('@/lib/ops/staff-tap');
+    expect(decideStaffTap('verified', 'rep')).toBe('preview');
+    expect(decideStaffTap('verified', 'owner')).toBe('preview');
+    // staff who own the card get their own page once it is checked
+    expect(decideStaffTap('already_verified', 'rep')).toBe('continue');
+    // staff tapping someone else's unused card file nothing
+    expect(decideStaffTap('already_verified', 'owner')).toBe('preview');
+    expect(decideStaffTap('not_applicable', 'rep')).toBe('continue');
+    expect(decideStaffTap('not_applicable', 'prospect')).toBe('continue');
+  });
+});
+
+describe('who sees what on /c/CODE', () => {
+  it('owner signed in gets the rep page; signed out or another user gets the prospect side', async () => {
+    const { decideAudience } = await import('@/lib/domain/audience');
+    const card = { user_id: 'owner-1' };
+    expect(decideAudience(card, 'owner-1')).toBe('rep');
+    expect(decideAudience(card, null)).toBe('prospect');
+    expect(decideAudience(card, 'someone-else')).toBe('prospect');
+  });
+});

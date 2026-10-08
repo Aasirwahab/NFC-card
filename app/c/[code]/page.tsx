@@ -13,6 +13,7 @@ import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
 import { recordOwnerCardTap } from '@/lib/landing/owner-tap';
 import { getStaff } from '@/lib/auth/staff';
+import { decideStaffTap } from '@/lib/ops/staff-tap';
 import { verifyCardTap } from '@/lib/ops/verify';
 import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
@@ -82,21 +83,25 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
     if (staff) {
       const tap = await verifyCardTap(code, staff.email);
       if (tap !== 'not_applicable') {
-        // The card is checked. Show what a prospect would see: the owner's
-        // portfolio, with a staff-only banner. Nothing is recorded for this tap.
-        // Resolved as a stranger: a staff member who owns the card still sees the
-        // prospect's view, not their own rep view.
-        const preview = await resolveCode(code, null);
-        if (preview.audience === 'owner') {
-          return (
-            <>
-              <StaffTapBanner code={code} again={tap === 'already_verified'} />
-              <OwnerCard resolved={preview} />
-            </>
-          );
+        // Is the staff member also the card's owner? Then a repeat tap is the rep
+        // opening their own card (their page to add details), not a check.
+        const asSignedIn = await resolveCode(code, repId);
+        if (decideStaffTap(tap, asSignedIn.audience) === 'preview') {
+          // Show what a prospect would see, with a staff-only banner. Nothing is
+          // recorded for this tap. Resolved as a stranger so an owner-staff
+          // member sees the prospect's view while checking.
+          const preview = await resolveCode(code, null);
+          if (preview.audience === 'owner') {
+            return (
+              <>
+                <StaffTapBanner code={code} again={tap === 'already_verified'} />
+                <OwnerCard resolved={preview} />
+              </>
+            );
+          }
+          // No portfolio to show yet (the rep has no profile): say so plainly.
+          return <Programmed code={code} again={tap === 'already_verified'} />;
         }
-        // No portfolio to show yet (the rep has no profile): say so plainly.
-        return <Programmed code={code} again={tap === 'already_verified'} />;
       }
     }
   }
