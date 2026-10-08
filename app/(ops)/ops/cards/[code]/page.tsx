@@ -7,8 +7,9 @@ import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { serviceClient } from '@/lib/db/service';
 import { env } from '@/lib/env';
 import { listReps } from '@/lib/ops/data';
-import { cardProgress } from '@/lib/ops/stock';
+import { cardProgress, describeCard } from '@/lib/ops/stock';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/confirm-button';
 import { reassignCardAction, resetCardAction, voidCardAction } from '../../actions';
 
 export const metadata = { title: 'Card · Operator console' };
@@ -35,10 +36,12 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
   const unused = card.status === 'available' && (sessions?.length ?? 0) === 0;
   const reps = unused ? (await listReps()).filter((r) => r.id !== card.user_id) : [];
 
+  const { data: ownerAuth } = await db.auth.admin.getUserById(card.user_id);
+  const ownerName = profile?.full_name ?? ownerAuth?.user?.email ?? 'Unknown';
+  const state = describeCard(card);
   const rows: [string, string][] = [
-    ['Status', card.status],
     ['Programming', cardProgress(card)],
-    ['Owner', profile?.full_name ?? card.user_id],
+    ['Owner', ownerName],
     ['Leads', String(sessions?.length ?? 0)],
     ['Tag link', tagUrl(env.NEXT_PUBLIC_APP_URL, card.code)],
   ];
@@ -49,11 +52,23 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
         href={`/ops/users/${card.user_id}`}
         className="text-ink-3 text-[13px] underline underline-offset-2"
       >
-        {profile?.full_name ?? 'Owner'}
+        {ownerName}
       </Link>
       <h1 className="font-display text-ink mt-2 font-mono text-3xl font-bold tracking-wider">
         {printedCode(card.code)}
       </h1>
+      <p
+        className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[12px] font-medium ${
+          state.tone === 'ok'
+            ? 'bg-ok/10 text-ok'
+            : state.tone === 'wait'
+              ? 'bg-accent/10 text-accent'
+              : 'bg-line-soft text-ink-3'
+        }`}
+      >
+        {state.label}
+      </p>
+      <p className="text-ink-2 mt-2 text-[14px]">{state.detail}</p>
       <dl className="mt-4 flex flex-col gap-2">
         {rows.map(([k, v]) => (
           <div key={k} className="border-line-soft flex justify-between gap-4 border-b pb-2">
@@ -110,17 +125,17 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
           <div className="border-line flex flex-wrap gap-2 rounded-xl border p-4">
             <form action={voidCardAction}>
               <input type="hidden" name="code" value={card.code} />
-              <Button type="submit" variant="secondary">
+              <ConfirmButton message="Void this card? It can never be used again.">
                 Void (lost or damaged)
-              </Button>
+              </ConfirmButton>
             </form>
             {card.written_at || card.verified_at ? (
               <form action={resetCardAction}>
                 <input type="hidden" name="code" value={card.code} />
                 <input type="hidden" name="batchId" value={card.batch_id ?? ''} />
-                <Button type="submit" variant="secondary">
+                <ConfirmButton message="Send this card back to needs writing? Check the sticker again afterwards.">
                   Write again
-                </Button>
+                </ConfirmButton>
               </form>
             ) : null}
           </div>

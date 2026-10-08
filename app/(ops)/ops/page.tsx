@@ -1,9 +1,17 @@
 import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
-import { listReps } from '@/lib/ops/data';
+import { listReps, type OpsRep } from '@/lib/ops/data';
 import { CodeSearch } from './code-search';
 
 export const metadata = { title: 'Operator console' };
+
+function todo(rep: OpsRep): string[] {
+  return [
+    rep.stock.needsWriting > 0 ? `${rep.stock.needsWriting} to write` : '',
+    rep.stock.needsVerifying > 0 ? `${rep.stock.needsVerifying} to check` : '',
+    rep.openOrders > 0 ? `${rep.openOrders} open order${rep.openOrders > 1 ? 's' : ''}` : '',
+  ].filter(Boolean);
+}
 
 export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
   await requireStaff();
@@ -47,12 +55,8 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
               <p className="text-ink-2 mt-2 font-mono text-[12px]">
                 {rep.stock.inStock} in stock · {rep.stock.handedOut} out · {rep.stock.lost} lost
               </p>
-              {rep.stock.needsWriting + rep.stock.needsVerifying + rep.openOrders > 0 ? (
-                <p className="text-ink-3 mt-1 text-[12px]">
-                  {rep.stock.needsWriting > 0 ? `${rep.stock.needsWriting} to write · ` : ''}
-                  {rep.stock.needsVerifying > 0 ? `${rep.stock.needsVerifying} to verify · ` : ''}
-                  {rep.openOrders > 0 ? `${rep.openOrders} open order` : ''}
-                </p>
+              {todo(rep).length > 0 ? (
+                <p className="text-ink-3 mt-1 text-[12px]">{todo(rep).join(' · ')}</p>
               ) : null}
             </Link>
           </li>
