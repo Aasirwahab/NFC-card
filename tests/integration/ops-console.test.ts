@@ -161,3 +161,28 @@ describe('programming columns are server only', () => {
     await db.query(`update public.cards set verified_at = now() where code = $1`, [f.codes[0]]);
   });
 });
+
+describe('tag serial numbers', () => {
+  it('one sticker cannot be written for two cards, and reps cannot set it', async () => {
+    const f = await seedFixture(db, { cards: 2 });
+    await db.query(`update public.cards set tag_uid = '04A23B1C558061' where code = $1`, [
+      f.codes[0],
+    ]);
+    await expect(
+      db.query(`update public.cards set tag_uid = '04A23B1C558061' where code = $1`, [f.codes[1]]),
+    ).rejects.toThrow(/duplicate|unique/i);
+    await expect(
+      db.query(`update public.cards set tag_uid = 'not hex' where code = $1`, [f.codes[1]]),
+    ).rejects.toThrow();
+
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [f.userId]);
+    await db.query(`set role authenticated`);
+    try {
+      await expect(
+        db.query(`update public.cards set tag_uid = '04AAAAAAAAAA' where code = $1`, [f.codes[1]]),
+      ).rejects.toThrow(/programming_columns_are_server_only/);
+    } finally {
+      await db.query(`reset role`);
+    }
+  });
+});

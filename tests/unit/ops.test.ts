@@ -150,3 +150,30 @@ describe('card state wording', () => {
     );
   });
 });
+
+describe('NFC Helper link', () => {
+  it('builds a write link whose callback keeps the {serialnumber} placeholder', async () => {
+    const { nfcHelperWriteLink } = await import('@/lib/ops/nfc-helper');
+    const link = nfcHelperWriteLink(
+      'https://insignar.app/c/K7M3PQ2X',
+      'https://ops.example.com/ops/cards/K7M3PQ2X/written',
+    );
+    expect(link.startsWith('nfchelper://write?url=')).toBe(true);
+    expect(link).toContain(encodeURIComponent('https://insignar.app/c/K7M3PQ2X'));
+    expect(link).toContain('{serialnumber}');
+    expect(link).not.toContain('%7Bserialnumber');
+    const callback = decodeURIComponent(link.split('&callback=')[1]!);
+    expect(callback).toBe(
+      'https://ops.example.com/ops/cards/K7M3PQ2X/written?tagid={serialnumber}',
+    );
+  });
+
+  it('normalises serial numbers and rejects junk', async () => {
+    const { normaliseTagUid } = await import('@/lib/ops/nfc-helper');
+    expect(normaliseTagUid('04:a2:3b:1c:55:80:61')).toBe('04A23B1C558061');
+    expect(normaliseTagUid(' 04 A2 3B 1C 55 80 61 ')).toBe('04A23B1C558061');
+    expect(normaliseTagUid('{serialnumber}')).toBeNull();
+    expect(normaliseTagUid('zz')).toBeNull();
+    expect(normaliseTagUid(null)).toBeNull();
+  });
+});

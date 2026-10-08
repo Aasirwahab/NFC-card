@@ -10,6 +10,8 @@ import { env } from '@/lib/env';
 import { cardProgress, describeCard } from '@/lib/ops/stock';
 import { markVerifiedAction, markWrittenAction, resetCardAction } from '../../actions';
 import { Refresher } from './refresher';
+import { nfcHelperWriteLink } from '@/lib/ops/nfc-helper';
+import { headers } from 'next/headers';
 
 export const metadata = { title: 'Write cards · Operator console' };
 
@@ -18,9 +20,13 @@ export const metadata = { title: 'Write cards · Operator console' };
  * person through it, one card at a time: copy the link, write it with NFC Tools,
  * then tap the sticker with the phone. The tap verifies it (see app/c/[code]).
  */
-export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]'>) {
+export default async function BatchPage({ params, searchParams }: PageProps<'/ops/batches/[id]'>) {
   await requireStaff();
   const { id } = await params;
+  const { error } = await searchParams;
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = serviceClient();
 
@@ -69,6 +75,16 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
         />
       </div>
 
+      {error ? (
+        <p className="text-crit mt-4 text-[13px]" role="alert">
+          {error === 'tag_in_use'
+            ? 'That sticker is already written for another card. Use a fresh one.'
+            : error === 'not_writable'
+              ? 'This card is already checked or in use, so it cannot be written again.'
+              : 'That did not work. Try again.'}
+        </p>
+      ) : null}
+
       {current ? (
         <section className="border-line bg-surface shadow-card mt-5 rounded-xl border p-4">
           <p className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
@@ -86,19 +102,37 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
 
           {currentProgress === 'issued' ? (
             <>
-              <ol className="text-ink-2 mt-4 list-decimal space-y-1 pl-5 text-[14px]">
-                <li>Copy the link.</li>
-                <li>Open NFC Tools, Write, Add a record, URL, paste it.</li>
-                <li>Press Write and hold the sticker to the top of the phone.</li>
-                <li>Press the button below.</li>
-              </ol>
-              <form action={markWrittenAction} className="mt-4">
-                <input type="hidden" name="code" value={current.code} />
-                <input type="hidden" name="batchId" value={id} />
-                <Button type="submit" className="w-full">
-                  I wrote it
-                </Button>
-              </form>
+              <a
+                href={nfcHelperWriteLink(
+                  tagUrl(env.NEXT_PUBLIC_APP_URL, current.code),
+                  `${proto}://${host}/ops/cards/${current.code}/written`,
+                )}
+                className="bg-accent text-surface mt-4 flex w-full items-center justify-center rounded-lg px-4 py-3 text-[15px] font-semibold"
+              >
+                Write with NFC Helper
+              </a>
+              <p className="text-ink-3 mt-2 text-[12px]">
+                Opens the free NFC Helper app with the link filled in. Hold the sticker to the top
+                of the phone; it brings you back here and marks the card written.
+              </p>
+              <details className="mt-4">
+                <summary className="text-ink-3 cursor-pointer text-[13px]">
+                  Or write it by hand in any NFC app
+                </summary>
+                <ol className="text-ink-2 mt-2 list-decimal space-y-1 pl-5 text-[14px]">
+                  <li>Copy the link.</li>
+                  <li>In your NFC app choose Write, Add a record, URL, and paste it.</li>
+                  <li>Hold the sticker to the top of the phone.</li>
+                  <li>Press the button below.</li>
+                </ol>
+                <form action={markWrittenAction} className="mt-3">
+                  <input type="hidden" name="code" value={current.code} />
+                  <input type="hidden" name="batchId" value={id} />
+                  <Button type="submit" variant="secondary" className="w-full">
+                    I wrote it
+                  </Button>
+                </form>
+              </details>
             </>
           ) : (
             <>
