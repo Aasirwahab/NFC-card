@@ -93,8 +93,12 @@ export default function PrivacyPage() {
 
       <Section title="Your rights">
         <p>
-          You can ask us to give you a copy of everything we hold about you, correct it, delete it,
-          or stop using it altogether. Email{' '}
+          The quickest way to delete it: open your card page and press{' '}
+          <strong>Remove my details</strong> at the bottom. It deletes the record straight away.
+        </p>
+        <p>
+          You can also ask us to give you a copy of everything we hold about you, correct it, delete
+          it, or stop using it altogether. Email{' '}
           <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent underline underline-offset-2">
             {CONTACT_EMAIL}
           </a>{' '}

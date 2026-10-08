@@ -11,6 +11,7 @@ import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
 import { linkedinHref } from '@/lib/domain/linkedin';
 import { LinkedInConnect } from './linkedin-connect';
+import { RemoveDetails } from './remove-details';
 import { Crafting } from './crafting';
 
 /**
@@ -130,7 +131,7 @@ export function ProspectView({
         />
       </main>
 
-      <Footer />
+      <Footer removeCode={preview ? undefined : code} />
     </div>
   );
 }
@@ -358,7 +359,7 @@ export function SaveContact({ code, repName }: { code: string; repName: string }
   );
 }
 
-export function Footer() {
+export function Footer({ removeCode }: { removeCode?: string }) {
   return (
     <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
       {/*
@@ -380,6 +381,7 @@ export function Footer() {
           Privacy
         </Link>
       </div>
+      {removeCode ? <RemoveDetails code={removeCode} /> : null}
     </footer>
   );
 }

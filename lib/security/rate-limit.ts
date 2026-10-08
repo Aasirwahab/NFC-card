@@ -36,6 +36,8 @@ const LIMITS = {
   lookup: { tokens: 30, window: '10 m' },
   /** GET /api/landing/[code]/status — polled every 3s by the crafting state. */
   landingStatus: { tokens: 60, window: '1 m' },
+  /** POST /api/landing/[code]/remove: a prospect deleting their own record. */
+  landingRemove: { tokens: 5, window: '1 h' },
   /** The early access form on the home page. */
   earlyAccess: { tokens: 5, window: '1 h' },
 } as const satisfies Record<string, { tokens: number; window: `${number} ${'m' | 'h' | 's'}` }>;
