@@ -32,6 +32,14 @@ export type Brief = {
     title: string | null;
     language: 'en-GB' | 'en-US';
   };
+  /** How the rep wants their notes to sound. Style and their own words, never new facts. */
+  voice: {
+    tone: 'warm' | 'direct' | 'formal';
+    /** One sentence in the rep's own words about what they offer. */
+    hook: string | null;
+    /** Words and phrases the note must not use. */
+    avoid: string[];
+  };
   business: {
     name: string | null;
     tagline: string | null;
@@ -70,6 +78,15 @@ function knowledgeText(snapshot: Snapshot): string {
     .slice(0, KNOWLEDGE_CAP);
 }
 
+/** "no jargon, cheap" or one per line, into a short list. */
+export function parseAvoid(raw: string | null | undefined): string[] {
+  return (raw ?? '')
+    .split(/[\n,;]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 2)
+    .slice(0, 12);
+}
+
 export function composeBrief(snapshot: Snapshot, research: Research): Brief {
   const { session } = snapshot;
   const repFullName = snapshot.rep?.full_name?.trim() || 'the team';
@@ -95,6 +112,11 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
       fullName: repFullName,
       title: snapshot.rep?.title ?? null,
       language: snapshot.rep?.language ?? 'en-GB',
+    },
+    voice: {
+      tone: snapshot.rep?.pitch_tone ?? 'warm',
+      hook: snapshot.rep?.pitch_hook?.trim() || null,
+      avoid: parseAvoid(snapshot.rep?.pitch_avoid),
     },
     business: {
       name: snapshot.business?.company_name?.trim() || null,
@@ -125,6 +147,7 @@ export function briefText(brief: Brief): string {
     brief.niche,
     brief.business.name,
     brief.business.tagline,
+    brief.voice.hook,
     brief.business.services.join(' '),
     brief.business.pricing,
     brief.business.knowledge,

@@ -23,6 +23,7 @@ function brief(overrides: Partial<Brief> = {}): Brief {
     guidance: null,
     privateNote: 'Arsenal fan, two kids, hates spreadsheets',
     rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
+    voice: { tone: 'warm' as const, hook: null, avoid: [] as string[] },
     business: {
       name: 'TMA',
       tagline: 'Vertical AI for plant hire.',
@@ -258,5 +259,36 @@ describe('the fallbacks must pass the gate too', () => {
     const { instructions, prompt } = pitchPrompt(b);
     const { text } = await generateText({ model: mockPitchModel(), instructions, prompt });
     expect(qualityGate(text, b).failures).toEqual([]);
+  });
+});
+
+describe("the rep's pitch voice", () => {
+  it('rejects a note that uses a phrase the rep asked never to say', () => {
+    const b = brief({ voice: { tone: 'direct', hook: null, avoid: ['cheap', 'synergy'] } });
+    const body =
+      'Idle machine tracking came up. It is a cheap fix compared with another idle week, and we can show you how in fifteen minutes. If useful, pick a time below. Zaid';
+    const result = qualityGate(body, b);
+    expect(result.failures.map((f) => f.check)).toContain('avoided_phrase');
+  });
+
+  it("treats the rep's own hook as supported content, and parses the avoid list", async () => {
+    const { briefText, parseAvoid } = await import('@/lib/enrich/brief');
+    const b = brief({
+      voice: { tone: 'warm', hook: 'We install telematics in a day.', avoid: [] },
+    });
+    expect(briefText(b)).toContain('telematics in a day');
+    expect(parseAvoid('cheap, jargon\nsynergy; x')).toEqual(['cheap', 'jargon', 'synergy']);
+    expect(parseAvoid(null)).toEqual([]);
+  });
+
+  it('puts tone, own line and never_say in the prompt, and keeps the private note out', async () => {
+    const { pitchPrompt } = await import('@/lib/enrich/prompts');
+    const b = brief({ voice: { tone: 'formal', hook: 'We cut idle time.', avoid: ['cheap'] } });
+    const { prompt, instructions } = pitchPrompt(b);
+    expect(prompt).toContain('"tone": "formal"');
+    expect(prompt).toContain('"own_line": "We cut idle time."');
+    expect(prompt).toContain('"never_say"');
+    expect(prompt).not.toContain('Arsenal');
+    expect(instructions).toMatch(/never_say/);
   });
 });

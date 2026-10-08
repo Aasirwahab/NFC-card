@@ -561,6 +561,9 @@ export type Database = {
           booking_url: string | null;
           timezone: string;
           language: string;
+          pitch_tone: string;
+          pitch_hook: string | null;
+          pitch_avoid: string | null;
         };
         Insert: {
           id: string;
@@ -576,6 +579,9 @@ export type Database = {
           booking_url?: string | null;
           timezone?: string;
           language?: string;
+          pitch_tone?: string;
+          pitch_hook?: string | null;
+          pitch_avoid?: string | null;
         };
         Update: {
           id?: string;
@@ -591,6 +597,9 @@ export type Database = {
           booking_url?: string | null;
           timezone?: string;
           language?: string;
+          pitch_tone?: string;
+          pitch_hook?: string | null;
+          pitch_avoid?: string | null;
         };
         Relationships: [
           {

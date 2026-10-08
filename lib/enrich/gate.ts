@@ -31,7 +31,8 @@ export type GateCheck =
   | 'unsupported_claim'
   | 'length'
   | 'no_call_to_action'
-  | 'wrong_name';
+  | 'wrong_name'
+  | 'avoided_phrase';
 
 export type GateFailure = { check: GateCheck; detail: string };
 
@@ -259,6 +260,14 @@ export function qualityGate(body: string, brief: Brief): GateResult {
   //    research, and no prices, statistics or credentials the brief does not
   //    contain. Shared with the chatbot's reply check (§18.2).
   failures.push(...claimFailures(trimmed, context, brief.business.pricing));
+
+  // Words the rep asked never to appear in their notes.
+  const lowered = trimmed.toLowerCase();
+  for (const phrase of brief.voice.avoid) {
+    if (lowered.includes(phrase.toLowerCase())) {
+      fail('avoided_phrase', `uses "${phrase}", which the salesperson asked never to say`);
+    }
+  }
   const lowerContext = context.toLowerCase();
 
   // 5. Length and shape: one screen on a phone, with a call to action.

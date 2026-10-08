@@ -36,6 +36,10 @@ export const snapshotSchema = z.object({
       title: text,
       /** Which spelling the pitch uses. */
       language: z.enum(['en-GB', 'en-US']).catch('en-GB'),
+      /** The rep's standing pitch voice. Style, one of their own sentences, and words to avoid. */
+      pitch_tone: z.enum(['warm', 'direct', 'formal']).catch('warm'),
+      pitch_hook: text.optional().catch(null),
+      pitch_avoid: text.optional().catch(null),
     })
     .nullable()
     .catch(null),
