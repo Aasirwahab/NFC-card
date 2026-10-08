@@ -96,3 +96,35 @@ describe('stock', () => {
     expect(cardProgress({ written_at: 'x', verified_at: 'y' })).toBe('verified');
   });
 });
+
+describe('shared profile schema (rep settings and ops edit)', () => {
+  it('accepts a complete profile and turns blanks into null', async () => {
+    const { profileSchema } = await import('@/lib/schemas/profile');
+    const p = profileSchema.parse({
+      full_name: 'Adam Smith',
+      title: '',
+      booking_url: 'https://cal.com/adam/15min',
+      contact_email: 'adam@example.com',
+      timezone: 'Europe/London',
+    });
+    expect(p.title).toBeNull();
+    expect(p.booking_url).toBe('https://cal.com/adam/15min');
+  });
+
+  it('rejects a short name, a non-https booking link and a bad email', async () => {
+    const { profileSchema } = await import('@/lib/schemas/profile');
+    expect(profileSchema.safeParse({ full_name: 'A' }).success).toBe(false);
+    expect(
+      profileSchema.safeParse({ full_name: 'Adam', booking_url: 'http://cal.com/adam/15min' })
+        .success,
+    ).toBe(false);
+    expect(profileSchema.safeParse({ full_name: 'Adam', contact_email: 'nope' }).success).toBe(
+      false,
+    );
+  });
+
+  it('falls back to UTC for an unknown timezone', async () => {
+    const { profileSchema } = await import('@/lib/schemas/profile');
+    expect(profileSchema.parse({ full_name: 'Adam', timezone: 'Mars/Base' }).timezone).toBe('UTC');
+  });
+});

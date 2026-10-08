@@ -913,6 +913,10 @@ export type Database = {
         Args: { p_code: string; p_user_id: string };
         Returns: undefined;
       };
+      ops_reassign_card: {
+        Args: { p_code: string; p_new_user_id: string };
+        Returns: undefined;
+      };
       release_card: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: Database['public']['Tables']['sessions']['Row'];

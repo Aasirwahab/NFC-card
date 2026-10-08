@@ -121,3 +121,25 @@ describe('low stock, audit and orders', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('void a card from ops', () => {
+  it('voids an unused card but refuses one in use', async () => {
+    const f = await seedFixture(db, { cards: 2 });
+    await db.query(`select public.mark_card_lost($1, $2)`, [f.codes[0], f.userId]);
+    const r = await db.query<{ status: string }>(
+      `select status from public.cards where code = $1`,
+      [f.codes[0]],
+    );
+    expect(r.rows[0]!.status).toBe('voided');
+
+    await db.query(`select public.register_card($1, $2, $3, $4, 'rep', null)`, [
+      crypto.randomUUID(),
+      f.codes[1],
+      f.eventId,
+      f.userId,
+    ]);
+    await expect(
+      db.query(`select public.mark_card_lost($1, $2)`, [f.codes[1], f.userId]),
+    ).rejects.toThrow(/card_in_use/);
+  });
+});
