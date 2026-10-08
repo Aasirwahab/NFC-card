@@ -6,6 +6,7 @@ import {
   chatInstructions,
   checkReply,
   openingLine,
+  smallTalkReply,
   type ChatContext,
 } from '@/lib/chat/assistant';
 import type { Snapshot } from '@/lib/enrich/snapshot';
@@ -134,5 +135,47 @@ describe('the offline chat model', () => {
     expect(text).toContain('Vertical AI for plant hire.');
     expect(text).toContain('Zaid');
     expect(checkReply(text, context).ok).toBe(true);
+  });
+});
+
+describe('smallTalkReply (§18.1: pleasantries spend no answer)', () => {
+  it('answers a bare greeting, thanks or "ok" with fixed text', () => {
+    for (const message of [
+      'hi',
+      'Hello!',
+      'hey there',
+      'Good morning :)',
+      'thanks',
+      'Thank you so much!',
+      'ok',
+      'Got it 👍',
+    ]) {
+      const reply = smallTalkReply(message, 'Zaid', 'TMA');
+      expect(reply, message).not.toBeNull();
+      expect(reply).toContain('Zaid');
+    }
+  });
+
+  it('names the business in the greeting, or falls back to the rep', () => {
+    expect(smallTalkReply('hi', 'Zaid', 'TMA')).toContain('what TMA does');
+    expect(smallTalkReply('hi', 'Zaid', null)).toContain('Zaid’s company');
+  });
+
+  it('lets any real question through to the model', () => {
+    for (const message of [
+      'hi, who is this?',
+      'thanks, what does it cost?',
+      'hello how long does setup take',
+      'ok so do you work with plant hire firms',
+      'his',
+      'okay?? what next',
+    ]) {
+      expect(smallTalkReply(message, 'Zaid', 'TMA'), message).toBeNull();
+    }
+  });
+
+  it('never states a price or a percentage', () => {
+    const reply = smallTalkReply('hi', 'Zaid', 'TMA')!;
+    expect(reply).not.toMatch(/[£$%]/);
   });
 });
