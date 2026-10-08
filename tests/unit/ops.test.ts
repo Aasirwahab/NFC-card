@@ -238,3 +238,60 @@ describe('who sees what on /c/CODE', () => {
     expect(decideAudience(card, 'someone-else')).toBe('prospect');
   });
 });
+
+describe('search cache', () => {
+  it('answers a repeat from memory, retries an empty answer, and stays bounded', async () => {
+    const { withCache } = await import('@/lib/search/cache');
+    let calls = 0;
+    const search = withCache(
+      async (q: string) => {
+        calls += 1;
+        return q === 'nothing' ? [] : [{ url: 'https://a.example', title: q, snippet: '' }];
+      },
+      60_000,
+      2,
+    );
+    await search('one');
+    await search('one');
+    expect(calls).toBe(1);
+    await search('nothing');
+    await search('nothing');
+    expect(calls).toBe(3);
+    await search('two');
+    await search('three'); // evicts the oldest
+    await search('one');
+    expect(calls).toBe(6);
+  });
+});
+
+describe('what the rep sees when a save is refused', () => {
+  it('shows the first rule that broke, not the machine code', async () => {
+    const { failureMessage } = await import('@/lib/http/client');
+    expect(
+      failureMessage(
+        {
+          error: 'invalid_request',
+          issues: [{ path: 'prospect_email', message: 'Enter a valid email address.' }],
+        },
+        'fallback',
+      ),
+    ).toBe('Enter a valid email address.');
+    expect(failureMessage({ error: 'card_in_use' }, 'fallback')).toBe('card_in_use');
+    expect(failureMessage(null, 'fallback')).toBe('fallback');
+  });
+});
+
+describe('prospect details are forgiving about links', () => {
+  it('accepts linkedin.com/in/x, refuses non-web schemes, and explains', async () => {
+    const { sessionDetailsSchema } = await import('@/lib/schemas/sessions');
+    const ok = sessionDetailsSchema.safeParse({ linkedin_url: 'linkedin.com/in/jane-smith' });
+    expect(ok.success && ok.data.linkedin_url).toBe('https://linkedin.com/in/jane-smith');
+    expect(sessionDetailsSchema.safeParse({ linkedin_url: 'javascript:alert(1)' }).success).toBe(
+      false,
+    );
+    expect(sessionDetailsSchema.safeParse({ linkedin_url: 'nonsense' }).success).toBe(false);
+    const bad = sessionDetailsSchema.safeParse({ prospect_email: 'nope' });
+    expect(!bad.success && bad.error.issues[0]?.message).toBe('Enter a valid email address.');
+    expect(sessionDetailsSchema.safeParse({}).success).toBe(true);
+  });
+});

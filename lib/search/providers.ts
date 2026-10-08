@@ -67,11 +67,12 @@ export function serpApiSearch(apiKey: string): SearchFn {
   return async (query, options) => {
     try {
       const url = new URL('https://serpapi.com/search.json');
-      url.searchParams.set('engine', 'google');
+      // google_light returns the same organic results in a fraction of the time.
+      url.searchParams.set('engine', 'google_light');
       url.searchParams.set('q', query);
       url.searchParams.set('num', String(options?.count ?? 8));
       url.searchParams.set('api_key', apiKey);
-      const data = (await callFixedApi({ url: url.toString(), headers: {}, timeoutMs: 8_000 })) as {
+      const data = (await callFixedApi({ url: url.toString(), headers: {}, timeoutMs: 5_000 })) as {
         organic_results?: unknown;
       };
       return collect(data?.organic_results, (r) => ({
