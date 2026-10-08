@@ -128,3 +128,25 @@ describe('shared profile schema (rep settings and ops edit)', () => {
     expect(profileSchema.parse({ full_name: 'Adam', timezone: 'Mars/Base' }).timezone).toBe('UTC');
   });
 });
+
+describe('card state wording', () => {
+  const t = '2026-10-09T10:00:00Z';
+  it('walks issued, written, active, in use and voided', async () => {
+    const { describeCard } = await import('@/lib/ops/stock');
+    expect(describeCard({ status: 'available', written_at: null, verified_at: null }).label).toBe(
+      'Issued',
+    );
+    expect(describeCard({ status: 'available', written_at: t, verified_at: null }).label).toBe(
+      'Written, not checked',
+    );
+    const active = describeCard({ status: 'available', written_at: t, verified_at: t });
+    expect(active.label).toBe('Active');
+    expect(active.detail).toMatch(/portfolio/);
+    expect(describeCard({ status: 'assigned', written_at: t, verified_at: t }).label).toBe(
+      'In use',
+    );
+    expect(describeCard({ status: 'voided', written_at: null, verified_at: null }).tone).toBe(
+      'off',
+    );
+  });
+});

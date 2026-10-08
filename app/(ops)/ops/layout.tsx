@@ -15,7 +15,7 @@ export default async function OpsLayout({ children }: LayoutProps<'/ops'>) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3">
+      <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3 print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <Link href="/ops" className="flex items-center gap-2">
             <Wordmark />

@@ -7,7 +7,7 @@ import { printedCode } from '@/lib/cards/issue-batch';
 import { tagUrl } from '@/lib/cards/urls';
 import { serviceClient } from '@/lib/db/service';
 import { env } from '@/lib/env';
-import { cardProgress } from '@/lib/ops/stock';
+import { cardProgress, describeCard } from '@/lib/ops/stock';
 import { markVerifiedAction, markWrittenAction, resetCardAction } from '../../actions';
 import { Refresher } from './refresher';
 
@@ -40,7 +40,9 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
     db.from('profiles').select('full_name').eq('id', batch.user_id).maybeSingle(),
   ]);
 
-  const list = cards ?? [];
+  // Voided cards are out of the batch for counting: they will never be verified.
+  const list = (cards ?? []).filter((c) => c.status !== 'voided');
+  const voided = (cards ?? []).filter((c) => c.status === 'voided');
   const verified = list.filter((c) => c.verified_at).length;
   const current = list.find((c) => !c.verified_at && c.status === 'available');
   const currentProgress = current ? cardProgress(current) : null;
@@ -130,7 +132,9 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
       ) : (
         <section className="border-line bg-surface mt-5 rounded-xl border p-4">
           <p className="text-ink text-[15px] font-medium">
-            Every card in this batch is verified. Print the QR labels next.
+            Every card in this batch is active. Print the QR labels, stick each on its card, then
+            send them to the rep. Until the rep adds an event or prospect details, a tap opens their
+            portfolio.
           </p>
         </section>
       )}
@@ -143,7 +147,7 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
       </Link>
 
       <ul className="mt-6 flex flex-col gap-1.5">
-        {list.map((c) => (
+        {[...list, ...voided].map((c) => (
           <li
             key={c.code}
             className="border-line-soft flex items-center justify-between border-b py-2 font-mono text-[13px]"
@@ -151,13 +155,7 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
             <Link href={`/ops/cards/${c.code}`} className="text-ink">
               {printedCode(c.code)}
             </Link>
-            <span className="text-ink-3 text-[12px]">
-              {c.status === 'voided'
-                ? 'lost'
-                : c.status === 'assigned'
-                  ? 'in use'
-                  : cardProgress(c)}
-            </span>
+            <span className="text-ink-3 text-[12px]">{describeCard(c).label.toLowerCase()}</span>
           </li>
         ))}
       </ul>
