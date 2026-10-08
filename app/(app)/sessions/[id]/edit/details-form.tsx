@@ -645,12 +645,9 @@ export function DetailsForm({
           </Link>
         ) : null}
 
-        {/* Pinned above the bottom bar so the thumb never has to scroll to save. */}
-        <div className="bg-bg/95 sticky bottom-20 z-10 -mx-5 px-5 py-2 backdrop-blur">
-          <Button size="block" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : 'Save details'}
-          </Button>
-        </div>
+        <Button size="block" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save details'}
+        </Button>
 
         {session.details_completed_at ? (
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
