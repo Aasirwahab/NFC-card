@@ -46,7 +46,11 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
                   </p>
                   <p className="text-ink-3 truncate text-[12px]">{rep.email}</p>
                 </div>
-                {rep.lowStock ? (
+                {!rep.name ? (
+                  <span className="bg-accent/10 text-accent shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                    No profile
+                  </span>
+                ) : rep.lowStock ? (
                   <span className="bg-crit/10 text-crit shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium">
                     Low stock
                   </span>

@@ -58,6 +58,13 @@ export default async function OpsUser({ params, searchParams }: PageProps<'/ops/
         {rep.stock.inStock} in stock · {rep.stock.handedOut} out · {rep.stock.lost} lost
       </p>
 
+      {!rep.name ? (
+        <p className="bg-accent/10 text-ink mt-4 rounded-xl px-4 py-3 text-[14px]" role="note">
+          This rep has no name yet. Until they finish Setup (or you add one under Details), anyone
+          tapping their cards sees a &ldquo;not active&rdquo; page instead of their portfolio.
+        </p>
+      ) : null}
+
       <details
         className="border-line bg-surface shadow-card mt-5 rounded-xl border p-4"
         open={Boolean(error)}
