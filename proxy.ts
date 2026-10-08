@@ -27,7 +27,7 @@ import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 const SIGN_IN = '/sign-in';
 
 /** Routes that require a signed-in rep. */
-const PROTECTED_PREFIXES = ['/dashboard', '/events', '/sessions', '/cards', '/settings'];
+const PROTECTED_PREFIXES = ['/dashboard', '/events', '/sessions', '/cards', '/settings', '/ops'];
 
 /** Routes a signed-in rep should not linger on. */
 const AUTH_PREFIXES = ['/sign-in', '/sign-up'];

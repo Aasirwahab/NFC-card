@@ -2,6 +2,7 @@ import { fail, withRep } from '@/lib/api';
 import { serviceClient } from '@/lib/db/service';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { env } from '@/lib/env';
+import { qrUrl, tagUrl } from '@/lib/cards/urls';
 
 /**
  * GET /api/cards/batch/[id]/export — CSV of code + full URL (spec §15.2).
@@ -31,13 +32,13 @@ export const GET = withRep(async (rep, _request, context: { params: Promise<{ id
     .eq('user_id', rep.userId)
     .order('created_at', { ascending: true });
 
-  const origin = env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
+  const origin = env.NEXT_PUBLIC_APP_URL;
 
   const rows = [
     'code,url,qr_url,status,print_code',
     ...(cards ?? []).map(
       (card) =>
-        `${card.code},${origin}/c/${card.code},${origin}/c/${card.code}?src=qr,${card.status},${printedCode(card.code)}`,
+        `${card.code},${tagUrl(origin, card.code)},${qrUrl(origin, card.code)},${card.status},${printedCode(card.code)}`,
     ),
   ];
 

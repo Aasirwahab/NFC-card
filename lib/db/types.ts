@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 16 tables by scripts/gen-types.ts.
+ * Generated from 18 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -135,6 +135,44 @@ export type Database = {
           },
         ];
       };
+      card_orders: {
+        Row: {
+          id: string;
+          user_id: string;
+          quantity: number;
+          status: string;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          quantity: number;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          quantity?: number;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'card_orders_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       cards: {
         Row: {
           id: string;
@@ -143,6 +181,8 @@ export type Database = {
           code: string;
           status: string;
           created_at: string;
+          written_at: string | null;
+          verified_at: string | null;
         };
         Insert: {
           id?: string;
@@ -151,6 +191,8 @@ export type Database = {
           code: string;
           status?: string;
           created_at?: string;
+          written_at?: string | null;
+          verified_at?: string | null;
         };
         Update: {
           id?: string;
@@ -159,6 +201,8 @@ export type Database = {
           code?: string;
           status?: string;
           created_at?: string;
+          written_at?: string | null;
+          verified_at?: string | null;
         };
         Relationships: [
           {
@@ -561,6 +605,7 @@ export type Database = {
           booking_url: string | null;
           timezone: string;
           language: string;
+          low_stock_at: number;
         };
         Insert: {
           id: string;
@@ -576,6 +621,7 @@ export type Database = {
           booking_url?: string | null;
           timezone?: string;
           language?: string;
+          low_stock_at?: number;
         };
         Update: {
           id?: string;
@@ -591,6 +637,7 @@ export type Database = {
           booking_url?: string | null;
           timezone?: string;
           language?: string;
+          low_stock_at?: number;
         };
         Relationships: [
           {
@@ -781,6 +828,36 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      staff_audit_log: {
+        Row: {
+          id: number;
+          actor_email: string;
+          action: string;
+          target_user_id: string | null;
+          target_code: string | null;
+          meta: Json;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          actor_email: string;
+          action: string;
+          target_user_id?: string | null;
+          target_code?: string | null;
+          meta?: Json;
+          at?: string;
+        };
+        Update: {
+          id?: number;
+          actor_email?: string;
+          action?: string;
+          target_user_id?: string | null;
+          target_code?: string | null;
+          meta?: Json;
+          at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: Record<never, never>;

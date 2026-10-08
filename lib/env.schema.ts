@@ -98,6 +98,22 @@ export const serverEnvSchema = z
      */
     RETENTION_MONTHS: blankAsUnset(z.coerce.number().int().min(1).max(120).default(12)),
 
+    /**
+     * Operator console (/ops): comma-separated emails of INSIGNAR staff. Empty means
+     * nobody is staff, so the console is closed by default.
+     */
+    STAFF_EMAILS: blankAsUnset(
+      z
+        .string()
+        .default('')
+        .transform((v) =>
+          v
+            .split(',')
+            .map((e) => e.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+    ),
+
     // Phase 5 — email and booking.
     RESEND_API_KEY: blankAsUnset(z.string().optional()),
     /** The sender, e.g. "INSIGNAR <alerts@taplead.app>". Required with a Resend key. */

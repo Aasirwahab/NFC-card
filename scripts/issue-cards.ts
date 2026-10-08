@@ -13,6 +13,7 @@ import { randomBytes } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { issueBatch, printedCode } from '../lib/cards/issue-batch';
+import { qrUrl, tagUrl } from '../lib/cards/urls';
 import type { Database } from '../lib/db/types';
 
 function arg(name: string): string | undefined {
@@ -56,7 +57,7 @@ async function main() {
 
   const rows = [
     'code,url,qr_url,print_code',
-    ...codes.map((c) => `${c},${origin}/c/${c},${origin}/c/${c}?src=qr,${printedCode(c)}`),
+    ...codes.map((c) => `${c},${tagUrl(origin, c)},${qrUrl(origin, c)},${printedCode(c)}`),
   ];
   const out = arg('out') ?? `insignar-cards-${email.split('@')[0]}-${batch.id.slice(0, 8)}.csv`;
   writeFileSync(out, rows.join('\r\n'), { mode: 0o600 });

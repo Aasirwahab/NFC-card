@@ -12,9 +12,12 @@ import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-lim
 import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
 import { recordOwnerCardTap } from '@/lib/landing/owner-tap';
+import { getStaff } from '@/lib/auth/staff';
+import { verifyCardTap } from '@/lib/ops/verify';
 import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
+import { Programmed } from './programmed';
 import { Unavailable } from './unavailable';
 
 /**
@@ -71,6 +74,17 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
 
   const rep = await getRep();
   const repId = rep?.userId ?? null;
+
+  // A staff tap on a freshly written sticker is the programming check (/ops). It
+  // files no lead and records no view. Anyone else falls straight through.
+  if (rep) {
+    const staff = await getStaff();
+    if (staff) {
+      const tap = await verifyCardTap(code, staff.email);
+      if (tap !== 'not_applicable')
+        return <Programmed code={code} again={tap === 'already_verified'} />;
+    }
+  }
   const resolved = await resolveCode(code, repId);
 
   if (resolved.audience === 'unavailable') {
