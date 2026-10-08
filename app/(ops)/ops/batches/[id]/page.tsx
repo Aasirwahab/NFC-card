@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export const metadata = { title: 'Write cards · Operator console' };
  * then tap the sticker with the phone. The tap verifies it (see app/c/[code]).
  */
 export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]'>) {
+  await requireStaff();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = serviceClient();
@@ -109,7 +111,8 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
               </p>
               <p className="text-ink-3 mt-1 text-[13px]">
                 Signed in as staff, the tap marks the card verified and does nothing else. This page
-                updates by itself.
+                updates by itself. Lock the tag (NFC Tools, Other, Lock tag) only after this check:
+                locking is permanent.
               </p>
               <div className="mt-3 flex gap-2">
                 <form action={markVerifiedAction}>

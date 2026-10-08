@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { issueBatchAction, saveUserAction } from '../../actions';
 export const metadata = { title: 'Rep · Operator console' };
 
 export default async function OpsUser({ params, searchParams }: PageProps<'/ops/users/[id]'>) {
+  await requireStaff();
   const { id } = await params;
   const { saved, error } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();

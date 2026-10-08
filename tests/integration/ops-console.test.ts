@@ -143,3 +143,21 @@ describe('void a card from ops', () => {
     ).rejects.toThrow(/card_in_use/);
   });
 });
+
+describe('programming columns are server only', () => {
+  it('a rep session cannot set them, the service role can', async () => {
+    const f = await seedFixture(db, { cards: 1 });
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [f.userId]);
+    await db.query(`set role authenticated`);
+    try {
+      await expect(
+        db.query(`update public.cards set verified_at = now() where code = $1`, [f.codes[0]]),
+      ).rejects.toThrow(/programming_columns_are_server_only/);
+      // Other columns are not blocked by this trigger.
+      await db.query(`update public.cards set status = status where code = $1`, [f.codes[0]]);
+    } finally {
+      await db.query(`reset role`);
+    }
+    await db.query(`update public.cards set verified_at = now() where code = $1`, [f.codes[0]]);
+  });
+});

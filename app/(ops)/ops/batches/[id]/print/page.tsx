@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/auth/staff';
 import QRCode from 'qrcode';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -15,6 +16,7 @@ export const metadata = { title: 'QR labels · Operator console' };
  * differs. The printed code under the QR is the backup when a phone cannot scan.
  */
 export default async function PrintPage({ params }: PageProps<'/ops/batches/[id]/print'>) {
+  await requireStaff();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = serviceClient();
@@ -66,7 +68,7 @@ export default async function PrintPage({ params }: PageProps<'/ops/batches/[id]
         {labels.map((l) => (
           <figure
             key={l.code}
-            className="border-line flex break-inside-avoid flex-col items-center rounded-md border bg-white p-1.5"
+            className="border-line flex break-inside-avoid flex-col items-center rounded-md border bg-white p-1.5 [print-color-adjust:exact]"
           >
             <div
               className="aspect-square w-full max-w-[35mm] [&>svg]:h-full [&>svg]:w-full"

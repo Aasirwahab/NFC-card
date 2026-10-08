@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { listReps } from '@/lib/ops/data';
 import { CodeSearch } from './code-search';
@@ -5,6 +6,7 @@ import { CodeSearch } from './code-search';
 export const metadata = { title: 'Operator console' };
 
 export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
+  await requireStaff();
   const { error } = await searchParams;
   const reps = await listReps();
 

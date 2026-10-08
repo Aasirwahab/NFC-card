@@ -20,6 +20,28 @@ alter table public.cards
 alter table public.profiles
   add column low_stock_at integer not null default 5 check (low_stock_at between 0 and 500);
 
+-- A rep's own session can reach `cards` through the API (owner policy), so the
+-- programming columns must not be writable from it: only the server (service
+-- role) sets them. A column-level revoke would do nothing while the table-wide
+-- UPDATE grant exists, so a trigger enforces it.
+create function public.cards_guard_programming()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $fn$
+begin
+  if current_user in ('anon', 'authenticated')
+     and (new.written_at is distinct from old.written_at
+          or new.verified_at is distinct from old.verified_at) then
+    raise exception 'programming_columns_are_server_only' using errcode = '42501';
+  end if;
+  return new;
+end $fn$;
+
+create trigger cards_guard_programming
+  before update on public.cards
+  for each row execute function public.cards_guard_programming();
+
 create table public.staff_audit_log (
   id             bigserial primary key,
   actor_email    text not null check (char_length(actor_email) between 3 and 254),

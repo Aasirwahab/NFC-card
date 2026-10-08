@@ -38,3 +38,7 @@ typecheck, 480 tests, eslint, prettier, build, client-bundle leak scan; live: no
 - `/ops/cards/[code]`: void an unused card (`mark_card_lost`), move it to another rep (`ops_reassign_card`), or send it back to "needs writing". Used cards are refused with an explanation.
 - Audit log records field names changed, never the values. `scripts/gen-types.ts` lists `ops_reassign_card`.
 - Checked live with curl against the local stack: edit, bad edit, void, reassign, 404 for non-staff.
+
+## Review round (Antigravity council + own checks)
+
+Fixed before merge: staff now needs a confirmed email; every `/ops` page checks the gate itself (layouts are not a security boundary in the App Router); a rep session cannot write the programming columns (trigger, since a column revoke does nothing under a table-wide grant); audit rows only for writes that changed something; a sticker that is written but not yet verified shows the neutral page to non-staff taps and files nothing; lock warning and print colour fix. Known and left for later: cards count as in stock the moment they are issued (no shipped state), staff cannot void a used card from `/ops`.
