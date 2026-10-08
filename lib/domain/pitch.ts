@@ -73,6 +73,16 @@ export function callToAction(input: {
   return `Book 15 minutes on ${trimmed}`;
 }
 
+/**
+ * The event as a prospect may see it. Leads captured with no event running sit in a
+ * bucket the rep sees as "Unsorted"; that is a filing label, never somewhere anyone met.
+ */
+export function publicEventName(name: string | null | undefined): string | null {
+  const trimmed = name?.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'unsorted') return null;
+  return trimmed;
+}
+
 /** The greeting, which has to work when the rep never captured a name. */
 export function greeting(prospectName: string | null): string {
   const name = prospectName?.trim().split(/\s+/)[0];
@@ -98,8 +108,8 @@ export function templatePitch(input: PitchInput): string {
   if (problem) {
     sentences.push(
       company
-        ? `You mentioned ${midSentence(problem)} at ${company}, and that is the kind of thing we spend most of our time on.`
-        : `You mentioned ${midSentence(problem)}, and that is the kind of thing we spend most of our time on.`,
+        ? `You mentioned ${midSentence(problem)} at ${company}, and I would like to understand it properly.`
+        : `You mentioned ${midSentence(problem)}, and I would like to understand it properly.`,
     );
   } else if (company) {
     sentences.push(`I wanted to follow up properly rather than leave you with a card.`);
@@ -117,7 +127,8 @@ export function templatePitch(input: PitchInput): string {
   if (services.length > 0) {
     sentences.push(`${business} does ${listPhrase(services.slice(0, 3))}.`);
   } else {
-    sentences.push(`${business} works on problems like it every week.`);
+    // No services listed: say nothing about experience rather than invent it.
+    sentences.push(`I would rather hear how it affects you than guess.`);
   }
 
   sentences.push(

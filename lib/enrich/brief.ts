@@ -1,4 +1,4 @@
-import { callToAction, primaryProblem } from '@/lib/domain/pitch';
+import { callToAction, primaryProblem, publicEventName } from '@/lib/domain/pitch';
 import type { Research } from './research';
 import type { Snapshot } from './snapshot';
 
@@ -107,7 +107,7 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
     // facts wait for the rep's "yes, that's their site" in the preview; until
     // then the pitch is written from the conversation alone.
     facts: research.domainSource === 'guess' ? [] : research.facts,
-    eventName: snapshot.event?.name?.trim() || null,
+    eventName: publicEventName(snapshot.event?.name),
     cta: callToAction({
       problems: session.problems,
       customProblems: session.custom_problems,
