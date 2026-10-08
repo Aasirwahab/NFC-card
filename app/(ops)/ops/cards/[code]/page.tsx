@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { printedCode } from '@/lib/cards/issue-batch';
@@ -10,6 +11,7 @@ import { cardProgress } from '@/lib/ops/stock';
 export const metadata = { title: 'Card · Operator console' };
 
 export default async function OpsCard({ params }: PageProps<'/ops/cards/[code]'>) {
+  await requireStaff();
   const code = normaliseCode((await params).code);
   if (!isValidCode(code)) notFound();
   const db = serviceClient();

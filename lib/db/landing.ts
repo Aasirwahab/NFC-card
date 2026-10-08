@@ -161,7 +161,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
 
   const { data: card, error: cardError } = await db
     .from('cards')
-    .select('id, user_id, status')
+    .select('id, user_id, status, written_at, verified_at')
     .eq('code', code)
     .maybeSingle();
 
@@ -169,6 +169,13 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
     // A query failure is not a missing card. Telling the difference is the
     // whole point of this branch.
     console.error(JSON.stringify({ event: 'resolve_code_unavailable', error: cardError.message }));
+    return { audience: 'unavailable' };
+  }
+
+  // A sticker that has been written but not yet checked is still on the desk.
+  // Whoever taps it (a staff phone that is not signed in, say) must not claim the
+  // card or file a lead, so it shows the neutral page and records nothing.
+  if (card && card.status === 'available' && card.written_at && !card.verified_at) {
     return { audience: 'unavailable' };
   }
 

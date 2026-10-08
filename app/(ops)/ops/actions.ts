@@ -9,6 +9,7 @@ import { serviceClient } from '@/lib/db/service';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { issueBatch } from '@/lib/cards/issue-batch';
 import { audit } from '@/lib/ops/audit';
+import { verifyCardTap } from '@/lib/ops/verify';
 
 /**
  * Operator actions. Each one re-checks the staff gate itself: a server action is
@@ -67,13 +68,15 @@ export async function markWrittenAction(formData: FormData): Promise<void> {
   });
   if (!parsed.success) return;
 
-  const { error } = await serviceClient()
+  const { data } = await serviceClient()
     .from('cards')
     .update({ written_at: new Date().toISOString() })
     .eq('code', parsed.data.code)
     .eq('status', 'available')
-    .is('written_at', null);
-  if (!error) await audit({ actor: staff.email, action: 'mark_written', code: parsed.data.code });
+    .is('written_at', null)
+    .select('code');
+  if (data?.length)
+    await audit({ actor: staff.email, action: 'mark_written', code: parsed.data.code });
   revalidatePath(`/ops/batches/${parsed.data.batchId}`);
 }
 
@@ -86,27 +89,7 @@ export async function markVerifiedAction(formData: FormData): Promise<void> {
   });
   if (!parsed.success) return;
 
-  const now = new Date().toISOString();
-  const { data } = await serviceClient()
-    .from('cards')
-    .update({ verified_at: now })
-    .eq('code', parsed.data.code)
-    .eq('status', 'available')
-    .is('verified_at', null)
-    .select('code');
-  await serviceClient()
-    .from('cards')
-    .update({ written_at: now })
-    .eq('code', parsed.data.code)
-    .is('written_at', null);
-  if (data?.length) {
-    await audit({
-      actor: staff.email,
-      action: 'mark_verified',
-      code: parsed.data.code,
-      meta: { by: 'hand' },
-    });
-  }
+  await verifyCardTap(parsed.data.code, staff.email, 'hand');
   revalidatePath(`/ops/batches/${parsed.data.batchId}`);
 }
 
@@ -119,11 +102,13 @@ export async function resetCardAction(formData: FormData): Promise<void> {
   });
   if (!parsed.success) return;
 
-  await serviceClient()
+  const { data } = await serviceClient()
     .from('cards')
     .update({ written_at: null, verified_at: null })
     .eq('code', parsed.data.code)
-    .eq('status', 'available');
-  await audit({ actor: staff.email, action: 'reset_card', code: parsed.data.code });
+    .eq('status', 'available')
+    .select('code');
+  if (data?.length)
+    await audit({ actor: staff.email, action: 'reset_card', code: parsed.data.code });
   revalidatePath(`/ops/batches/${parsed.data.batchId}`);
 }

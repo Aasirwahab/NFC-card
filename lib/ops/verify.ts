@@ -13,7 +13,11 @@ export type StaffTap = 'verified' | 'already_verified' | 'not_applicable';
  *     it must not file a lead for the rep, so the caller shows the same page.
  *   - `not_applicable`: in use, lost or unknown. Behaves like any other visit.
  */
-export async function verifyCardTap(code: string, staffEmail: string): Promise<StaffTap> {
+export async function verifyCardTap(
+  code: string,
+  staffEmail: string,
+  by: 'tap' | 'hand' = 'tap',
+): Promise<StaffTap> {
   const db = serviceClient();
   const now = new Date().toISOString();
 
@@ -37,6 +41,6 @@ export async function verifyCardTap(code: string, staffEmail: string): Promise<S
 
   // A tap proves the write, so a card verified without "I wrote it" is also written.
   await db.from('cards').update({ written_at: now }).eq('code', code).is('written_at', null);
-  await audit({ actor: staffEmail, action: 'mark_verified', code, meta: { by: 'tap' } });
+  await audit({ actor: staffEmail, action: 'mark_verified', code, meta: { by } });
   return 'verified';
 }
