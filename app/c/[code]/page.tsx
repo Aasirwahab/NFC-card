@@ -17,7 +17,7 @@ import { verifyCardTap } from '@/lib/ops/verify';
 import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
-import { Programmed } from './programmed';
+import { Programmed, StaffTapBanner } from './programmed';
 import { Unavailable } from './unavailable';
 
 /**
@@ -81,8 +81,21 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
     const staff = await getStaff();
     if (staff) {
       const tap = await verifyCardTap(code, staff.email);
-      if (tap !== 'not_applicable')
+      if (tap !== 'not_applicable') {
+        // The card is checked. Show what a prospect would see: the owner's
+        // portfolio, with a staff-only banner. Nothing is recorded for this tap.
+        const preview = await resolveCode(code, repId);
+        if (preview.audience === 'owner') {
+          return (
+            <>
+              <StaffTapBanner code={code} again={tap === 'already_verified'} />
+              <OwnerCard resolved={preview} />
+            </>
+          );
+        }
+        // No portfolio to show yet (the rep has no profile): say so plainly.
         return <Programmed code={code} again={tap === 'already_verified'} />;
+      }
     }
   }
   const resolved = await resolveCode(code, repId);

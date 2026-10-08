@@ -16,3 +16,19 @@ export function Programmed({ code, again = false }: { code: string; again?: bool
     </main>
   );
 }
+
+/**
+ * A strip across the top of the portfolio when staff tap a card they have just
+ * written. Only staff ever see it, and it says the tap filed nothing.
+ */
+export function StaffTapBanner({ code, again }: { code: string; again: boolean }) {
+  return (
+    <div
+      role="status"
+      className="bg-ink text-surface sticky top-0 z-50 px-4 py-2 text-center text-[13px] font-medium"
+    >
+      {again ? 'Card already checked' : 'Sticker works: card activated'} · {printedCode(code)} ·
+      staff view, this tap filed nothing
+    </div>
+  );
+}
