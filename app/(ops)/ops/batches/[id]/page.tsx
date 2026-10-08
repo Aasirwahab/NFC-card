@@ -2,7 +2,7 @@ import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { CopyButton } from '@/components/copy-button';
+import { CopyField } from '@/components/copy-field';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { tagUrl } from '@/lib/cards/urls';
 import { serviceClient } from '@/lib/db/service';
@@ -77,16 +77,10 @@ export default async function BatchPage({ params }: PageProps<'/ops/batches/[id]
           </p>
 
           <p className="text-ink-3 mt-4 text-[12px]">Link for the sticker</p>
-          <div className="mt-1 flex items-center gap-2">
-            <input
-              readOnly
-              value={tagUrl(env.NEXT_PUBLIC_APP_URL, current.code)}
-              onFocus={(e) => e.currentTarget.select()}
-              className="border-line bg-bg text-ink min-w-0 flex-1 rounded-lg border px-3 py-2.5 font-mono text-[13px]"
-              aria-label="Link to write on the sticker"
-            />
-            <CopyButton text={tagUrl(env.NEXT_PUBLIC_APP_URL, current.code)} />
-          </div>
+          <CopyField
+            value={tagUrl(env.NEXT_PUBLIC_APP_URL, current.code)}
+            label="Link to write on the sticker"
+          />
 
           {currentProgress === 'issued' ? (
             <>
