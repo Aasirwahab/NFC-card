@@ -177,3 +177,40 @@ describe('NFC Helper link', () => {
     expect(normaliseTagUid(null)).toBeNull();
   });
 });
+
+describe('safe redirect after sign-in', () => {
+  it('allows in-app paths and refuses anything that can leave the site', async () => {
+    const { safeNextPath } = await import('@/lib/auth/safe-next');
+    expect(safeNextPath('/ops')).toBe('/ops');
+    expect(safeNextPath('/ops/cards/ABCDEFGH/written?tagid=04A2')).toBe(
+      '/ops/cards/ABCDEFGH/written?tagid=04A2',
+    );
+    for (const bad of [
+      '//evil.com',
+      '/\\evil.com',
+      '/\\/evil.com',
+      'https://evil.com',
+      'javascript:alert(1)',
+      '/ok\nhttps://evil.com',
+      '/ok\u0000',
+      '',
+      null,
+      undefined,
+      42,
+    ]) {
+      expect(safeNextPath(bad)).toBe('/dashboard');
+    }
+    expect(safeNextPath('//evil.com', '')).toBe('');
+  });
+});
+
+describe('write callback trust', () => {
+  it('accepts app-opened and same-site-redirected requests, refuses cross-site ones', async () => {
+    const { isTrustedNavigation } = await import('@/lib/ops/nfc-helper');
+    expect(isTrustedNavigation('none')).toBe(true);
+    expect(isTrustedNavigation('same-origin')).toBe(true);
+    expect(isTrustedNavigation(null)).toBe(true);
+    expect(isTrustedNavigation('cross-site')).toBe(false);
+    expect(isTrustedNavigation('same-site')).toBe(false);
+  });
+});

@@ -24,3 +24,13 @@ export function normaliseTagUid(raw: string | null | undefined): string | null {
   const hex = raw.replace(/[:\s-]/g, '').toUpperCase();
   return /^[0-9A-F]{8,32}$/.test(hex) ? hex : null;
 }
+
+/**
+ * `Sec-Fetch-Site` for the write callback. NFC Helper opens it from outside the
+ * browser ('none'); a signed-in staff page may redirect to it ('same-origin').
+ * 'cross-site' and 'same-site' mean another page caused the request. A missing
+ * header (an old browser) is let through.
+ */
+export function isTrustedNavigation(secFetchSite: string | null): boolean {
+  return secFetchSite === null || secFetchSite === 'none' || secFetchSite === 'same-origin';
+}

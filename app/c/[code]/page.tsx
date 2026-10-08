@@ -84,7 +84,9 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
       if (tap !== 'not_applicable') {
         // The card is checked. Show what a prospect would see: the owner's
         // portfolio, with a staff-only banner. Nothing is recorded for this tap.
-        const preview = await resolveCode(code, repId);
+        // Resolved as a stranger: a staff member who owns the card still sees the
+        // prospect's view, not their own rep view.
+        const preview = await resolveCode(code, null);
         if (preview.audience === 'owner') {
           return (
             <>
