@@ -23,7 +23,12 @@ export default async function OpsLayout({ children }: LayoutProps<'/ops'>) {
               Ops
             </span>
           </Link>
-          <span className="text-ink-3 truncate text-[12px]">{staff.email}</span>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-ink-3 text-[12px] underline underline-offset-2">
+              Rep app
+            </Link>
+            <span className="text-ink-3 hidden truncate text-[12px] sm:inline">{staff.email}</span>
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-5">{children}</main>
