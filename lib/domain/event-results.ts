@@ -42,6 +42,8 @@ export type EventResults = {
   ratedUp: number;
   ratedDown: number;
   research: { website: number; email: number; guess: number; none: number };
+  /** Opened by the prospect within 24 hours of the card being registered. */
+  openedWithin24h: number;
   /** Median hours from registration to first view, among opened cards. */
   medianHoursToOpen: number | null;
   /** Median hours from registration to details added, among detailed cards. */
@@ -115,6 +117,8 @@ export function eventResults(input: {
     ratedUp: input.ratings.filter((r) => r.rating > 0 && activeIds.has(r.session_id)).length,
     ratedDown: input.ratings.filter((r) => r.rating < 0 && activeIds.has(r.session_id)).length,
     research,
+    openedWithin24h: opened.filter((s) => hoursBetween(s.registered_at, s.first_viewed_at!) <= 24)
+      .length,
     medianHoursToOpen: median(opened.map((s) => hoursBetween(s.registered_at, s.first_viewed_at!))),
     medianHoursToDetails: median(
       detailed.map((s) => hoursBetween(s.registered_at, s.details_completed_at!)),

@@ -21,6 +21,11 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
   return (
     <div>
       <h1 className="font-display text-ink text-2xl font-bold tracking-tight">Reps and stock</h1>
+      <p className="text-ink-3 mt-1 text-[13px]">
+        <Link href="/ops/scorecard" className="underline underline-offset-2">
+          Pilot scorecard
+        </Link>
+      </p>
 
       {error ? (
         <p className="text-crit mt-3 text-[13px]" role="alert">
