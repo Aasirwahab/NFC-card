@@ -469,9 +469,9 @@ export function DetailsForm({
                       // selections that no longer have a home.
                       setProblems([]);
                     }}
-                    className={`h-11 shrink-0 rounded-full border px-4 text-[14px] font-medium ${
+                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                       selected
-                        ? 'border-accent bg-accent text-surface'
+                        ? 'border-accent bg-accent-soft text-accent'
                         : 'border-line bg-surface text-ink-2'
                     }`}
                   >
