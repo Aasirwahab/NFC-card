@@ -232,7 +232,9 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
           sessionId: session?.id ?? null,
           ...face,
         }
-      : { audience: 'missing' };
+      : // A real card whose owner has no profile yet. Not a miss: a prospect must not
+        // see a dead link or burn their miss budget because the rep skipped Setup.
+        { audience: 'unavailable' };
   }
 
   return prospectView(code, session);
@@ -247,7 +249,7 @@ export type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
 async function prospectView(
   code: string,
   session: ProspectSession,
-): Promise<ProspectResolved | { audience: 'missing' }> {
+): Promise<ProspectResolved | { audience: 'unavailable' }> {
   const db = serviceClient();
 
   const [face, { data: event }, playbook] = await Promise.all([
@@ -258,7 +260,7 @@ async function prospectView(
 
   // Without a profile there is no rep name to sign the page with. Rather than
   // render something broken, treat it as a miss.
-  if (!face) return { audience: 'missing' };
+  if (!face) return { audience: 'unavailable' };
 
   return {
     audience: 'prospect',

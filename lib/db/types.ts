@@ -183,6 +183,7 @@ export type Database = {
           created_at: string;
           written_at: string | null;
           verified_at: string | null;
+          tag_uid: string | null;
         };
         Insert: {
           id?: string;
@@ -193,6 +194,7 @@ export type Database = {
           created_at?: string;
           written_at?: string | null;
           verified_at?: string | null;
+          tag_uid?: string | null;
         };
         Update: {
           id?: string;
@@ -203,6 +205,7 @@ export type Database = {
           created_at?: string;
           written_at?: string | null;
           verified_at?: string | null;
+          tag_uid?: string | null;
         };
         Relationships: [
           {
@@ -911,6 +914,10 @@ export type Database = {
       };
       mark_card_lost: {
         Args: { p_code: string; p_user_id: string };
+        Returns: undefined;
+      };
+      ops_reassign_card: {
+        Args: { p_code: string; p_new_user_id: string };
         Returns: undefined;
       };
       release_card: {

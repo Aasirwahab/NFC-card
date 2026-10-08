@@ -13,11 +13,12 @@ import { claimOnce } from '@/lib/security/once';
 import { kickWorkers } from '@/lib/jobs/kick';
 import { recordOwnerCardTap } from '@/lib/landing/owner-tap';
 import { getStaff } from '@/lib/auth/staff';
+import { decideStaffTap } from '@/lib/ops/staff-tap';
 import { verifyCardTap } from '@/lib/ops/verify';
 import { OwnerCard } from './owner-card';
 import { ProspectView } from './prospect-view';
 import { RepView } from './rep-view';
-import { Programmed } from './programmed';
+import { Programmed, StaffTapBanner } from './programmed';
 import { Unavailable } from './unavailable';
 
 /**
@@ -81,8 +82,27 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
     const staff = await getStaff();
     if (staff) {
       const tap = await verifyCardTap(code, staff.email);
-      if (tap !== 'not_applicable')
-        return <Programmed code={code} again={tap === 'already_verified'} />;
+      if (tap !== 'not_applicable') {
+        // Is the staff member also the card's owner? Then a repeat tap is the rep
+        // opening their own card (their page to add details), not a check.
+        const asSignedIn = await resolveCode(code, repId);
+        if (decideStaffTap(tap, asSignedIn.audience) === 'preview') {
+          // Show what a prospect would see, with a staff-only banner. Nothing is
+          // recorded for this tap. Resolved as a stranger so an owner-staff
+          // member sees the prospect's view while checking.
+          const preview = await resolveCode(code, null);
+          if (preview.audience === 'owner') {
+            return (
+              <>
+                <StaffTapBanner code={code} again={tap === 'already_verified'} />
+                <OwnerCard resolved={preview} />
+              </>
+            );
+          }
+          // No portfolio to show yet (the rep has no profile): say so plainly.
+          return <Programmed code={code} again={tap === 'already_verified'} />;
+        }
+      }
     }
   }
   const resolved = await resolveCode(code, repId);

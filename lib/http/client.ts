@@ -22,6 +22,21 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The message to show for a failed call. A validation failure carries the first
+ * rule that broke ("Enter a valid email address."), which is far more useful than
+ * the machine code ("invalid_request"); otherwise the code, then the status.
+ */
+export function failureMessage(parsed: unknown, fallback: string): string {
+  if (typeof parsed !== 'object' || parsed === null) return fallback;
+  const body = parsed as { error?: unknown; issues?: unknown };
+  if (Array.isArray(body.issues)) {
+    const first = body.issues[0] as { message?: unknown } | undefined;
+    if (first && typeof first.message === 'string' && first.message) return first.message;
+  }
+  return 'error' in body ? String(body.error) : fallback;
+}
+
 function assertSameOrigin(path: string): void {
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error(`apiFetch takes a same-origin path, got "${path}"`);
@@ -57,10 +72,7 @@ export async function apiSend<T>(
   if (!response.ok) {
     let message = `${method} ${path} failed with ${response.status}`;
     try {
-      const parsed: unknown = await response.json();
-      if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
-        message = String((parsed as { error: unknown }).error);
-      }
+      message = failureMessage(await response.json(), message);
     } catch {
       // Not JSON. The status-based message above is what the caller gets.
     }
@@ -81,10 +93,7 @@ export async function apiUpload<T>(path: string, body: Blob): Promise<T> {
   if (!response.ok) {
     let message = `POST ${path} failed with ${response.status}`;
     try {
-      const parsed: unknown = await response.json();
-      if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
-        message = String((parsed as { error: unknown }).error);
-      }
+      message = failureMessage(await response.json(), message);
     } catch {
       // Not JSON: keep the status-based message.
     }

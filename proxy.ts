@@ -71,7 +71,8 @@ export async function proxy(request: NextRequest) {
   if (!user && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const url = request.nextUrl.clone();
     url.pathname = SIGN_IN;
-    url.search = `?next=${encodeURIComponent(pathname)}`;
+    // Keep the query too: the staff write callback carries the sticker's serial number.
+    url.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
 

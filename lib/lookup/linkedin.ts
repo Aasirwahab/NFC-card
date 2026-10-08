@@ -143,10 +143,13 @@ export async function findLinkedInProfile(input: {
   // colleagues. Try the plain one; only if it yields no profile at all, the site: one.
   const plain = `"${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''} LinkedIn`;
   const scoped = `site:linkedin.com/in "${phrase(input.name)}"${company ? ` "${phrase(company)}"` : ''}`;
-  let results = await input.search(plain, { count: 10 });
-  if (!results.some((r) => profileUrl(r.url))) {
-    results = await input.search(scoped, { count: 10 });
-  }
+  // Both searches start together, but the answer waits only as long as it must: the
+  // plain one usually finds a profile, and the slower scoped one is then ignored.
+  const plainPending = input.search(plain, { count: 10 });
+  const scopedPending = input.search(scoped, { count: 10 });
+  scopedPending.catch(() => undefined);
+  const plainResults = await plainPending;
+  const results = plainResults.some((r) => profileUrl(r.url)) ? plainResults : await scopedPending;
 
   const seen = new Set<string>();
   const parsed: {

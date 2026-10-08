@@ -122,6 +122,28 @@ describe('low stock, audit and orders', () => {
   });
 });
 
+describe('void a card from ops', () => {
+  it('voids an unused card but refuses one in use', async () => {
+    const f = await seedFixture(db, { cards: 2 });
+    await db.query(`select public.mark_card_lost($1, $2)`, [f.codes[0], f.userId]);
+    const r = await db.query<{ status: string }>(
+      `select status from public.cards where code = $1`,
+      [f.codes[0]],
+    );
+    expect(r.rows[0]!.status).toBe('voided');
+
+    await db.query(`select public.register_card($1, $2, $3, $4, 'rep', null)`, [
+      crypto.randomUUID(),
+      f.codes[1],
+      f.eventId,
+      f.userId,
+    ]);
+    await expect(
+      db.query(`select public.mark_card_lost($1, $2)`, [f.codes[1], f.userId]),
+    ).rejects.toThrow(/card_in_use/);
+  });
+});
+
 describe('programming columns are server only', () => {
   it('a rep session cannot set them, the service role can', async () => {
     const f = await seedFixture(db, { cards: 1 });
@@ -137,5 +159,30 @@ describe('programming columns are server only', () => {
       await db.query(`reset role`);
     }
     await db.query(`update public.cards set verified_at = now() where code = $1`, [f.codes[0]]);
+  });
+});
+
+describe('tag serial numbers', () => {
+  it('one sticker cannot be written for two cards, and reps cannot set it', async () => {
+    const f = await seedFixture(db, { cards: 2 });
+    await db.query(`update public.cards set tag_uid = '04A23B1C558061' where code = $1`, [
+      f.codes[0],
+    ]);
+    await expect(
+      db.query(`update public.cards set tag_uid = '04A23B1C558061' where code = $1`, [f.codes[1]]),
+    ).rejects.toThrow(/duplicate|unique/i);
+    await expect(
+      db.query(`update public.cards set tag_uid = 'not hex' where code = $1`, [f.codes[1]]),
+    ).rejects.toThrow();
+
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [f.userId]);
+    await db.query(`set role authenticated`);
+    try {
+      await expect(
+        db.query(`update public.cards set tag_uid = '04AAAAAAAAAA' where code = $1`, [f.codes[1]]),
+      ).rejects.toThrow(/programming_columns_are_server_only/);
+    } finally {
+      await db.query(`reset role`);
+    }
   });
 });

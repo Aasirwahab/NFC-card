@@ -317,3 +317,7 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
 - **`.env.local` has a `NEXT_PUBLIC_SUPABASE_SECRET_KEY`.** Nothing reads it, so
   nothing leaks today, but the `NEXT_PUBLIC_` prefix puts it into browser code the
   moment anything does. Rename or delete it.
+
+## Operator console
+
+Staff-only card issuing, sticker writing and stock: see [docs/OPS_CONSOLE.md](docs/OPS_CONSOLE.md).

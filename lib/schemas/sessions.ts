@@ -72,15 +72,34 @@ const optionalEmail = z
     message: 'Enter a valid email address.',
   });
 
+/**
+ * A link as a rep types it: "linkedin.com/in/someone" works as well as the full
+ * address. Only http and https are kept, because the link is rendered as one.
+ */
+function withScheme(value: string): string {
+  return /^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`;
+}
+
 const optionalUrl = z
   .string()
   .trim()
-  .transform((value) => (value === '' ? null : value))
+  .transform((value) => (value === '' ? null : withScheme(value)))
   .nullable()
   .default(null)
-  .refine((value) => value === null || z.string().url().safeParse(value).success, {
-    message: 'Enter a full URL, starting with https://',
-  });
+  .refine(
+    (value) => {
+      if (value === null) return true;
+      try {
+        const url = new URL(value);
+        return (
+          (url.protocol === 'https:' || url.protocol === 'http:') && url.hostname.includes('.')
+        );
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Enter a link, like linkedin.com/in/their-name' },
+  );
 
 /**
  * The prospect's website as a rep types it: "abc.co.uk", "www.abc.co.uk" or a
