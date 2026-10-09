@@ -10,6 +10,10 @@ ScrollTrigger.config({ ignoreMobileResize: true });
 if (typeof document !== 'undefined' && document.fonts?.ready) {
   void document.fonts.ready.then(() => ScrollTrigger.refresh());
 }
+if (typeof window !== 'undefined') {
+  // images (card SVGs) can change layout after first paint
+  window.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
+}
 
 export const MQ = {
   reduce: '(prefers-reduced-motion: reduce)',

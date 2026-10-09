@@ -501,7 +501,7 @@ export function Film() {
         <div className="prog" aria-hidden="true">
           <i />
         </div>
-        <button type="button" className="btn ghost" aria-pressed={sound} onClick={toggleSound}>
+        <button type="button" className="btn ghost" onClick={toggleSound}>
           {sound ? film.soundOff : film.soundOn}
         </button>
       </div>
