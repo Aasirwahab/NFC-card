@@ -161,7 +161,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
 
   const { data: card, error: cardError } = await db
     .from('cards')
-    .select('id, user_id, status')
+    .select('id, user_id, status, written_at, verified_at')
     .eq('code', code)
     .maybeSingle();
 
@@ -169,6 +169,13 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
     // A query failure is not a missing card. Telling the difference is the
     // whole point of this branch.
     console.error(JSON.stringify({ event: 'resolve_code_unavailable', error: cardError.message }));
+    return { audience: 'unavailable' };
+  }
+
+  // A sticker that has been written but not yet checked is still on the desk.
+  // Whoever taps it (a staff phone that is not signed in, say) must not claim the
+  // card or file a lead, so it shows the neutral page and records nothing.
+  if (card && card.status === 'available' && card.written_at && !card.verified_at) {
     return { audience: 'unavailable' };
   }
 
@@ -225,7 +232,9 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
           sessionId: session?.id ?? null,
           ...face,
         }
-      : { audience: 'missing' };
+      : // A real card whose owner has no profile yet. Not a miss: a prospect must not
+        // see a dead link or burn their miss budget because the rep skipped Setup.
+        { audience: 'unavailable' };
   }
 
   return prospectView(code, session);
@@ -240,7 +249,7 @@ export type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
 async function prospectView(
   code: string,
   session: ProspectSession,
-): Promise<ProspectResolved | { audience: 'missing' }> {
+): Promise<ProspectResolved | { audience: 'unavailable' }> {
   const db = serviceClient();
 
   const [face, { data: event }, playbook] = await Promise.all([
@@ -251,7 +260,7 @@ async function prospectView(
 
   // Without a profile there is no rep name to sign the page with. Rather than
   // render something broken, treat it as a miss.
-  if (!face) return { audience: 'missing' };
+  if (!face) return { audience: 'unavailable' };
 
   return {
     audience: 'prospect',

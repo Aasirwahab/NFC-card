@@ -27,7 +27,7 @@ import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 const SIGN_IN = '/sign-in';
 
 /** Routes that require a signed-in rep. */
-const PROTECTED_PREFIXES = ['/dashboard', '/events', '/sessions', '/cards', '/settings'];
+const PROTECTED_PREFIXES = ['/dashboard', '/events', '/sessions', '/cards', '/settings', '/ops'];
 
 /** Routes a signed-in rep should not linger on. */
 const AUTH_PREFIXES = ['/sign-in', '/sign-up'];
@@ -71,7 +71,8 @@ export async function proxy(request: NextRequest) {
   if (!user && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const url = request.nextUrl.clone();
     url.pathname = SIGN_IN;
-    url.search = `?next=${encodeURIComponent(pathname)}`;
+    // Keep the query too: the staff write callback carries the sticker's serial number.
+    url.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
 

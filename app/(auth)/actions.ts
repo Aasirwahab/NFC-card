@@ -1,14 +1,15 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { safeNextPath } from '@/lib/auth/safe-next';
+import { isStaffEmail } from '@/lib/auth/staff-check';
 import { createAuthClient } from '@/lib/db/server';
+import { env } from '@/lib/env';
 import { serviceClient } from '@/lib/db/service';
 import { type AuthFormState, signInSchema, signUpSchema } from '@/lib/schemas/auth';
 
-/** Only ever redirect within this app — an open redirect is a phishing gift. */
 function safeNext(value: FormDataEntryValue | null): string {
-  const next = typeof value === 'string' ? value : '';
-  return next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
+  return safeNextPath(value);
 }
 
 export async function signInAction(
@@ -25,7 +26,7 @@ export async function signInAction(
   }
 
   const supabase = await createAuthClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     // Deliberately identical for a wrong password and an unknown address: the
@@ -33,7 +34,13 @@ export async function signInAction(
     return { error: 'That email and password do not match an account.' };
   }
 
-  redirect(safeNext(formData.get('next')));
+  // Staff land in the operator console unless they were sent somewhere specific
+  // (the proxy sets `next` when it bounces a signed-out visitor).
+  const requested = formData.get('next');
+  const wentSomewhere = safeNextPath(requested, '') !== '';
+  if (!wentSomewhere && isStaffEmail(data.user?.email, env.STAFF_EMAILS)) redirect('/ops');
+
+  redirect(safeNext(requested));
 }
 
 export async function signUpAction(

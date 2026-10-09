@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { CreditCard, LayoutGrid, Settings, Tags } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
 import { TimezoneSync } from '@/components/timezone-sync';
+import { isStaffEmail } from '@/lib/auth/staff-check';
 import { requireRep } from '@/lib/db/server';
+import { env } from '@/lib/env';
 import { signOutAction } from '../(auth)/actions';
 
 /**
@@ -17,7 +19,8 @@ import { signOutAction } from '../(auth)/actions';
  * authorisation boundary (§22.6).
  */
 export default async function AppLayout({ children }: LayoutProps<'/'>) {
-  await requireRep();
+  const rep = await requireRep();
+  const isStaff = isStaffEmail(rep.email, env.STAFF_EMAILS);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -27,6 +30,14 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
           <Link href="/dashboard">
             <Wordmark />
           </Link>
+          {isStaff ? (
+            <Link
+              href="/ops"
+              className="bg-ink text-surface rounded px-2 py-1 font-mono text-[10px] tracking-wider uppercase"
+            >
+              Operator console
+            </Link>
+          ) : null}
           <form action={signOutAction}>
             <button
               type="submit"

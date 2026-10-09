@@ -32,6 +32,7 @@ describe('migrations', () => {
       'bookings',
       'business_profiles',
       'card_batches',
+      'card_orders',
       'cards',
       'chat_messages',
       'early_access_requests',
@@ -45,6 +46,7 @@ describe('migrations', () => {
       'profiles',
       'session_events',
       'sessions',
+      'staff_audit_log',
     ]);
   });
 
