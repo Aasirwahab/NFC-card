@@ -12,6 +12,7 @@ import {
   saveKnowledgeAction,
   savePlaybookAction,
   saveProfileAction,
+  savePitchVoiceAction,
   type SettingsState,
 } from './actions';
 
@@ -172,6 +173,86 @@ export function ProfileForm({
 
         <Status state={state} />
         <SaveButton />
+      </Panel>
+    </form>
+  );
+}
+
+const TONES: { value: 'warm' | 'direct' | 'formal'; label: string; hint: string }[] = [
+  { value: 'warm', label: 'Warm', hint: 'Friendly and plain, like a good colleague.' },
+  { value: 'direct', label: 'Direct', hint: 'Short and to the point.' },
+  { value: 'formal', label: 'Formal', hint: 'Measured and professional.' },
+];
+
+export function PitchVoiceForm({
+  profile,
+}: {
+  profile: { pitch_tone: string; pitch_hook: string | null; pitch_avoid: string | null } | null;
+}) {
+  const [state, action] = useActionState(savePitchVoiceAction, {});
+  const [tone, setTone] = useState(profile?.pitch_tone ?? 'warm');
+
+  return (
+    <form action={action}>
+      <Panel
+        title="How your notes sound"
+        hint="Applies to every prospect note the AI writes for you. You can still ask for a change on any one lead, or write your own."
+      >
+        <fieldset>
+          <legend className="text-ink-2 text-sm font-medium">Tone</legend>
+          <input type="hidden" name="pitch_tone" value={tone} />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {TONES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={tone === t.value}
+                onClick={() => setTone(t.value)}
+                className={`rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                  tone === t.value
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-line bg-surface text-ink-2'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-ink-3 mt-1.5 text-[13px]">
+            {TONES.find((t) => t.value === tone)?.hint}
+          </p>
+        </fieldset>
+
+        <Field
+          label="Your one-line offer"
+          htmlFor="pitch_hook"
+          hint="In your own words, up to 140 characters. The note may use it once, as written."
+        >
+          <Input
+            id="pitch_hook"
+            name="pitch_hook"
+            maxLength={140}
+            defaultValue={profile?.pitch_hook ?? ''}
+            placeholder="We turn missed enquiries into booked calls."
+          />
+        </Field>
+
+        <Field
+          label="Words to never use"
+          htmlFor="pitch_avoid"
+          hint="Separated by commas. A note that uses one is rewritten."
+        >
+          <Input
+            id="pitch_avoid"
+            name="pitch_avoid"
+            maxLength={200}
+            defaultValue={profile?.pitch_avoid ?? ''}
+            placeholder="cheap, jargon, synergy"
+          />
+        </Field>
+
+        <Status state={state} />
+        <SaveButton label="Save voice" />
       </Panel>
     </form>
   );

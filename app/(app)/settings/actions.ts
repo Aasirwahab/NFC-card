@@ -22,6 +22,36 @@ import { serviceClient } from '@/lib/db/service';
 
 export type SettingsState = { error?: string; saved?: boolean };
 
+const pitchVoiceSchema = z.object({
+  pitch_tone: z.enum(['warm', 'direct', 'formal']).default('warm'),
+  pitch_hook: blank(140),
+  pitch_avoid: blank(200),
+});
+
+/** The rep's standing pitch voice: tone, one sentence of their own, and words to avoid. */
+export async function savePitchVoiceAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+
+  const parsed = pitchVoiceSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  // Update, not upsert: a rep with no profile yet has nothing to attach a voice to.
+  const { data, error } = await serviceClient()
+    .from('profiles')
+    .update(parsed.data)
+    .eq('id', rep.userId)
+    .select('id');
+
+  if (error) return { error: 'Could not save your pitch voice.' };
+  if (!data?.length) return { error: 'Save your name first, then set your voice.' };
+
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
 const businessSchema = z.object({
   company_name: z.string().trim().min(1, 'Enter your company name.').max(160),
   tagline: blank(200),

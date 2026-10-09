@@ -609,6 +609,9 @@ export type Database = {
           timezone: string;
           language: string;
           low_stock_at: number;
+          pitch_tone: string;
+          pitch_hook: string | null;
+          pitch_avoid: string | null;
         };
         Insert: {
           id: string;
@@ -625,6 +628,9 @@ export type Database = {
           timezone?: string;
           language?: string;
           low_stock_at?: number;
+          pitch_tone?: string;
+          pitch_hook?: string | null;
+          pitch_avoid?: string | null;
         };
         Update: {
           id?: string;
@@ -641,6 +647,9 @@ export type Database = {
           timezone?: string;
           language?: string;
           low_stock_at?: number;
+          pitch_tone?: string;
+          pitch_hook?: string | null;
+          pitch_avoid?: string | null;
         };
         Relationships: [
           {

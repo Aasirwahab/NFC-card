@@ -183,6 +183,27 @@ export function DetailsForm({
   const siteLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
   const profileLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
 
+  // Start the look-ups while the rep is still talking: once the company (or a full name)
+  // has been still for a moment, ask. The rep only ever taps the right answer; nothing is
+  // filled in. Each distinct value is asked once, so retyping does not spend searches.
+  const autoAsked = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!lookupEnabled || session.details_completed_at) return;
+    const timer = setTimeout(() => {
+      const c = company.trim();
+      if (c.length >= 3 && !website.trim() && !autoAsked.current.has(`site:${c}`)) {
+        autoAsked.current.add(`site:${c}`);
+        siteLookup.current?.run({ name: c });
+      }
+      const n = name.trim();
+      if (/\S+\s+\S+/.test(n) && !linkedin.trim() && !autoAsked.current.has(`in:${n}|${c}`)) {
+        autoAsked.current.add(`in:${n}|${c}`);
+        profileLookup.current?.run({ name: n, ...(c ? { company: c } : {}) });
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [lookupEnabled, session.details_completed_at, company, name, website, linkedin]);
+
   const quickSelect = useMemo(
     () => niches.find((n) => n.name === niche)?.problems ?? [],
     [niches, niche],
@@ -431,25 +452,35 @@ export function DetailsForm({
         </Field>
 
         {niches.length > 0 ? (
-          <Field label="Niche" htmlFor="niche">
-            <select
-              id="niche"
-              value={niche}
-              onChange={(e) => {
-                setNiche(e.target.value);
-                // Problems belong to a niche, so switching niche clears any
-                // selections that no longer have a home.
-                setProblems([]);
-              }}
-              className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-12 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
-            >
-              {niches.map((n) => (
-                <option key={n.name} value={n.name}>
-                  {n.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <fieldset>
+            <legend className="text-ink-2 text-sm font-medium">Niche</legend>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              {niches.map((n) => {
+                const selected = n.name === niche;
+                return (
+                  <button
+                    key={n.name}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      if (selected) return;
+                      setNiche(n.name);
+                      // Problems belong to a niche, so switching niche clears any
+                      // selections that no longer have a home.
+                      setProblems([]);
+                    }}
+                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                      selected
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : 'border-line bg-surface text-ink-2'
+                    }`}
+                  >
+                    {n.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         ) : null}
 
         {quickSelect.length > 0 ? (

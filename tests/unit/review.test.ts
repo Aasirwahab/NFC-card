@@ -16,6 +16,7 @@ const brief: Brief = {
   guidance: null,
   privateNote: 'Arsenal fan, two kids',
   rep: { firstName: 'Zaid', fullName: 'Zaid Hameer', title: 'Founder', language: 'en-GB' },
+  voice: { tone: 'warm' as const, hook: null, avoid: [] as string[] },
   business: {
     name: 'TMA',
     tagline: null,

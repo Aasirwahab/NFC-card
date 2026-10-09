@@ -4,7 +4,13 @@ import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
 import { parseNiches } from '@/lib/db/rep';
 import { pitchUsesMock } from '@/lib/ai/models';
-import { BusinessForm, KnowledgeForm, PlaybookForm, ProfileForm } from './settings-forms';
+import {
+  BusinessForm,
+  KnowledgeForm,
+  PitchVoiceForm,
+  PlaybookForm,
+  ProfileForm,
+} from './settings-forms';
 
 export const metadata = { title: 'Setup' };
 export const dynamic = 'force-dynamic';
@@ -44,6 +50,7 @@ export default async function SettingsPage() {
         <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">Setup</h1>
       </div>
       <ProfileForm profile={profile} />
+      <PitchVoiceForm profile={profile} />
       <BusinessForm business={business} />
       <PlaybookForm
         entries={playbook.data ?? []}
