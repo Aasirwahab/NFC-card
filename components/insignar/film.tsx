@@ -1067,7 +1067,7 @@ function FilmFast() {
                   className="nl"
                   style={{ fontSize: '2.1cqi', margin: '1.2cqi 0', color: '#34332f' }}
                 >
-                  Follow up with everyone
+                  Email everyone this week
                 </p>
               </div>
               {Array.from({ length: 14 }, (_, i) => (
