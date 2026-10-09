@@ -75,31 +75,40 @@ export function Hero() {
       mm.add(MQ.ok, () => {
         ripple.p = 0;
         draw();
-        const split = SplitText.create(title, { type: 'words', wordsClass: 'w' });
-        const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-        tl.fromTo(
-          split.words,
-          { y: 40, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, stagger: 0.05 },
-          0.1,
-        )
-          .call(() => sfx.play('thock'), [], 0.1)
-          .fromTo(
-            '.hero .fi',
-            { y: 16, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.6, stagger: 0.08 },
-            0.5,
+        let cancelled = false;
+        let split: SplitText | null = null;
+        let tl: gsap.core.Timeline | null = null;
+        // Split only once the webfonts are in, otherwise line widths are measured with fallback metrics.
+        void document.fonts.ready.then(() => {
+          if (cancelled) return;
+          split = SplitText.create(title, { type: 'words', wordsClass: 'w' });
+          tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+          tl.fromTo(
+            split.words,
+            { y: 40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.6, stagger: 0.05 },
+            0.1,
           )
-          .fromTo(
-            '.hero .hc',
-            { y: 60, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.9, stagger: 0.12 },
-            0.2,
-          )
-          .to(ripple, { p: 1, duration: 1.8, ease: 'power2.out', onUpdate: draw }, 0.7);
-        if (ins) ins.dataset.m = 'on';
+            .call(() => sfx.play('thock'), [], 0.1)
+            .fromTo(
+              '.hero .fi',
+              { y: 16, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.6, stagger: 0.08 },
+              0.5,
+            )
+            .fromTo(
+              '.hero .hc',
+              { y: 60, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.9, stagger: 0.12 },
+              0.2,
+            )
+            .to(ripple, { p: 1, duration: 1.8, ease: 'power2.out', onUpdate: draw }, 0.7);
+          if (ins) ins.dataset.m = 'on';
+        });
         return () => {
-          split.revert();
+          cancelled = true;
+          tl?.kill();
+          split?.revert();
           if (ins) ins.dataset.m = 'pre';
         };
       });
