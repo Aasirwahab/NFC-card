@@ -21,17 +21,54 @@ const WAVE = Array.from(
   { length: 44 },
   (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)),
 );
-const LOW = ['£12k', '£61k', '£27k', '£80k', '£38k'];
-const HIGH = ['£55k', '£19k', '£73k', '£40k', '£92k'];
 const QUOTE = ['Tickets', 'double', 'after', 'every', 'release.'];
-/** Beats drawn on the light canvas (captions switch to ink + #C8350F). */
-const LIGHT = new Set([6, 7, 12, 16]);
+/** Solution part (17-41 s) sits on the light canvas (#EFEEEA, ink type) via the .lt class; the problem part and end card stay dark. */
+const SNAP = 17.6;
+const SNAP_BEAT = 10;
+const END = 19;
+const INK = '#121211';
+const SLOTS = [
+  '09:00',
+  '09:20',
+  '09:40',
+  '10:00',
+  '10:20',
+  '10:40',
+  '11:00',
+  '11:20',
+  '11:40',
+  '12:00',
+  '12:20',
+  '12:40',
+];
 const WHIP = new Set([2, 5, 11, 13, 16]);
 const VERM = '#F2491C';
 const VERM_INK = '#C8350F';
 const SILENT_FROM = 15;
 const SILENT_TO = 16.6;
-const SRC_VOICE = '/insignar/voiceover.mp3';
+/** One voice clip per beat, started at the beat time on the master timeline. Missing files stay silent. */
+type VoClip = { readonly at: number; readonly src: string };
+const VO: readonly VoClip[] = [
+  { at: 0, src: '/insignar/vo/line-01.mp3' },
+  { at: 1.2, src: '/insignar/vo/line-02.mp3' },
+  { at: 2.6, src: '/insignar/vo/line-03.mp3' },
+  { at: 4, src: '/insignar/vo/line-04.mp3' },
+  { at: 6, src: '/insignar/vo/line-05.mp3' },
+  { at: 8, src: '/insignar/vo/line-06.mp3' },
+  { at: 10.5, src: '/insignar/vo/line-07.mp3' },
+  { at: 12.5, src: '/insignar/vo/line-08.mp3' },
+  { at: 15, src: '/insignar/vo/line-09.mp3' },
+  { at: 16.6, src: '/insignar/vo/line-10.mp3' },
+  { at: 19, src: '/insignar/vo/line-11.mp3' },
+  { at: 22, src: '/insignar/vo/line-12.mp3' },
+  { at: 25.5, src: '/insignar/vo/line-13.mp3' },
+  { at: 29, src: '/insignar/vo/line-14.mp3' },
+  { at: 32, src: '/insignar/vo/line-15.mp3' },
+  { at: 34.5, src: '/insignar/vo/line-16.mp3' },
+  { at: 37.5, src: '/insignar/vo/line-17.mp3' },
+  { at: 40.5, src: '/insignar/vo/line-18.mp3' },
+  { at: 42.5, src: '/insignar/vo/line-19.mp3' },
+];
 
 const subscribeReduce = (cb: () => void) => {
   const m = window.matchMedia(MQ.reduce);
@@ -56,24 +93,33 @@ function Rows({ n }: { n: number }) {
       {Array.from({ length: n }, (_, i) => (
         <div key={i} className="erow">
           <i />
-          <i />
-          <i />
+          <b>{U.email[0]}</b>
+          <span>{U.email[2]}</span>
         </div>
       ))}
     </>
   );
 }
 
+function Illustrative({ size = '1.1cqi' }: { size?: string }) {
+  return (
+    <span className="tag ex" style={{ fontSize: size, marginLeft: '0.8cqi' }}>
+      {U.illustrative}
+    </span>
+  );
+}
+
 function Phone({ cls, style }: { cls: string; style: React.CSSProperties }) {
   return (
     <div className={`pnl ph ${cls}`} style={style}>
-      <p className="m">{U.pageTitle}</p>
+      <p className="m">
+        {U.pageTitle}
+        <Illustrative size="0.8cqi" />
+      </p>
       <p className="t" style={{ marginTop: '0.8cqi' }}>
         “Tickets double after every release.”
       </p>
-      <div className="bar" style={{ width: '80%' }} />
-      <div className="bar" style={{ width: '55%' }} />
-      <div className="bar" style={{ width: '68%' }} />
+      <p style={{ fontSize: '1.2cqi', color: '#34332f', marginTop: '1.6cqi' }}>{U.teamBody}</p>
     </div>
   );
 }
@@ -82,7 +128,8 @@ function FilmFast() {
   const root = useRef<HTMLDivElement>(null);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const api = useRef<{ go: () => void; halt: () => void; sync: () => void }>(null);
-  const voice = useRef<HTMLAudioElement | null>(null);
+  const clips = useRef<Map<string, HTMLAudioElement | null>>(new Map());
+  const live = useRef<Set<HTMLAudioElement>>(new Set());
   const userPaused = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
@@ -96,8 +143,22 @@ function FilmFast() {
       if (!box) return;
       const q = gsap.utils.selector(el);
       const bar = q('.prog i');
-      const cam = q('.cam');
-      const shk = q('.shk');
+      const shk = box.querySelector('.shk');
+      const pls = q('.pulse');
+      /** Voice: pause or drop every running clip (drop clears the resume list). */
+      const stopClips = (drop: boolean) => {
+        live.current.forEach((a) => a.pause());
+        if (drop) live.current.clear();
+      };
+      const playClip = (src: string) => {
+        if (!sfx.on) return;
+        const a = clips.current.get(src);
+        if (!a) return;
+        a.currentTime = 0;
+        live.current.add(a);
+        a.onended = () => live.current.delete(a);
+        a.play().catch(() => {});
+      };
       /** n container-width percent as px, re-read on invalidate. */
       const c = (n: number) => () => (n * box.clientWidth) / 100;
 
@@ -113,14 +174,10 @@ function FilmFast() {
         defaults: { ease: 'power3.out', duration: 0.5 },
         onUpdate: () => {
           gsap.set(bar, { scaleX: tl.progress() });
-          const v = voice.current;
-          if (v && !v.paused && Math.abs(v.currentTime - tl.time()) > 0.3) {
-            v.currentTime = tl.time();
-          }
         },
         onComplete: () => {
           box.dataset.play = 'off';
-          voice.current?.pause();
+          stopClips(true);
           setPlaying(false);
           setEnded(true);
         },
@@ -136,11 +193,16 @@ function FilmFast() {
         for (let i = 0; i < n; i++)
           fx('tick', from + i * gap, { pitch: p0 + ((p1 - p0) * i) / Math.max(1, n - 1) });
       };
-      /** 2-frame camera shake (at 30 fps) on an impact. */
-      const shake = (t: number, a = 1) => {
-        tl.set(shk, { xPercent: 1.4 * a, yPercent: -1 * a, rotation: 0.5 * a }, t);
-        tl.set(shk, { xPercent: -1.1 * a, yPercent: 0.9 * a, rotation: -0.4 * a }, t + 0.033);
-        tl.set(shk, { xPercent: 0, yPercent: 0, rotation: 0 }, t + 0.066);
+      /** 2-frame camera shake (at 30 fps), amplitude in px, on an impact only. */
+      const shake = (t: number, px: number) => {
+        tl.set(shk, { x: px, y: -px * 0.7 }, t);
+        tl.set(shk, { x: -px * 0.8, y: px * 0.6 }, t + 0.033);
+        tl.set(shk, { x: 0, y: 0 }, t + 0.066);
+      };
+      /** Energy device: brightness +4% on a hit, decaying over 0.2 s. */
+      const pulse = (t: number) => {
+        tl.set(pls, { opacity: 0.04 }, t);
+        tl.to(pls, { opacity: 0, duration: 0.2, ease: 'none' }, t);
       };
       /** set + to instead of fromTo/immediateRender:false: stays correct when the playhead jumps (seek, debug frame). */
       const fromToLate = (
@@ -154,12 +216,10 @@ function FilmFast() {
         tl.set(tgt, from, pos);
         tl.to(tgt, rest, pos);
       };
-      const camTo = (t: number, from: number, to: number, d: number, ease = 'power2.out') =>
-        fromToLate(cam, { scale: from }, { scale: to, duration: d, ease }, t);
       const sc = (n: number) => q(`.b${n}`);
       const k = (n: number, sel: string) => q(`.b${n} ${sel}`);
 
-      /* ---------- scene visibility, whips, slow push per beat ---------- */
+      /* ---------- scene visibility and whips ---------- */
       B.forEach((b, i) => {
         const n = i + 1;
         const node = sc(n);
@@ -171,6 +231,14 @@ function FilmFast() {
             b.start - 0.05,
           );
           fx('whoosh', b.start - 0.08);
+        } else if (n === END) {
+          // dark closing band: 0.15 s fade, never a hard luminance swap
+          tl.fromTo(
+            node,
+            { autoAlpha: 0 },
+            { autoAlpha: 1, duration: 0.15, ease: 'none' },
+            b.start,
+          );
         } else {
           tl.set(node, { autoAlpha: 1 }, b.start);
         }
@@ -181,53 +249,37 @@ function FilmFast() {
             b.end - 0.15,
           );
           tl.set(node, { autoAlpha: 0 }, b.end + 0.06);
+        } else if (n + 1 === END) {
+          tl.to(node, { autoAlpha: 0, duration: 0.15, ease: 'none' }, b.end - 0.15);
         } else {
           tl.set(node, { autoAlpha: 0 }, b.end);
         }
       });
 
-      /* ---------- 1 · 0.0 "You met him." card slams in ---------- */
-      camTo(0, 1, 1.08, 1.2, 'none');
+      /* ---------- 1 · 0.0 "You met him." the card hit (loud 1) ---------- */
       tl.fromTo(
         k(1, '.c'),
         { scale: 2.6, rotate: 14, opacity: 0 },
         { scale: 1, rotate: -5, opacity: 1, duration: 0.17, ease: 'power4.in' },
         0.02,
       );
-      tl.fromTo(
-        k(1, '.ringc'),
-        { scale: 0.5, opacity: 0.9 },
-        { scale: 2.4, opacity: 0, duration: 0.55, ease: 'power2.out' },
-        0.19,
-      );
-      tl.fromTo(k(1, '.chip'), { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.25 }, 0.5);
+      tl.fromTo(k(1, '.chip'), { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 0.5);
       fx('hit', 0.17);
-      shake(0.19, 1.3);
+      shake(0.19, 8);
+      pulse(0.19);
 
       /* ---------- 2 · 1.2 "Great conversation." quote bubble ---------- */
-      camTo(1.2, 1, 1.03, 0.8, 'none');
       tl.fromTo(
         k(2, '.bub'),
         { scale: 0.55, y: 30, opacity: 0 },
-        { scale: 1, y: 0, opacity: 1, duration: 0.4, ease: 'back.out(2.4)' },
+        { scale: 1, y: 0, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' },
         1.3,
       );
-      tl.fromTo(k(2, '.l2'), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.25 }, 1.62);
       tl.set(k(2, '.hl'), { color: VERM_INK }, 2.0);
-      fromToLate(
-        k(2, '.hl'),
-        { scale: 1.25 },
-        { scale: 1, duration: 0.3, ease: 'back.out(3)', immediateRender: false },
-        2.0,
-      );
-      camTo(2.0, 1.03, 1.12, 0.6, 'power3.out');
-      tl.fromTo(k(2, '.who'), { opacity: 0 }, { opacity: 1, duration: 0.2 }, 2.2);
       fx('tick', 1.45);
-      fx('tick', 1.65);
       fx('tick', 2.0, { pitch: 1.3 });
 
-      /* ---------- 3 · 2.6 "Then six more." six cards fan out ---------- */
-      camTo(2.6, 1, 1.0, 0.01, 'none');
+      /* ---------- 3 · 2.6 "Six more. Fast." six cards fan out ---------- */
       tl.fromTo(
         k(3, '.fc'),
         { xPercent: 0, yPercent: 0, rotate: 0, scale: 0.7, opacity: 0 },
@@ -243,18 +295,11 @@ function FilmFast() {
         },
         2.62,
       );
-      camTo(3.3, 1, 1.1, 0.7, 'power2.inOut');
-      fx('hit', 2.62);
-      shake(2.64, 0.9);
+      fx('thock', 2.62);
       ticks(2.72, 6, 0.1, 1, 1.5);
 
-      /* ---------- 4 · 4.0 "By Thursday?" calendar flips Mon to Thu ---------- */
-      tl.fromTo(
-        k(4, '.cal'),
-        { scale: 0.9, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.2 },
-        4.0,
-      );
+      /* ---------- 4 · 4.0 "By Thursday, he’s a name on a list." calendar flips Mon to Thu ---------- */
+      tl.fromTo(k(4, '.cal'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 4.0);
       [0, 1, 2, 3].forEach((d, i) => {
         tl.set(k(4, '.hlc'), { xPercent: d * 100, opacity: 1 }, 4.1 + i * 0.1);
         if (d < 3) tl.set(k(4, `.col${d}`), { opacity: 0.3 }, 4.2 + i * 0.1);
@@ -263,27 +308,13 @@ function FilmFast() {
       tl.fromTo(
         k(4, '.thu'),
         { opacity: 0, scale: 0.6 },
-        { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(3)' },
+        { opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out' },
         4.5,
       );
-      camTo(4.5, 1, 1.12, 0.4, 'power3.out');
-      shake(4.5, 0.8);
       fx('thock', 4.5);
-      tl.to(
-        k(4, '.thu'),
-        { scale: 1.08, duration: 0.25, yoyo: true, repeat: 3, ease: 'sine.inOut' },
-        5.0,
-      );
-      camTo(5.2, 1.12, 1.2, 0.8, 'power1.inOut');
 
       /* ---------- 5 · 6.0 "Gone." notes delete, the quote dissolves into dots ---------- */
-      camTo(6.0, 1, 1.0, 0.01, 'none');
-      tl.fromTo(
-        k(5, '.notes'),
-        { scale: 0.9, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.2 },
-        6.05,
-      );
+      tl.fromTo(k(5, '.notes'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 6.05);
       tl.fromTo(
         k(5, '.nl'),
         { scaleX: 1, opacity: 1 },
@@ -297,86 +328,57 @@ function FilmFast() {
         },
         6.3,
       );
-      tl.to(k(5, '.nq'), { opacity: 0, scale: 1.06, duration: 0.16, ease: 'none' }, 7.0);
+      tl.to(k(5, '.nq'), { opacity: 0, duration: 0.16, ease: 'none' }, 7.0);
       tl.fromTo(k(5, '.fd'), { opacity: 0, yPercent: 0 }, { opacity: 1, duration: 0.01 }, 7.0);
       fromToLate(
         k(5, '.fd'),
         { yPercent: 0 },
-        {
-          yPercent: 3200,
-          duration: 0.7,
-          stagger: 0.035,
-          ease: 'power2.in',
-          immediateRender: false,
-        },
+        { yPercent: 3200, duration: 0.7, stagger: 0.035, ease: 'power2.in' },
         7.05,
       );
       tl.to(k(5, '.fd'), { opacity: 0, duration: 0.15, stagger: 0.035 }, 7.65);
-      tl.to(k(5, '.notes'), { opacity: 0.2, duration: 0.3 }, 7.2);
+      tl.to(k(5, '.notes'), { opacity: 0.2, duration: 0.3, ease: 'none' }, 7.2);
       fx('rwhoosh', 6.0);
       ticks(6.3, 4, 0.2, 1.2, 0.8);
 
-      /* ---------- 6 · 8.0 "same email as everyone" inbox floods ---------- */
-      fromToLate(
-        k(6, '.inbox'),
-        { scale: 1 },
-        { scale: 0.9, duration: 1.8, ease: 'power1.in', immediateRender: false },
-        8.6,
-      );
+      /* ---------- 6 · 8.0 inbox flood: one layer (12 rows, expo.out, under 0.8 s) plus one hit ---------- */
       tl.fromTo(
         k(6, '.erow'),
-        { scale: 0.5, opacity: 0, y: 12 },
-        {
-          scale: 1,
-          opacity: 1,
-          y: 0,
-          duration: 0.18,
-          ease: 'back.out(2)',
-          stagger: { each: 0.055, from: 'start' },
-        },
+        { y: c(5), opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, ease: 'expo.out', stagger: 0.03 },
         8.0,
       );
-      camTo(8.0, 1, 1.0, 0.01, 'none');
-      camTo(9.4, 1, 1.1, 0.5, 'power3.out');
-      tl.fromTo(
-        k(6, '.erow i:first-child'),
-        { scale: 1 },
-        { scale: 1.5, duration: 0.2, yoyo: true, repeat: 1, stagger: 0.02 },
-        9.5,
-      );
-      ticks(8.0, 12, 0.11, 0.9, 2.2);
-      fx('hit', 9.4);
-      shake(9.42, 0.8);
+      fx('hit', 8.45);
+      // tick rate ramps up through 8-12 s, then stops (hard cut at 15 s)
+      {
+        let at = 8.0;
+        let gap = 0.24;
+        let i = 0;
+        while (at < 12) {
+          fx('tick', at, { pitch: 0.9 + Math.min(1.3, i * 0.04) });
+          at += gap;
+          gap = Math.max(0.07, gap * 0.93);
+          i++;
+        }
+      }
 
-      /* ---------- 7 · 10.5 "He doesn't open it." one email greys out, unread climbs ---------- */
-      camTo(10.5, 1, 1.05, 2, 'none');
-      tl.fromTo(
-        k(7, '.crowd .erow'),
-        { opacity: 0 },
-        { opacity: 0.35, duration: 0.2, stagger: 0.03 },
-        10.5,
-      );
-      tl.fromTo(
-        k(7, '.big7'),
-        { scale: 1.3, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.25, ease: 'power4.out' },
-        10.55,
-      );
-      tl.to(k(7, '.big7'), { opacity: 0.28, duration: 0.5, ease: 'none' }, 11.0);
+      /* ---------- 7 · 10.5 "Unopened." the unread counter punches (dark beat) ---------- */
+      tl.fromTo(k(7, '.big7'), { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'none' }, 10.5);
+      tl.to(k(7, '.big7'), { opacity: 0.35, duration: 0.3, ease: 'none' }, 11.0);
       tl.fromTo(
         k(7, '.unread'),
-        { scale: 0.5, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(3)' },
-        11.0,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.15, ease: 'none' },
+        10.5,
       );
       [0, 1, 2].forEach((d) => {
-        const at = 11.15 + d * 0.5;
+        const at = 10.55 + d * 0.4;
         tl.set(k(7, `.n${d}`), { opacity: 1 }, at);
         if (d > 0) tl.set(k(7, `.n${d - 1}`), { opacity: 0 }, at);
         fromToLate(
           k(7, `.n${d}`),
-          { scale: 1.4 },
-          { scale: 1, duration: 0.25, ease: 'back.out(3)', immediateRender: false },
+          { scale: 1.3 },
+          { scale: 1, duration: 0.15, ease: 'power4.out' },
           at,
         );
         fx('thock', at, { pitch: 0.7 + d * 0.15 });
@@ -384,49 +386,47 @@ function FilmFast() {
       fx('riser', 10.55, { dur: 4.45 });
       tl.call(() => sfx.cut(), [], SILENT_FROM);
 
-      /* ---------- 8 · 12.5 "The deal walks." card leaves, vermilion bleeds ---------- */
-      camTo(12.5, 1, 1.0, 0.01, 'none');
+      /* ---------- 8 · 12.5 "The deal walks." card exit, impact, "Gone" (loud 2) ---------- */
       tl.fromTo(
         k(8, '.c'),
-        { x: 0, rotate: -5, opacity: 1 },
-        { x: c(70), rotate: 10, duration: 0.7, ease: 'power3.in' },
+        { x: 0, skewX: 0, rotate: -5, opacity: 1 },
+        { x: c(110), skewX: 14, duration: 0.45, ease: 'power4.in' },
         12.6,
       );
       tl.fromTo(
         k(8, '.bleed'),
         { scaleX: 0 },
-        { scaleX: 1, duration: 0.55, ease: 'power4.out', transformOrigin: 'left center' },
+        { scaleX: 1, duration: 0.5, ease: 'power4.out', transformOrigin: 'left center' },
         12.9,
       );
       tl.fromTo(
         k(8, '.gone'),
         { scale: 1.4, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: 'expo.out' },
-        13.4,
+        { scale: 1, opacity: 1, duration: 0.2, ease: 'power4.out' },
+        13.42,
       );
-      camTo(13.4, 1, 1.07, 1.1, 'power1.out');
-      fx('hit', 13.4);
-      shake(13.42, 1.2);
-      tl.to(k(8, '.bleed, .gone'), { opacity: 0, duration: 0.35, ease: 'power2.in' }, 14.55);
+      fx('hit', 13.42);
+      shake(13.42, 14);
+      pulse(13.42);
+      tl.to(k(8, '.bleed, .gone'), { opacity: 0, duration: 0.3, ease: 'none' }, 14.22);
 
-      /* ---------- 9 · 15.0 silence, one dot, zoom through it ---------- */
-      camTo(15, 1, 1, 0.01, 'none');
+      /* ---------- 9 · 15.0 silence, one dot (the turn, loud 3), zoom through it ---------- */
       tl.fromTo(
         k(9, '.dot'),
         { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2)' },
+        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.2)' },
         15.3,
       );
+      pulse(15.8);
       tl.to(k(9, '.dot'), { scale: 90, duration: 0.3, ease: 'expo.in' }, 16.3);
 
-      /* ---------- 10 · 16.6 "Not this time." the dot ripples into the grid, card returns ---------- */
+      /* ---------- 10 · 16.6 "Not this time." the dot ripples into the grid, hard snap to light at 17.6 ---------- */
       tl.fromTo(
         k(10, '.fill'),
         { opacity: 1 },
         { opacity: 0, duration: 0.35, ease: 'power2.out' },
         16.6,
       );
-      camTo(16.6, 0.5, 1, 0.55, 'expo.out');
       tl.fromTo(
         k(10, '.dg i'),
         { scale: 0, opacity: 0 },
@@ -439,35 +439,21 @@ function FilmFast() {
         },
         16.65,
       );
-      fromToLate(
-        k(10, '.dg i'),
-        { scale: 1 },
-        {
-          scale: 2.2,
-          opacity: 0.9,
-          duration: 0.25,
-          yoyo: true,
-          repeat: 1,
-          ease: 'sine.inOut',
-          stagger: { amount: 1, from: 'center', grid: [NC, NR] },
-          immediateRender: false,
-        },
-        17.2,
-      );
       tl.fromTo(
         k(10, '.c'),
         { scale: 1.5, rotate: 8, opacity: 0 },
-        { scale: 1, rotate: -5, opacity: 1, duration: 0.3, ease: 'power4.out' },
+        { scale: 1, rotate: -5, opacity: 1, duration: 0.3, ease: 'power2.out' },
         17.2,
       );
-      tl.fromTo(k(10, '.chip'), { y: 8, opacity: 0 }, { y: 0, opacity: 1, duration: 0.2 }, 17.6);
-      camTo(17.6, 1, 1.07, 1.4, 'none');
+      tl.fromTo(k(10, '.lbg'), { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'none' }, 17.6);
+      tl.fromTo(k(10, '.chip'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 17.6);
+      tl.set(q('.kc10'), { textShadow: 'none', color: INK }, SNAP);
       fx('tick', 16.6, { pitch: 0.7 });
-      fx('thock', 17.2);
-      shake(17.22, 0.6);
+      fx('thock', 17.6);
+      shake(SNAP, 3);
+      pulse(SNAP);
 
-      /* ---------- 11 · 19.0 "Sixty seconds. His words." voice note, words lock into the page ---------- */
-      camTo(19, 1, 1.0, 0.01, 'none');
+      /* ---------- 11 · 19.0 "One minute. His words." words lock into the page ---------- */
       tl.fromTo(
         k(11, '.wave i'),
         { scaleY: 0.1 },
@@ -475,25 +461,11 @@ function FilmFast() {
           scaleY: (i: number) => WAVE[i % WAVE.length] ?? 0.5,
           duration: 0.3,
           stagger: 0.018,
-          ease: 'back.out(2)',
+          ease: 'expo.out',
         },
         19.1,
       );
-      fromToLate(
-        k(11, '.wave i'),
-        { scaleY: (i: number) => WAVE[i % WAVE.length] ?? 0.5 },
-        {
-          scaleY: (i: number) => 0.2 + 0.8 * (WAVE[(i * 7 + 3) % WAVE.length] ?? 0.5),
-          duration: 0.28,
-          yoyo: true,
-          repeat: 4,
-          ease: 'sine.inOut',
-          stagger: 0.01,
-          immediateRender: false,
-        },
-        19.9,
-      );
-      tl.fromTo(k(11, '.pg11'), { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3 }, 19.5);
+      tl.fromTo(k(11, '.pg11'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 19.5);
       QUOTE.forEach((_, i) => {
         const at = 20.0 + i * 0.35;
         tl.fromTo(
@@ -504,136 +476,69 @@ function FilmFast() {
         );
         fx('tick', at + 0.2, { pitch: 1 + i * 0.12 });
       });
-      tl.fromTo(
-        k(11, '.lock'),
-        { scale: 1.3, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.25, ease: 'back.out(3)' },
-        21.7,
-      );
       fx('thock', 21.7);
-      camTo(20.0, 1, 1.08, 1.8, 'power1.inOut');
 
-      /* ---------- 12 · 22.0 "What it costs his company." the range spins up and locks ---------- */
-      camTo(22, 1, 1, 0.01, 'none');
-      tl.fromTo(k(12, '.cost'), { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.25 }, 22.05);
-      tl.fromTo(
-        k(12, '.rl0'),
-        { yPercent: 0 },
-        { yPercent: -80, duration: 1.5, ease: 'power4.out' },
-        22.25,
+      /* ---------- 12 · 22.0 "What it costs his company." the figure locks, source line held 3 s ---------- */
+      tl.fromTo(k(12, '.cost'), { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'none' }, 22.0);
+      fromToLate(
+        k(12, '.cfig'),
+        { scale: 1.15, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.2)' },
+        22.1,
       );
-      tl.fromTo(
-        k(12, '.rl1'),
-        { yPercent: 0 },
-        { yPercent: -80, duration: 1.8, ease: 'power4.out' },
-        22.35,
-      );
-      tl.fromTo(k(12, '.rest'), { opacity: 0 }, { opacity: 1, duration: 0.3 }, 23.3);
-      tl.fromTo(
-        k(12, '.range i'),
-        { scaleX: 0 },
-        { scaleX: 0.68, duration: 0.9, ease: 'power3.inOut' },
-        23.1,
-      );
-      tl.fromTo(
-        k(12, '.src'),
-        { opacity: 0, y: 12, scale: 0.8 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: 'back.out(3)', stagger: 0.3 },
-        24.0,
-      );
-      tl.fromTo(
-        k(12, '.okc'),
-        { opacity: 0, scale: 0.6 },
-        { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(3)' },
-        24.8,
-      );
-      camTo(23.6, 1, 1.07, 1.8, 'power1.inOut');
-      for (let i = 0; i < 14; i++)
-        fx('tick', 22.25 + i * (0.06 + i * 0.012), { pitch: 1.2 - i * 0.02 });
-      fx('thock', 24.1);
-      shake(24.12, 0.7);
-      fx('tick', 24.4);
-      fx('tick', 24.7);
-      fx('thock', 24.8);
+      tl.fromTo(k(12, '.srcln'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 22.5);
+      tl.fromTo(k(12, '.okc'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 24.0);
+      fx('thock', 22.1);
 
       /* ---------- 13 · 25.5 "A team like his that fixed it." case card, three steps ---------- */
-      camTo(25.5, 1, 1.0, 0.01, 'none');
       tl.fromTo(
         k(13, '.case'),
         { x: c(60), opacity: 0 },
         { x: 0, opacity: 1, duration: 0.45, ease: 'expo.out' },
         25.6,
       );
-      tl.fromTo(
-        k(13, '.steps'),
-        { y: c(8), opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35 },
-        26.2,
-      );
+      tl.fromTo(k(13, '.steps'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 26.2);
       [0, 1, 2].forEach((d) => {
-        const at = 27.0 + d * 0.7;
+        const at = 27.0 + d * 0.45;
         tl.fromTo(
           k(13, `.ck${d} b`),
           { scale: 0 },
-          { scale: 1, duration: 0.22, ease: 'back.out(3)' },
+          { scale: 1, duration: 0.22, ease: 'expo.out' },
           at,
         );
         tl.fromTo(k(13, `.ck${d} u`), { opacity: 0 }, { opacity: 1, duration: 0.05 }, at + 0.1);
-        tl.fromTo(
-          k(13, `.ck${d}`),
-          { x: 0 },
-          { x: c(0.8), duration: 0.1, yoyo: true, repeat: 1 },
-          at,
-        );
         fx('tick', at, { pitch: 1 + d * 0.25 });
       });
-      camTo(26.0, 1, 1.05, 1.6, 'power1.inOut');
-      camTo(27.6, 1.05, 1.1, 1.4, 'power1.inOut');
 
       /* ---------- 14 · 29.0 "One page. About him." zoom through the tap point into the page ---------- */
-      camTo(29, 1, 1.0, 0.01, 'none');
       tl.fromTo(
         k(14, '.zm'),
-        { scale: 0.8, opacity: 0, rotate: -8 },
-        { scale: 1, opacity: 1, rotate: 0, duration: 0.3, ease: 'back.out(2)' },
+        { scale: 0.8, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: 'power3.out' },
         29.0,
-      );
-      tl.fromTo(
-        k(14, '.ringc'),
-        { scale: 0.3, opacity: 0.9 },
-        { scale: 1.8, opacity: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 },
-        29.5,
       );
       fromToLate(
         k(14, '.zm'),
         { scale: 1 },
-        { scale: 16, duration: 0.85, ease: 'power3.in', immediateRender: false },
+        { scale: 16, duration: 0.85, ease: 'power3.in' },
         30.0,
       );
       tl.to(k(14, '.zm'), { opacity: 0, duration: 0.1, ease: 'none' }, 30.8);
       tl.fromTo(
         k(14, '.ph'),
-        { scale: 0.15, opacity: 0, rotate: 6 },
-        { scale: 1, opacity: 1, rotate: 0, duration: 0.55, ease: 'expo.out' },
+        { scale: 0.15, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.55, ease: 'power3.out' },
         30.75,
       );
-      camTo(31.3, 1, 1.12, 0.7, 'power1.out');
       fx('whoosh', 30.0);
       fx('thock', 30.8);
-      shake(30.82, 0.7);
 
       /* ---------- 15 · 32.0 "He taps." the ripple fills the screen ---------- */
-      camTo(32, 1, 1.0, 0.01, 'none');
-      tl.fromTo(
-        k(15, '.zm'),
-        { scale: 0.9, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.25 },
-        32.0,
-      );
+      tl.fromTo(k(15, '.zm'), { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 32.0);
       tl.fromTo(
         k(15, '.ph'),
-        { x: c(38), y: c(8), opacity: 0, rotate: 8 },
-        { x: 0, y: 0, opacity: 1, rotate: -4, duration: 0.55, ease: 'power3.inOut' },
+        { x: c(38), y: c(8), opacity: 0 },
+        { x: 0, y: 0, opacity: 1, duration: 0.55, ease: 'power3.inOut' },
         32.25,
       );
       tl.fromTo(
@@ -653,27 +558,15 @@ function FilmFast() {
         },
         33.0,
       );
-      fromToLate(
-        k(15, '.ph'),
-        { scale: 1 },
-        { scale: 1.08, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false },
-        33.0,
-      );
-      camTo(33.0, 1, 1.1, 0.25, 'power3.out');
-      camTo(33.3, 1.1, 1.0, 0.9, 'power2.inOut');
-      fx('hit', 33.0);
-      shake(33.02, 0.5);
+      fx('thock', 33.0);
 
-      /* ---------- 16 · 34.5 "He reads it. Twice." scroll, read indicator ---------- */
-      camTo(34.5, 1, 1.0, 0.01, 'none');
-      tl.fromTo(k(16, '.pgv'), { y: c(6), opacity: 0 }, { y: 0, opacity: 1, duration: 0.3 }, 34.55);
-      tl.fromTo(k(16, '.pgi'), { y: 0 }, { y: c(-17), duration: 1.0, ease: 'power2.inOut' }, 34.9);
-      tl.to(k(16, '.pgi'), { y: 0, duration: 0.18, ease: 'power3.in' }, 36.0);
-      tl.to(k(16, '.pgi'), { y: c(-17), duration: 0.9, ease: 'power2.inOut' }, 36.3);
+      /* ---------- 16 · 34.5 "He reads it. Twice." one 0.7 s scroll; "Remove my details" stays put ---------- */
+      tl.fromTo(k(16, '.pgv'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 34.5);
+      tl.fromTo(k(16, '.pgi'), { y: 0 }, { y: c(-5), duration: 0.7, ease: 'power2.inOut' }, 34.9);
       tl.fromTo(
         k(16, '.read'),
-        { scale: 0.5, opacity: 0, x: c(6) },
-        { scale: 1, opacity: 1, x: 0, duration: 0.3, ease: 'back.out(3)' },
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: 'power2.out' },
         34.8,
       );
       tl.set(k(16, '.r1'), { opacity: 0 }, 36.0);
@@ -681,27 +574,17 @@ function FilmFast() {
       fromToLate(
         k(16, '.r2'),
         { scale: 1.5 },
-        { scale: 1, duration: 0.3, ease: 'back.out(3)', immediateRender: false },
+        { scale: 1, duration: 0.3, ease: 'power2.out' },
         36.0,
       );
-      tl.fromTo(
-        k(16, '.rmv'),
-        { scale: 1 },
-        { scale: 1.12, duration: 0.25, yoyo: true, repeat: 1 },
-        37.0,
-      );
-      camTo(35.0, 1, 1.04, 1.0, 'power1.inOut');
-      camTo(36.3, 1.04, 1.1, 1.1, 'power1.inOut');
       fx('rwhoosh', 34.45, { pitch: 1.3 });
-      fx('whoosh', 36.0, { pitch: 1 });
       fx('tick', 36.0, { pitch: 1.4 });
 
       /* ---------- 17 · 37.5 "Booked." the slot slams in ---------- */
-      camTo(37.5, 1, 1.0, 0.01, 'none');
       tl.fromTo(
         k(17, '.slots i'),
-        { opacity: 0, scale: 0.7 },
-        { opacity: 1, scale: 1, duration: 0.2, stagger: 0.02 },
+        { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: 'none', stagger: 0.02 },
         37.5,
       );
       tl.fromTo(
@@ -710,88 +593,64 @@ function FilmFast() {
         { scale: 1, opacity: 1, duration: 0.14, ease: 'power4.in' },
         37.7,
       );
-      fromToLate(
-        k(17, '.pnl.slotp'),
-        { scale: 1 },
-        { scale: 1.03, duration: 0.08, yoyo: true, repeat: 1, immediateRender: false },
-        37.84,
-      );
-      tl.fromTo(
-        k(17, '.meet'),
-        { x: c(14), opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.4, ease: 'expo.out' },
-        38.1,
-      );
-      camTo(37.84, 1.12, 1.0, 0.7, 'power3.out');
-      camTo(39.0, 1, 1.06, 1.5, 'none');
+      tl.fromTo(k(17, '.meet'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 38.1);
       fx('deep', 37.84);
-      shake(37.84, 1.6);
 
       /* ---------- 18 · 40.5 "Be the one they remember." five dots light one by one ---------- */
-      camTo(40.5, 1, 1.0, 0.01, 'none');
       tl.fromTo(
         k(18, '.five span'),
-        { scale: 0.6, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.25, stagger: 0.04 },
+        { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: 'none' },
         40.5,
       );
       tl.fromTo(
         k(18, '.five span i'),
         { scale: 0 },
-        { scale: 1, duration: 0.25, ease: 'back.out(3)', stagger: 0.32 },
+        { scale: 1, duration: 0.25, ease: 'back.out(1.7)', stagger: 0.32 },
         40.8,
       );
-      tl.fromTo(
-        k(18, '.five'),
-        { scale: 1 },
-        { scale: 1.12, duration: 0.22, yoyo: true, repeat: 1, ease: 'power2.out' },
-        42.15,
-      );
-      camTo(40.5, 1.0, 1.12, 2, 'none');
       ticks(40.8, 5, 0.32, 0.9, 1.5);
 
-      /* ---------- 19 · 42.5 end card ---------- */
-      camTo(42.5, 1, 1.0, 0.01, 'none');
-      tl.fromTo(
-        k(19, '.mk'),
-        { scale: 0.6, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2)' },
-        42.55,
-      );
-      tl.fromTo(k(19, '.cta2'), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, 43.9);
+      /* ---------- 19 · 42.5 end card (quiet, held 3 s) ---------- */
+      tl.fromTo(k(19, '.mk'), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'none' }, 42.55);
+      tl.fromTo(k(19, '.cta2'), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'none' }, 42.9);
       fx('thock', 42.6, { pitch: 0.8 });
       tl.to({}, { duration: 0.01 }, DURATION - 0.01);
 
-      /* ---------- karaoke captions ---------- */
+      /* ---------- voice: one clip per line, started by the timeline, only when sound is on ---------- */
+      VO.forEach((v) => tl.call(() => playClip(v.src), [], v.at));
+
+      /* ---------- karaoke captions: one key word per line, vermilion underline wipe ---------- */
       B.forEach((b, i) => {
         if (!b.line) return;
         const n = i + 1;
-        const lt = LIGHT.has(n);
-        const base = lt ? '#121211' : '#ffffff';
-        const acc = lt ? VERM_INK : VERM;
+        const lightAt = (t: number) => n > SNAP_BEAT || (n === SNAP_BEAT && t >= SNAP);
         const ws = q(`.kc${n} .w`);
+        const uls = q(`.kc${n} .ul`);
         const words = b.line.split(' ');
+        const key = b.key[0];
         const win = b.end - b.start - 0.3;
         const want = 0.28 * words.length + 0.04 * b.line.length;
         const total = Math.min(win, want);
         const wsum = words.reduce((a, w) => a + w.length + 2, 0);
         let t = b.start + 0.08;
+        if (n === SNAP_BEAT) tl.set(ws, { color: INK }, SNAP + 0.001);
         tl.set(q(`.kc${n}`), { autoAlpha: 1 }, b.start);
         tl.set(q(`.kc${n}`), { autoAlpha: 0 }, b.end);
         words.forEach((w, j) => {
           const dur = (total * (w.length + 2)) / wsum;
           const word = ws[j];
           if (!word) return;
-          tl.set(word, { opacity: 1, color: acc }, t);
-          if (b.key.includes(j)) {
-            fromToLate(
-              word,
-              { scale: 1.15 },
-              { scale: 1, duration: 0.3, ease: 'back.out(3)', immediateRender: false },
-              t,
-            );
+          const accAt = lightAt(t) ? VERM_INK : VERM;
+          tl.set(word, { opacity: 1, color: accAt }, t);
+          if (key === j) {
+            fromToLate(word, { scale: 1.15 }, { scale: 1, duration: 0.3, ease: 'back.out(3)' }, t);
+            const ul = uls[0];
+            if (ul)
+              fromToLate(ul, { scaleX: 0 }, { scaleX: 1, duration: 0.25, ease: 'power3.out' }, t);
           }
-          tl.set(word, { color: base }, t + (j < words.length - 1 ? dur : 0.45));
+          const te = t + (j < words.length - 1 ? dur : 0.45);
+          tl.set(word, { color: lightAt(te) ? INK : '#ffffff' }, te);
           t += dur;
         });
       });
@@ -801,17 +660,13 @@ function FilmFast() {
         box.dataset.play = 'on';
         tl.play();
         setPlaying(true);
-        const v = voice.current;
-        if (v && sfx.on) {
-          v.currentTime = tl.time();
-          v.play().catch(() => {});
-        }
+        if (sfx.on) live.current.forEach((a) => a.play().catch(() => {}));
       };
       const halt = () => {
         box.dataset.play = 'off';
         tl.pause();
         sfx.cut();
-        voice.current?.pause();
+        stopClips(false);
         setPlaying(false);
       };
       api.current = { go, halt, sync: () => {} };
@@ -841,7 +696,7 @@ function FilmFast() {
       return () => {
         io?.disconnect();
         sfx.cut();
-        voice.current?.pause();
+        stopClips(true);
         api.current = null;
         tlRef.current = null;
       };
@@ -870,33 +725,22 @@ function FilmFast() {
   const toggleSound = () => {
     if (sfx.on) {
       sfx.mute();
-      voice.current?.pause();
-      voice.current = null;
+      live.current.forEach((a) => a.pause());
+      live.current.clear();
       setSound(false);
       return;
     }
     sfx.unlock();
     sfx.play('tick');
     setSound(true);
-    // Optional voice-over: used only if the file exists and loads; absent file stays silent.
-    const v = new Audio(SRC_VOICE);
-    v.preload = 'auto';
-    v.addEventListener('error', () => {
-      if (voice.current === v) voice.current = null;
+    // One clip per line. Files that are missing or fail to load are dropped silently.
+    VO.forEach((v) => {
+      if (clips.current.has(v.src)) return;
+      const a = new Audio(v.src);
+      a.preload = 'auto';
+      clips.current.set(v.src, a);
+      a.addEventListener('error', () => clips.current.set(v.src, null));
     });
-    v.addEventListener(
-      'canplay',
-      () => {
-        if (!sfx.on) return;
-        voice.current = v;
-        const tl = tlRef.current;
-        if (tl && !tl.paused()) {
-          v.currentTime = tl.time();
-          v.play().catch(() => {});
-        }
-      },
-      { once: true },
-    );
   };
 
   return (
@@ -915,10 +759,6 @@ function FilmFast() {
                 <img src="/insignar/card-front.svg" alt="" />
               </div>
               <span
-                className="ringc"
-                style={{ left: '43cqi', top: '8cqi', width: '14cqi', height: '14cqi' }}
-              />
-              <span
                 className="chip"
                 style={{
                   position: 'absolute',
@@ -935,16 +775,20 @@ function FilmFast() {
             {/* 2 */}
             <div className="b b2">
               <div className="pnl bub" style={{ left: '18cqi', top: '6cqi', width: '64cqi' }}>
+                <p className="m" style={{ marginBottom: '1.2cqi' }}>
+                  Heard at the event
+                  <Illustrative size="1.2cqi" />
+                </p>
                 <p className="t" style={{ fontSize: '5.4cqi', lineHeight: 1.05 }}>
                   “Tickets{' '}
                   <span className="hl" style={{ display: 'inline-block' }}>
                     double
                   </span>
                 </p>
-                <p className="t l2" style={{ fontSize: '5.4cqi', lineHeight: 1.05 }}>
+                <p className="t" style={{ fontSize: '5.4cqi', lineHeight: 1.05 }}>
                   after every release.”
                 </p>
-                <p className="m who" style={{ marginTop: '1.6cqi', color: '#65625c' }}>
+                <p className="m" style={{ marginTop: '1.6cqi', color: '#65625c' }}>
                   {U.heardBy}
                 </p>
               </div>
@@ -1042,7 +886,10 @@ function FilmFast() {
             {/* 5 */}
             <div className="b b5">
               <div className="pnl notes" style={{ left: '28cqi', top: '4cqi', width: '44cqi' }}>
-                <p className="m">Notes · event</p>
+                <p className="m">
+                  Notes · event
+                  <Illustrative size="1.1cqi" />
+                </p>
                 {['Call back before Friday', 'Send the deck', 'Book the demo room'].map((l) => (
                   <p
                     key={l}
@@ -1085,19 +932,16 @@ function FilmFast() {
               ))}
             </div>
             {/* 6 */}
-            <div className="b b6 lt">
+            <div className="b b6">
               <div className="inbox" style={{ left: '6cqi', top: '3cqi', width: '88cqi' }}>
-                <Rows n={24} />
+                <Rows n={12} />
               </div>
             </div>
             {/* 7 */}
-            <div className="b b7 lt">
-              <div className="inbox crowd" style={{ left: '6cqi', top: '17cqi', width: '88cqi' }}>
-                <Rows n={8} />
-              </div>
+            <div className="b b7">
               <div
                 className="pnl big7"
-                style={{ left: '8cqi', top: '4cqi', width: '58cqi', padding: '2cqi 2.4cqi' }}
+                style={{ left: '8cqi', top: '12cqi', width: '58cqi', padding: '2cqi 2.4cqi' }}
               >
                 <p className="m">{U.emailTag}</p>
                 <p
@@ -1115,9 +959,14 @@ function FilmFast() {
               </div>
               <div
                 className="pnl unread"
-                style={{ left: '70cqi', top: '4cqi', width: '22cqi', textAlign: 'center' }}
+                style={{ left: '70cqi', top: '12cqi', width: '22cqi', textAlign: 'center' }}
               >
-                <p className="m">Unread</p>
+                <p className="m">
+                  Unread
+                  <span className="tag ex" style={{ fontSize: '1cqi', marginLeft: '0.6cqi' }}>
+                    EXAMPLE
+                  </span>
+                </p>
                 <div style={{ position: 'relative', height: '8cqi' }}>
                   {[1, 2, 3].map((v, d) => (
                     <span
@@ -1175,6 +1024,7 @@ function FilmFast() {
             </div>
             {/* 10 */}
             <div className="b b10">
+              <div className="abs lbg" style={{ inset: 0, background: '#efeeea', opacity: 0 }} />
               <Dots />
               <div className="mini-card c" style={{ left: '36cqi', top: '8cqi' }}>
                 <img src="/insignar/card-front.svg" alt="" />
@@ -1185,9 +1035,10 @@ function FilmFast() {
                   position: 'absolute',
                   left: '45.5cqi',
                   top: '29cqi',
-                  color: '#ece9e2',
-                  borderColor: '#6d6a62',
+                  color: INK,
+                  borderColor: '#8c887e',
                   margin: 0,
+                  opacity: 0,
                 }}
               >
                 Card {U.cardNo}
@@ -1195,7 +1046,7 @@ function FilmFast() {
               <div className="abs fill" style={{ inset: 0, background: VERM }} />
             </div>
             {/* 11 */}
-            <div className="b b11">
+            <div className="b b11 lt">
               <div className="abs" style={{ left: '6cqi', top: '8cqi', width: '42cqi' }}>
                 <p
                   style={{
@@ -1203,7 +1054,7 @@ function FilmFast() {
                     fontSize: '1.3cqi',
                     letterSpacing: '.12em',
                     textTransform: 'uppercase',
-                    color: '#a8a49c',
+                    color: '#65625c',
                   }}
                 >
                   {U.voice}
@@ -1214,11 +1065,11 @@ function FilmFast() {
                   ))}
                 </div>
               </div>
-              <div
-                className="pnl pg11"
-                style={{ left: '54cqi', top: '5cqi', width: '40cqi', height: '27cqi' }}
-              >
-                <p className="m lock">{U.pageTitle}</p>
+              <div className="pnl pg11" style={{ left: '54cqi', top: '5cqi', width: '40cqi' }}>
+                <p className="m lock">
+                  {U.pageTitle}
+                  <Illustrative />
+                </p>
                 <p
                   className="t"
                   style={{ fontSize: '3.4cqi', marginTop: '1.2cqi', lineHeight: 1.12 }}
@@ -1235,64 +1086,43 @@ function FilmFast() {
                   ))}
                   ”
                 </p>
-                <div className="bar" style={{ width: '70%' }} />
-                <div className="bar" style={{ width: '45%' }} />
               </div>
             </div>
             {/* 12 */}
             <div className="b b12 lt">
-              <div
-                className="pnl cost"
-                style={{ left: '8cqi', top: '4cqi', width: '84cqi', height: '30cqi' }}
-              >
+              <div className="pnl cost" style={{ left: '8cqi', top: '4cqi', width: '84cqi' }}>
                 <p className="m">
                   {U.costTitle}{' '}
                   <span className="tag ex" style={{ fontSize: '1.2cqi' }}>
                     EXAMPLE
                   </span>
                 </p>
-                <div
+                <p
+                  className="cfig"
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '1.4cqi',
-                    marginTop: '1.4cqi',
+                    marginTop: '2cqi',
                     fontFamily: 'var(--f-display)',
-                    fontSize: '6cqi',
-                    letterSpacing: '-0.02em',
-                    lineHeight: '7cqi',
+                    fontWeight: 800,
+                    fontSize: '9cqi',
+                    letterSpacing: '-0.035em',
+                    lineHeight: 1,
                   }}
                 >
-                  <span className="reel">
-                    <span className="rl rl0">
-                      {LOW.map((v) => (
-                        <b key={v}>{v}</b>
-                      ))}
-                    </span>
-                  </span>
-                  <span className="rest" style={{ fontWeight: 700 }}>
-                    to
-                  </span>
-                  <span className="reel">
-                    <span className="rl rl1">
-                      {HIGH.map((v) => (
-                        <b key={v}>{v}</b>
-                      ))}
-                    </span>
-                  </span>
-                  <span className="rest" style={{ fontWeight: 700 }}>
-                    a year
-                  </span>
-                </div>
-                <div className="range">
-                  <i />
-                </div>
-                <p>
-                  {U.costSources.map((s) => (
-                    <span key={s} className="chip src">
-                      {s}
-                    </span>
-                  ))}
+                  {U.costRange}
+                </p>
+                <p
+                  className="srcln"
+                  style={{
+                    marginTop: '2.4cqi',
+                    fontFamily: 'var(--f-mono)',
+                    fontSize: '1.5cqi',
+                    letterSpacing: '0.04em',
+                    color: '#34332f',
+                  }}
+                >
+                  {U.costSourceLine}
+                </p>
+                <p style={{ marginTop: '1.6cqi' }}>
                   <span
                     className="chip okc"
                     style={{ color: 'var(--verm-ink)', borderColor: 'var(--verm-ink)' }}
@@ -1303,22 +1133,20 @@ function FilmFast() {
               </div>
             </div>
             {/* 13 */}
-            <div className="b b13">
-              <div
-                className="pnl case"
-                style={{ left: '6cqi', top: '4cqi', width: '44cqi', height: '30cqi' }}
-              >
-                <p className="m">{U.team}</p>
+            <div className="b b13 lt">
+              <div className="pnl case" style={{ left: '6cqi', top: '4cqi', width: '44cqi' }}>
+                <p className="m">
+                  {U.team}
+                  <span className="tag ex" style={{ fontSize: '1cqi', marginLeft: '0.6cqi' }}>
+                    EXAMPLE
+                  </span>
+                </p>
                 <p className="t" style={{ fontSize: '3.2cqi', marginTop: '1.4cqi' }}>
                   {U.teamBody}
                 </p>
-                <div className="bar" style={{ width: '65%' }} />
               </div>
-              <div
-                className="pnl steps"
-                style={{ left: '54cqi', top: '4cqi', width: '40cqi', height: '30cqi' }}
-              >
-                <p className="m">3 steps</p>
+              <div className="pnl steps" style={{ left: '54cqi', top: '4cqi', width: '40cqi' }}>
+                <p className="m">Steps</p>
                 {U.howSteps.map((s, d) => (
                   <p key={s} className={`chk ck${d}`}>
                     <i>
@@ -1331,7 +1159,7 @@ function FilmFast() {
               </div>
             </div>
             {/* 14 */}
-            <div className="b b14">
+            <div className="b b14 lt">
               <div
                 className="abs zm"
                 style={{ left: '26cqi', top: '3cqi', width: '48cqi', transformOrigin: '33% 50%' }}
@@ -1356,7 +1184,7 @@ function FilmFast() {
               <Phone cls="ph" style={{ left: '40.5cqi', top: '2cqi', opacity: 0 }} />
             </div>
             {/* 15 */}
-            <div className="b b15">
+            <div className="b b15 lt">
               <Dots />
               <div className="abs zm" style={{ left: '12cqi', top: '9cqi', width: '36cqi' }}>
                 <div className="mini-card" style={{ position: 'relative', width: '100%' }}>
@@ -1392,42 +1220,47 @@ function FilmFast() {
                 }}
               >
                 <div className="pgi" style={{ padding: '2cqi 2.4cqi' }}>
-                  <p className="m">{U.pageTitle}</p>
+                  <p className="m">
+                    {U.pageTitle}
+                    <Illustrative />
+                  </p>
                   <p className="t" style={{ fontSize: '3.4cqi', marginTop: '1cqi' }}>
                     “Tickets double after every release.”
                   </p>
-                  <div className="bar" style={{ width: '80%' }} />
-                  <div className="bar" style={{ width: '60%' }} />
                   <p className="m" style={{ marginTop: '2.4cqi' }}>
                     {U.team}
                   </p>
                   <p style={{ fontSize: '2cqi', color: '#34332f', marginTop: '0.8cqi' }}>
                     {U.teamBody}
                   </p>
-                  <div className="bar" style={{ width: '70%' }} />
                   {U.howSteps.map((s) => (
                     <p key={s} style={{ fontSize: '2cqi', color: '#34332f', marginTop: '1cqi' }}>
                       {s}
                     </p>
                   ))}
-                  <p
-                    className="rmv"
-                    style={{
-                      fontSize: '2cqi',
-                      textDecoration: 'underline',
-                      marginTop: '3cqi',
-                      color: VERM_INK,
-                      width: 'fit-content',
-                    }}
-                  >
-                    {U.remove}
-                  </p>
                   <p style={{ fontSize: '1.6cqi', color: '#65625c', marginTop: '0.8cqi' }}>
                     Forward to your team{' '}
                     <span className="tag ex" style={{ fontSize: '1.1cqi' }}>
                       {U.concept}
                     </span>
                   </p>
+                </div>
+                <div
+                  className="rmv"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    padding: '1.4cqi 2.4cqi',
+                    background: '#f8f7f3',
+                    borderTop: '1px solid var(--line)',
+                    fontSize: '2cqi',
+                    textDecoration: 'underline',
+                    color: VERM_INK,
+                  }}
+                >
+                  {U.remove}
                 </div>
               </div>
               <div
@@ -1445,6 +1278,9 @@ function FilmFast() {
                 }}
               >
                 Read{' '}
+                <span className="tag ex" style={{ fontSize: '1cqi', marginRight: '0.6cqi' }}>
+                  EXAMPLE
+                </span>
                 <span
                   style={{
                     position: 'relative',
@@ -1464,12 +1300,19 @@ function FilmFast() {
               </div>
             </div>
             {/* 17 */}
-            <div className="b b17">
+            <div className="b b17 lt">
               <div className="pnl slotp" style={{ left: '8cqi', top: '4cqi', width: '44cqi' }}>
-                <p className="m">Thursday</p>
+                <p className="m">
+                  Thursday
+                  <span className="tag ex" style={{ fontSize: '1.1cqi', marginLeft: '0.8cqi' }}>
+                    EXAMPLE
+                  </span>
+                </p>
                 <div className="slots" style={{ marginTop: '1.4cqi' }}>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <i key={i} className={i === 6 ? 'pick' : undefined} />
+                  {SLOTS.map((t, i) => (
+                    <i key={t} className={i === 3 ? 'pick' : undefined}>
+                      {t}
+                    </i>
                   ))}
                 </div>
               </div>
@@ -1494,7 +1337,7 @@ function FilmFast() {
               </div>
             </div>
             {/* 18 */}
-            <div className="b b18">
+            <div className="b b18 lt">
               <div className="five" style={{ left: '28.5cqi', top: '14cqi' }}>
                 {[0, 1, 2, 3, 4].map((i) => (
                   <span key={i}>
@@ -1517,12 +1360,12 @@ function FilmFast() {
                   left: '50%',
                   top: '22cqi',
                   transform: 'translateX(-50%)',
-                  fontSize: '2cqi',
-                  minHeight: '5.6cqi',
+                  fontSize: 'max(14px, 2cqi)',
+                  minHeight: 'max(48px, 5.6cqi)',
                   padding: '0 3cqi',
-                  background: '#f2491c',
-                  color: '#121211',
-                  borderColor: '#f2491c',
+                  background: VERM_INK,
+                  color: '#ffffff',
+                  borderColor: VERM_INK,
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -1532,17 +1375,16 @@ function FilmFast() {
           </div>
         </div>
 
+        <div className="pulse" aria-hidden="true" />
         {/* captions: always on, karaoke, never shaken */}
         <div className="kcs" aria-hidden="true">
           {B.map((b, i) =>
             b.line ? (
-              <p
-                key={b.t}
-                className={`kc kc${i + 1}${LIGHT.has(i + 1) ? 'lt' : ''}${i === B.length - 1 ? 'end' : ''}`}
-              >
+              <p key={b.t} className={`kc kc${i + 1}${i === B.length - 1 ? 'end' : ''}`}>
                 {b.line.split(' ').map((w, j) => (
                   <span key={j} className="w">
                     {w}
+                    {b.key[0] === j ? <i className="ul" /> : null}
                   </span>
                 ))}
               </p>
@@ -1563,6 +1405,7 @@ function FilmFast() {
         </button>
       </div>
       <p className="note">{film.note}</p>
+      <p className="note">{film.voiceNote}</p>
 
       <h3 className="fig" style={{ marginTop: 22 }}>
         {film.transcript}
