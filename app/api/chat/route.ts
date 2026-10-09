@@ -113,10 +113,24 @@ export async function POST(request: Request) {
   if (smallTalk !== null) {
     // Once the five are used, a greeting must not invite another question.
     const remaining = Math.max(0, CHAT_CAP - session.chat_response_count);
-    return json({
-      reply: remaining > 0 ? smallTalk : capReachedReply(context.repFirstName),
-      remaining,
+    const reply = remaining > 0 ? smallTalk : capReachedReply(context.repFirstName);
+    // Logged like any turn, so the rep reads the whole conversation and the
+    // model sees it as context for the next question.
+    const { error: logError } = await db.rpc('record_chat_turn', {
+      p_session_id: session.id,
+      p_question: parsed.data.message,
+      p_answer: reply,
     });
+    if (logError) {
+      console.error(
+        JSON.stringify({
+          event: 'chat_log_failed',
+          sessionId: session.id,
+          error: logError.message,
+        }),
+      );
+    }
+    return json({ reply, remaining });
   }
 
   // §18.1: claim BEFORE the model call, so a burst cannot exceed the cap.
