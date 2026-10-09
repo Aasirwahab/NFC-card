@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { env } from '@/lib/env';
@@ -49,7 +50,7 @@ export type RepIdentity = {
  * The signed-in rep, or null. Always verified against the auth server rather than
  * decoded from the cookie: a cookie is attacker-supplied input.
  */
-export async function getRep(): Promise<RepIdentity | null> {
+async function loadRep(): Promise<RepIdentity | null> {
   const supabase = await createAuthClient();
   const {
     data: { user },
@@ -59,6 +60,13 @@ export async function getRep(): Promise<RepIdentity | null> {
   if (error || !user) return null;
   return { userId: user.id, email: user.email ?? '' };
 }
+
+/**
+ * Memoised for the length of one server render: the layout and the page both ask
+ * who is signed in, and each ask is a round trip to the auth server. One request,
+ * one check. Outside a render (route handlers) it simply calls through.
+ */
+export const getRep = cache(loadRep);
 
 /**
  * The same, but for routes that cannot proceed without a rep. Throws rather than
