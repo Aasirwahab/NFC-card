@@ -577,6 +577,11 @@
   min-height: 0;
   padding-block: 56px;
 }
+.ins .stage-sec.static .cardzone {
+  height: auto;
+  padding: 24px;
+  overflow: visible;
+}
 .ins .stage-sec.static .steps {
   min-height: 0;
   display: grid;
