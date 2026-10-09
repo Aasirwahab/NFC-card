@@ -111,9 +111,11 @@ export async function POST(request: Request) {
   // A greeting or thanks is answered with fixed text and spends nothing (§18.1).
   const smallTalk = smallTalkReply(parsed.data.message, context.repFirstName, context.businessName);
   if (smallTalk !== null) {
+    // Once the five are used, a greeting must not invite another question.
+    const remaining = Math.max(0, CHAT_CAP - session.chat_response_count);
     return json({
-      reply: smallTalk,
-      remaining: Math.max(0, CHAT_CAP - session.chat_response_count),
+      reply: remaining > 0 ? smallTalk : capReachedReply(context.repFirstName),
+      remaining,
     });
   }
 
