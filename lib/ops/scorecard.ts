@@ -13,6 +13,7 @@ const ROW_CAP = 5_000;
 export async function loadScorecard() {
   const db = serviceClient();
 
+  // A failed read must fail the page, not show an empty pilot.
   const [reps, { data: rows }, { data: events }, { data: bookings }] = await Promise.all([
     listReps(),
     db
@@ -20,13 +21,15 @@ export async function loadScorecard() {
       .select(
         'id, user_id, status, registered_at, details_completed_at, first_viewed_at, first_view_source, chat_response_count',
       )
-      .limit(ROW_CAP),
+      .limit(ROW_CAP)
+      .throwOnError(),
     db
       .from('session_events')
       .select('session_id, type')
       .in('type', ['booking_opened', 'linkedin_opened', 'released'])
-      .limit(ROW_CAP),
-    db.from('bookings').select('session_id, status').limit(ROW_CAP),
+      .limit(ROW_CAP)
+      .throwOnError(),
+    db.from('bookings').select('session_id, status').limit(ROW_CAP).throwOnError(),
   ]);
 
   const sessions: ScorecardSession[] = (rows ?? []).map((s) => ({

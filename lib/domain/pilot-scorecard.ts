@@ -30,7 +30,9 @@ export function pilotScorecard(input: {
   const owner = new Map(input.sessions.map((s) => [s.id, s.user_id]));
   const byUser = new Map<string, ScorecardSession[]>();
   for (const s of input.sessions) {
-    byUser.set(s.user_id, [...(byUser.get(s.user_id) ?? []), s]);
+    const list = byUser.get(s.user_id);
+    if (list) list.push(s);
+    else byUser.set(s.user_id, [s]);
   }
 
   const reps = [...byUser.entries()].map(([userId, sessions]) => ({
