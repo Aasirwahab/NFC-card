@@ -18,12 +18,14 @@ function session(
   user_id: string,
   opened: string | null,
   status = 'active',
+  registered_by = 'Rep',
 ): ScorecardSession {
   return {
     ...base,
     id,
     user_id,
     status,
+    registered_by,
     registered_at: '2026-10-01T10:00:00Z',
     first_viewed_at: opened,
   };
@@ -34,6 +36,7 @@ describe('pilotScorecard', () => {
     session('a1', 'zaid', '2026-10-01T18:00:00Z'), // opened within 24 h
     session('a2', 'zaid', '2026-10-03T09:00:00Z'), // opened after two days
     session('a3', 'zaid', null),
+    session('a4', 'zaid', '2026-10-01T10:00:20Z', 'active', 'prospect_tap'), // prospect tapped first
     session('b1', 'adam', '2026-10-01T11:00:00Z'),
     session('b2', 'adam', '2026-10-01T12:00:00Z', 'voided'),
   ];
@@ -53,9 +56,14 @@ describe('pilotScorecard', () => {
   it('splits counts per rep and counts each prospect once', () => {
     const zaid = card.reps.find((r) => r.userId === 'zaid')!.results;
     expect(zaid).toMatchObject({
-      registered: 3,
-      opened: 2,
-      openedWithin24h: 1,
+      registered: 4,
+      opened: 3,
+      repFirst: 3,
+      repFirstOpened: 2,
+      repFirstOpenedWithin24h: 1,
+      // Opened 20 seconds after "registration": the prospect's own tap, so it is
+      // kept out of the opened-later numbers.
+      prospectFirst: 1,
       clickedBook: 1,
       booked: 1,
     });
@@ -65,7 +73,9 @@ describe('pilotScorecard', () => {
     expect(adam).toMatchObject({
       registered: 1,
       opened: 1,
-      openedWithin24h: 1,
+      repFirst: 1,
+      repFirstOpenedWithin24h: 1,
+      prospectFirst: 0,
       clickedBook: 0,
       booked: 0,
       voided: 1,
@@ -73,7 +83,15 @@ describe('pilotScorecard', () => {
   });
 
   it('totals across reps, busiest rep first', () => {
-    expect(card.total).toMatchObject({ registered: 4, opened: 3, openedWithin24h: 2, booked: 1 });
+    expect(card.total).toMatchObject({
+      registered: 5,
+      opened: 4,
+      repFirst: 4,
+      repFirstOpened: 3,
+      repFirstOpenedWithin24h: 2,
+      prospectFirst: 1,
+      booked: 1,
+    });
     expect(card.reps.map((r) => r.userId)).toEqual(['zaid', 'adam']);
   });
 

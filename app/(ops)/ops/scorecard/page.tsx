@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth/staff';
-import { percent, type EventResults } from '@/lib/domain/event-results';
-import { bookedPer10Opened } from '@/lib/domain/pilot-scorecard';
+import { percent } from '@/lib/domain/event-results';
+import { bookedPer10Opened, type Scorecard } from '@/lib/domain/pilot-scorecard';
 import { loadScorecard } from '@/lib/ops/scorecard';
 
 export const metadata = { title: 'Pilot scorecard' };
@@ -45,15 +45,23 @@ export default async function ScorecardPage() {
   );
 }
 
-function Row({ name, r, href }: { name: string; r: EventResults; href?: string }) {
+function Row({ name, r, href }: { name: string; r: Scorecard; href?: string }) {
   const per10 = bookedPer10Opened(r);
   const body = (
     <>
       <p className="text-ink truncate text-[15px] font-semibold">{name}</p>
       <p className="text-ink-2 mt-2 font-mono text-[12px]">
-        {r.registered} in use · {r.opened} opened{share(r.opened, r.registered)} ·{' '}
-        {r.openedWithin24h} within 24 h
+        {r.registered} in use · {r.opened} opened{share(r.opened, r.registered)}
       </p>
+      <p className="text-ink-2 mt-1 font-mono text-[12px]">
+        After hand-over: {r.repFirstOpened} of {r.repFirst} opened · {r.repFirstOpenedWithin24h}{' '}
+        within 24 h
+      </p>
+      {r.prospectFirst > 0 ? (
+        <p className="text-ink-3 mt-1 text-[12px]">
+          {r.prospectFirst} first tapped by the prospect (not counted above)
+        </p>
+      ) : null}
       <p className="text-ink-2 mt-1 font-mono text-[12px]">
         {r.clickedBook} tapped book · {r.booked} booked ·{' '}
         {per10 === null ? '– per 10 opened' : `${per10} per 10 opened`}
