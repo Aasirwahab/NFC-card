@@ -2,7 +2,7 @@ import 'server-only';
 import { decideAudience } from '@/lib/domain/audience';
 import { viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
-import { templatePitch } from '@/lib/domain/pitch';
+import { publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { serviceClient } from './service';
 import type { Row } from './types';
 
@@ -268,7 +268,7 @@ async function prospectView(
     session,
     view: viewForSession(session),
     ...face,
-    eventName: event?.name ?? null,
+    eventName: publicEventName(event?.name),
     playbook,
   };
 }
@@ -423,7 +423,7 @@ export async function contactForCode(code: string): Promise<ContactCard | null> 
     email: profile.contact_email,
     linkedinUrl: profile.linkedin_url,
     website: business?.website ?? null,
-    note: event?.name ? `Met at ${event.name}` : null,
+    note: publicEventName(event?.name) ? `Met at ${publicEventName(event?.name)}` : null,
   };
 }
 
