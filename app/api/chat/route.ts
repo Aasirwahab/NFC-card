@@ -10,6 +10,7 @@ import {
   chatContext,
   chatInstructions,
   checkReply,
+  smallTalkReply,
 } from '@/lib/chat/assistant';
 import { getRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
 
   const { data: session } = await db
     .from('sessions')
-    .select('id, user_id, research')
+    .select('id, user_id, research, chat_response_count')
     .eq('card_id', card.id)
     .eq('status', 'active')
     .maybeSingle();
@@ -106,6 +107,31 @@ export async function POST(request: Request) {
       ? stored.facts.filter((f): f is string => typeof f === 'string')
       : [];
   const context = chatContext(snapshot.data, facts);
+
+  // A greeting or thanks is answered with fixed text and spends nothing (§18.1).
+  const smallTalk = smallTalkReply(parsed.data.message, context.repFirstName, context.businessName);
+  if (smallTalk !== null) {
+    // Once the five are used, a greeting must not invite another question.
+    const remaining = Math.max(0, CHAT_CAP - session.chat_response_count);
+    const reply = remaining > 0 ? smallTalk : capReachedReply(context.repFirstName);
+    // Logged like any turn, so the rep reads the whole conversation and the
+    // model sees it as context for the next question.
+    const { error: logError } = await db.rpc('record_chat_turn', {
+      p_session_id: session.id,
+      p_question: parsed.data.message,
+      p_answer: reply,
+    });
+    if (logError) {
+      console.error(
+        JSON.stringify({
+          event: 'chat_log_failed',
+          sessionId: session.id,
+          error: logError.message,
+        }),
+      );
+    }
+    return json({ reply, remaining });
+  }
 
   // §18.1: claim BEFORE the model call, so a burst cannot exceed the cap.
   const { data: used, error: claimError } = await db.rpc('claim_chat_response', {

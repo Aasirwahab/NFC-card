@@ -88,6 +88,41 @@ export function capReachedReply(repFirstName: string): string {
   return `That’s as much as I can help with here. ${repFirstName} can pick up the rest — book 15 minutes below.`;
 }
 
+const GREETING =
+  /^(?:hi|hello|hey|hiya|howdy|yo|good (?:morning|afternoon|evening))(?: (?:there|again|all))?$/;
+const THANKS =
+  /^(?:thanks|thank you|thx|cheers|ta|many thanks)(?: (?:a lot|so much|very much|mate))?$/;
+const ACKNOWLEDGEMENT =
+  /^(?:ok|okay|cool|great|nice|perfect|brilliant|got it|sounds good|no worries|fine)$/;
+
+/**
+ * A greeting, thanks or "ok" is not a question, so it must not spend one of the
+ * five answers (§18.1): a prospect who opens with "hi" would otherwise lose 20%
+ * of the chat before asking anything. Matching is whole-message and exact, so
+ * "hi, who is this?" or "thanks, what does it cost?" still reach the model. The
+ * reply is fixed text: no model call, no claim, nothing to invent.
+ */
+export function smallTalkReply(
+  message: string,
+  repFirstName: string,
+  businessName: string | null,
+): string | null {
+  const text = message
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text || text.length > 30) return null;
+
+  if (GREETING.test(text)) {
+    return `Hi! Ask me anything about what ${businessName ?? `${repFirstName}’s company`} does, or book 15 minutes with ${repFirstName} below.`;
+  }
+  if (THANKS.test(text) || ACKNOWLEDGEMENT.test(text)) {
+    return `Any time. If anything else comes up, ask me here, or book 15 minutes with ${repFirstName} below.`;
+  }
+  return null;
+}
+
 function lowerFirst(text: string): string {
   const first = text.split(/\s+/)[0] ?? '';
   return first.length > 1 && first === first.toUpperCase()
