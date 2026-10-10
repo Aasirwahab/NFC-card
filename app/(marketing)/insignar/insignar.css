@@ -1171,6 +1171,14 @@
   opacity: 0.42;
   color: inherit;
 }
+/* Beats after the snap sit on the light canvas: unread words use the muted ink (5.3:1), no dark halo. */
+.ins .f6 .kc.klt {
+  text-shadow: none;
+}
+.ins .f6 .kc.klt .w {
+  opacity: 1;
+  color: var(--muted);
+}
 .ins .f6 .kc .ul {
   position: absolute;
   left: 0;
@@ -1368,4 +1376,9 @@
 }
 .ins .tx .note {
   color: var(--muted);
+}
+
+/* The page breaks out with width:100vw; with classic scrollbars that overflows the root by the scrollbar width. */
+html:has(.ins) {
+  overflow-x: clip;
 }

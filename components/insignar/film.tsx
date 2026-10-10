@@ -1369,7 +1369,7 @@ function FilmFast() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Request a pilot
+                Discuss a founding pilot
               </span>
             </div>
           </div>
@@ -1380,7 +1380,16 @@ function FilmFast() {
         <div className="kcs" aria-hidden="true">
           {B.map((b, i) =>
             b.line ? (
-              <p key={b.t} className={`kc kc${i + 1}${i === B.length - 1 ? 'end' : ''}`}>
+              <p
+                key={b.t}
+                className={[
+                  'kc',
+                  `kc${i + 1}${i === B.length - 1 ? 'end' : ''}`,
+                  i + 1 > SNAP_BEAT && 'klt',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 {b.line.split(' ').map((w, j) => (
                   <span key={j} className="w">
                     {w}
