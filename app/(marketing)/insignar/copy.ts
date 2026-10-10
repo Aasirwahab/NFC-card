@@ -14,7 +14,7 @@ export const meta = {
 export const hero = {
   eyebrow: 'Introduction software',
   headline: 'Open with their problem, not yours.',
-  subStrong: 'You listen for 60 seconds. We do the rest.',
+  subStrong: 'Generic pitches get deleted. You listen for 60 seconds instead.',
   subSoft:
     'Record a voice note after you meet someone. INSIGNAR turns it into a private page about their problem, researched with sources and ready for you to approve.',
   primary: 'Request a pilot',
@@ -40,7 +40,7 @@ export const steps = {
       body: 'A range with sources. You confirm it before anything is sent.',
     },
     {
-      title: 'They get a page, not a pitch.',
+      title: 'You send a page, not a pitch.',
       lead: 'Their problem, a team like theirs, one next step.',
       body: 'Private to them, in their own words.',
     },
