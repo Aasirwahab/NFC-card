@@ -298,7 +298,7 @@ function FilmFast() {
       fx('thock', 2.62);
       ticks(2.72, 6, 0.1, 1, 1.5);
 
-      /* ---------- 4 · 4.0 "By Thursday, he’s a name on a list." calendar flips Mon to Thu ---------- */
+      /* ---------- 4 · 4.0 "By Thursday, they’re a name on your list." calendar flips Mon to Thu ---------- */
       tl.fromTo(k(4, '.cal'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 4.0);
       [0, 1, 2, 3].forEach((d, i) => {
         tl.set(k(4, '.hlc'), { xPercent: d * 100, opacity: 1 }, 4.1 + i * 0.1);
@@ -453,7 +453,7 @@ function FilmFast() {
       shake(SNAP, 3);
       pulse(SNAP);
 
-      /* ---------- 11 · 19.0 "One minute. His words." words lock into the page ---------- */
+      /* ---------- 11 · 19.0 "One minute. Their words." words lock into the page ---------- */
       tl.fromTo(
         k(11, '.wave i'),
         { scaleY: 0.1 },
@@ -478,7 +478,7 @@ function FilmFast() {
       });
       fx('thock', 21.7);
 
-      /* ---------- 12 · 22.0 "What it costs his company." the figure locks, source line held 3 s ---------- */
+      /* ---------- 12 · 22.0 "What it costs their company." the figure locks, source line held 3 s ---------- */
       tl.fromTo(k(12, '.cost'), { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'none' }, 22.0);
       fromToLate(
         k(12, '.cfig'),
@@ -490,7 +490,7 @@ function FilmFast() {
       tl.fromTo(k(12, '.okc'), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none' }, 24.0);
       fx('thock', 22.1);
 
-      /* ---------- 13 · 25.5 "A team like his that fixed it." case card, three steps ---------- */
+      /* ---------- 13 · 25.5 "A team like theirs that fixed it." case card, three steps ---------- */
       tl.fromTo(
         k(13, '.case'),
         { x: c(60), opacity: 0 },
@@ -533,7 +533,7 @@ function FilmFast() {
       fx('whoosh', 30.0);
       fx('thock', 30.8);
 
-      /* ---------- 15 · 32.0 "He taps." the ripple fills the screen ---------- */
+      /* ---------- 15 · 32.0 "They tap." the ripple fills the screen ---------- */
       tl.fromTo(k(15, '.zm'), { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 32.0);
       tl.fromTo(
         k(15, '.ph'),
@@ -560,7 +560,7 @@ function FilmFast() {
       );
       fx('thock', 33.0);
 
-      /* ---------- 16 · 34.5 "He reads it. Twice." one 0.7 s scroll; "Remove my details" stays put ---------- */
+      /* ---------- 16 · 34.5 "They read it. Twice." one 0.7 s scroll; "Remove my details" stays put ---------- */
       tl.fromTo(k(16, '.pgv'), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' }, 34.5);
       tl.fromTo(k(16, '.pgi'), { y: 0 }, { y: c(-5), duration: 0.7, ease: 'power2.inOut' }, 34.9);
       tl.fromTo(

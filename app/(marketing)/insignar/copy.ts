@@ -95,10 +95,10 @@ export const film = {
   ],
   /** v6 fast cut: one entry per beat. `key` = word indexes that punch in the karaoke caption. */
   beats: [
-    { t: '0:00', start: 0, end: 1.2, line: 'You met him.', key: [2] },
+    { t: '0:00', start: 0, end: 1.2, line: 'You met them.', key: [2] },
     { t: '0:01', start: 1.2, end: 2.6, line: 'Great conversation.', key: [1] },
     { t: '0:02', start: 2.6, end: 4, line: 'Six more. Fast.', key: [2] },
-    { t: '0:04', start: 4, end: 6, line: 'By Thursday, he’s a name on a list.', key: [4] },
+    { t: '0:04', start: 4, end: 6, line: 'By Thursday, they’re a name on your list.', key: [4] },
     { t: '0:06', start: 6, end: 8, line: 'Gone.', key: [0] },
     {
       t: '0:08',
@@ -111,12 +111,12 @@ export const film = {
     { t: '0:12', start: 12.5, end: 15, line: 'The deal walks.', key: [2] },
     { t: '0:15', start: 15, end: 16.6, line: '', key: [] },
     { t: '0:16', start: 16.6, end: 19, line: 'Not this time.', key: [0] },
-    { t: '0:19', start: 19, end: 22, line: 'One minute. His words.', key: [3] },
-    { t: '0:22', start: 22, end: 25.5, line: 'What it costs his company.', key: [2] },
-    { t: '0:25', start: 25.5, end: 29, line: 'A team like his that fixed it.', key: [5] },
-    { t: '0:29', start: 29, end: 32, line: 'One page. About him.', key: [3] },
-    { t: '0:32', start: 32, end: 34.5, line: 'He taps.', key: [1] },
-    { t: '0:34', start: 34.5, end: 37.5, line: 'He reads it. Twice.', key: [3] },
+    { t: '0:19', start: 19, end: 22, line: 'One minute. Their words.', key: [3] },
+    { t: '0:22', start: 22, end: 25.5, line: 'What it costs their company.', key: [2] },
+    { t: '0:25', start: 25.5, end: 29, line: 'A team like theirs that fixed it.', key: [5] },
+    { t: '0:29', start: 29, end: 32, line: 'One page. About them.', key: [3] },
+    { t: '0:32', start: 32, end: 34.5, line: 'They tap.', key: [1] },
+    { t: '0:34', start: 34.5, end: 37.5, line: 'They read it. Twice.', key: [3] },
     { t: '0:37', start: 37.5, end: 40.5, line: 'Booked.', key: [0] },
     { t: '0:40', start: 40.5, end: 42.5, line: 'Be the one they remember.', key: [4] },
     {
