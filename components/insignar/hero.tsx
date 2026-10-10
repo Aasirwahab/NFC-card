@@ -82,27 +82,36 @@ export function Hero() {
         void document.fonts.ready.then(() => {
           if (cancelled) return;
           split = SplitText.create(title, { type: 'words', wordsClass: 'w' });
+          // One staged entrance, plays once, transform + opacity only, about 0.9 s: eyebrow, headline words,
+          // sub and buttons, then the card visual and the example chip.
           tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-          tl.fromTo(
-            split.words,
-            { y: 40, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.6, stagger: 0.05 },
-            0.1,
-          )
-            .call(() => sfx.play('thock'), [], 0.1)
+          tl.fromTo('.hero .ey', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, 0)
             .fromTo(
-              '.hero .fi',
+              split.words,
+              { y: 40, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.5, stagger: 0.06 },
+              0.05,
+            )
+            .call(() => sfx.play('thock'), [], 0.05)
+            .fromTo(
+              '.hero .fi:not(.ey)',
               { y: 16, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.6, stagger: 0.08 },
-              0.5,
+              { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
+              0.3,
             )
             .fromTo(
               '.hero .hc',
-              { y: 60, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.9, stagger: 0.12 },
-              0.2,
+              { y: 40, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.5, stagger: 0.08 },
+              0.3,
             )
-            .to(ripple, { p: 1, duration: 1.8, ease: 'power2.out', onUpdate: draw }, 0.7);
+            .fromTo(
+              '.hero .hchip',
+              { y: 12, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.35 },
+              0.55,
+            )
+            .to(ripple, { p: 1, duration: 1.4, ease: 'power2.out', onUpdate: draw }, 0.3);
           if (ins) ins.dataset.m = 'on';
         });
         return () => {
@@ -149,18 +158,13 @@ export function Hero() {
     { scope: root },
   );
 
-  const words = hero.quote;
   return (
     <section ref={root} className="hero grain">
       <canvas ref={cv} aria-hidden="true" />
       <div className="wrap hero-grid">
         <div>
-          <p className="fig fi">[ {hero.eyebrow} ]</p>
-          <h1 ref={h1} aria-label={`“${words}”`}>
-            <span className="q">“</span>
-            {words}
-            <span className="q">”</span>
-          </h1>
+          <p className="fig fi ey">[ {hero.eyebrow} ]</p>
+          <h1 ref={h1}>{hero.headline}</h1>
           <p className="sub fi">
             {hero.subStrong} <span>{hero.subSoft}</span>
           </p>
@@ -173,8 +177,8 @@ export function Hero() {
             </a>
           </div>
         </div>
-        <div className="block-wrap" aria-hidden="true">
-          <div className="block">
+        <div className="block-wrap">
+          <div className="block" aria-hidden="true">
             <div className="block-in">
               <div className="hero-cards">
                 <div className="hc back">
@@ -187,6 +191,13 @@ export function Hero() {
               </div>
             </div>
             <div className="block-tone" />
+          </div>
+          <div className="hchip">
+            <div className="hchip-in">
+              <span className="fig">{hero.chipCaption}</span>
+              <q>{hero.chipQuote}</q>
+              <span className="tag ex">{hero.chipTag}</span>
+            </div>
           </div>
           <p className="fig">
             {hero.fig} · {hero.figNote}

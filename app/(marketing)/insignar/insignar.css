@@ -175,12 +175,12 @@
   min-width: 0;
 }
 .ins .hero h1 {
-  font-size: clamp(44px, 8.2vw, 112px);
-  line-height: 0.92;
+  font-size: clamp(46px, 8.6vw, 120px);
+  line-height: 0.9;
+  letter-spacing: -0.045em;
   margin-top: 18px;
-}
-.ins .hero h1 .q {
-  color: var(--verm-block);
+  max-width: 9em;
+  text-wrap: balance;
 }
 .ins .hero h1 .w {
   display: inline-block;
@@ -188,6 +188,7 @@
 }
 .ins[data-m='pre'] .hero h1,
 .ins[data-m='pre'] .fi,
+.ins[data-m='pre'] .hchip,
 .ins[data-m='pre'] .hc {
   opacity: 0;
 }
@@ -201,13 +202,62 @@
   max-width: 20em;
 }
 .ins .sub span {
-  color: #6d6a62;
+  display: block;
+  margin-top: 10px;
+  font-family: var(--f-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: clamp(16px, 1.7vw, 19px);
+  line-height: 1.5;
+  color: #55524b;
 }
 .ins .cta {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 30px;
+}
+/* Primary leads: larger, bold. Secondary stays a quiet outline. Both keep the 48px touch target. */
+.ins .cta .btn {
+  min-height: 52px;
+  padding: 0 28px;
+}
+.ins .cta .btn.ghost {
+  min-height: 48px;
+  padding: 0 22px;
+  border-color: var(--line);
+}
+/* Example quote chip: sits over the visual (outside the masked block), drifts 6px, no layout impact. */
+.ins .hchip {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  max-width: min(78%, 280px);
+}
+.ins .hchip-in {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 10px 14px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(18, 18, 17, 0.14);
+  animation: hchip-drift 6s ease-in-out infinite alternate;
+}
+.ins .hchip-in q {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  quotes: '“' '”';
+}
+@keyframes hchip-drift {
+  to {
+    transform: translateY(6px);
+  }
 }
 .ins .block-wrap {
   position: relative;
@@ -219,10 +269,12 @@
   background: var(--verm-block);
   position: relative;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
     linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
+  mask-image:
+    linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
     linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   mask-composite: intersect;
 }
@@ -576,7 +628,11 @@
   position: absolute;
   inset: -30%;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 45%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0) 45%
+  );
 }
 /* contact shadow: static blur, only x/opacity move */
 .ins .card-shadow {
@@ -1277,6 +1333,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .ins .hchip-in {
+    animation: none;
+  }
   .ins .btn,
   .ins .btn:active {
     transition: none;

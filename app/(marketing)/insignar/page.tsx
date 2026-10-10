@@ -21,7 +21,7 @@ export default function InsignarPage() {
   return (
     <div className="ins" data-m="pre">
       <noscript>
-        <style>{`.ins[data-m='pre'] .hero h1, .ins[data-m='pre'] .fi, .ins[data-m='pre'] .hc { opacity: 1 !important; }`}</style>
+        <style>{`.ins[data-m='pre'] .hero h1, .ins[data-m='pre'] .fi, .ins[data-m='pre'] .hchip, .ins[data-m='pre'] .hc { opacity: 1 !important; }`}</style>
       </noscript>
 
       <Hero />
