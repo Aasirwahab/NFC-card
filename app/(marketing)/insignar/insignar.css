@@ -209,17 +209,41 @@
   flex-wrap: wrap;
   margin-top: 30px;
 }
-.ins .block {
-  background: var(--verm-block);
-  border-radius: 4px;
+.ins .block-wrap {
   position: relative;
   min-height: clamp(300px, 52vw, 500px);
   display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: 24px 0;
 }
-.ins .block .fig {
+/* Static parent: carries the edge-fade mask. Never animated. */
+.ins .block {
+  background: var(--verm-block);
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  mask-composite: intersect;
+}
+/* Inner layer: the only thing that scales on scroll. */
+.ins .block-in {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px 0;
+  transform-origin: 50% 50%;
+}
+/* Separate crossfade layer: dark wash that lifts to light as the hero scrolls away. */
+.ins .block-tone {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(20, 20, 19, 0.28), rgba(20, 20, 19, 0));
+  opacity: 1;
+  pointer-events: none;
+}
+.ins .block-wrap > .fig {
   position: absolute;
   left: 14px;
   bottom: 12px;

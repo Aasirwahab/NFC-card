@@ -113,6 +113,34 @@ export function Hero() {
         };
       });
 
+      // Slow scroll-linked push-in on the inner layer only (the masked parent stays static). No drift loop.
+      mm.add(MQ.ok, () => {
+        const inner = el.querySelector<HTMLElement>('.block-in');
+        const tone = el.querySelector<HTMLElement>('.block-tone');
+        if (!inner || !tone) return;
+        const tl = gsap.timeline({
+          defaults: { ease: 'none' },
+          scrollTrigger: {
+            trigger: el,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+            // will-change only while the hero is on screen and animating
+            onToggle: (self) => {
+              inner.style.willChange = self.isActive ? 'transform' : '';
+              tone.style.willChange = self.isActive ? 'opacity' : '';
+            },
+          },
+        });
+        tl.fromTo(inner, { scale: 1 }, { scale: 1.04 }, 0).to(tone, { opacity: 0 }, 0);
+        return () => {
+          tl.scrollTrigger?.kill();
+          tl.kill();
+          inner.style.willChange = '';
+          tone.style.willChange = '';
+        };
+      });
+
       return () => {
         ro.disconnect();
         mm.revert();
@@ -145,15 +173,20 @@ export function Hero() {
             </a>
           </div>
         </div>
-        <div className="block" aria-hidden="true">
-          <div className="hero-cards">
-            <div className="hc back">
-              <img src="/insignar/card-back.svg" alt="" width={910} height={610} />
+        <div className="block-wrap" aria-hidden="true">
+          <div className="block">
+            <div className="block-in">
+              <div className="hero-cards">
+                <div className="hc back">
+                  <img src="/insignar/card-back.svg" alt="" width={910} height={610} />
+                </div>
+                <div className="hc front">
+                  <img src="/insignar/card-front.svg" alt="" width={910} height={610} />
+                </div>
+                <span ref={nfc} className="nfc" />
+              </div>
             </div>
-            <div className="hc front">
-              <img src="/insignar/card-front.svg" alt="" width={910} height={610} />
-            </div>
-            <span ref={nfc} className="nfc" />
+            <div className="block-tone" />
           </div>
           <p className="fig">
             {hero.fig} · {hero.figNote}
