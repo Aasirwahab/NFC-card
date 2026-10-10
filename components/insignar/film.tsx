@@ -1384,7 +1384,8 @@ function FilmFast() {
                 key={b.t}
                 className={[
                   'kc',
-                  `kc${i + 1}${i === B.length - 1 ? 'end' : ''}`,
+                  `kc${i + 1}`,
+                  i === B.length - 1 && 'end',
                   i + 1 > SNAP_BEAT && 'klt',
                 ]
                   .filter(Boolean)
