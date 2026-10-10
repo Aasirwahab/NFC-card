@@ -219,11 +219,7 @@ export function FilmCalm() {
   const S = film.scenes;
   return (
     <div ref={root}>
-      <div
-        className="film-box"
-        role="img"
-        aria-label={`${film.title} ${film.note}`}
-      >
+      <div className="film-box" role="img" aria-label={`${film.title} ${film.note}`}>
         {/* 1 */}
         <div className="fs s1">
           <div className="mini-card" style={{ left: '7cqi', top: '12cqi' }}>

@@ -169,16 +169,16 @@
   grid-template-columns: 1.15fr 0.85fr;
   gap: clamp(24px, 4vw, 64px);
   align-items: center;
-  padding-block: clamp(28px, 5vw, 64px) clamp(36px, 6vw, 80px);
+  padding-block: clamp(20px, 3vw, 40px) clamp(36px, 6vw, 80px);
 }
 .ins .hero-grid > * {
   min-width: 0;
 }
 .ins .hero h1 {
-  font-size: clamp(46px, 8.6vw, 120px);
+  font-size: clamp(44px, min(8.6vw, 11.5vh), 120px);
   line-height: 0.9;
   letter-spacing: -0.045em;
-  margin-top: 18px;
+  margin-top: 12px;
   max-width: 9em;
   text-wrap: balance;
 }
@@ -198,7 +198,7 @@
   letter-spacing: -0.03em;
   font-size: clamp(21px, 2.6vw, 32px);
   line-height: 1.14;
-  margin-top: 26px;
+  margin-top: 18px;
   max-width: 20em;
 }
 .ins .sub span {
@@ -215,7 +215,7 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 30px;
+  margin-top: 22px;
 }
 /* Primary leads: larger, bold. Secondary stays a quiet outline. Both keep the 48px touch target. */
 .ins .cta .btn {
