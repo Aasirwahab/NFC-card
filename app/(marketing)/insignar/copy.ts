@@ -1,6 +1,6 @@
 /**
  * Every string on the INSIGNAR landing page. Source: insignar-design/COPY.md and film/FILM_SCRIPT.md.
- * Names: rep = Maya Okafor, prospect = Daniel at Northwind. Every number is EXAMPLE until sourced.
+ * Voice: the page speaks to the visitor (the rep) as "you". Daniel (prospect) and Maya (rep) appear only inside labelled EXAMPLE mockups. Every number is EXAMPLE until sourced.
  * Strings marked BUILD-DRAFT are not in COPY.md; they were written for layout and need sign-off.
  */
 export const EXAMPLE = 'EXAMPLE';
@@ -8,46 +8,48 @@ export const EXAMPLE = 'EXAMPLE';
 export const meta = {
   title: 'Make every introduction worth more',
   description:
-    'INSIGNAR is introduction software. A numbered card opens a private page about the other person’s problem.',
+    'INSIGNAR is introduction software. You record what you heard; they get a private page about their problem.',
 };
 
 export const hero = {
   eyebrow: 'Introduction software',
-  quote: 'Tickets double after every release.',
-  subStrong: 'Daniel told you that at the event.',
+  headline: 'Open with their problem, not yours.',
+  subStrong: 'You listen for 60 seconds. We do the rest.',
   subSoft:
-    'INSIGNAR turns it into a private page for his company, so you open with his problem, not yours.',
+    'Record a voice note after you meet someone. INSIGNAR turns it into a private page about their problem, researched with sources and ready for you to approve.',
   primary: 'Request a pilot',
   secondary: 'Watch the film',
+  chipCaption: 'What they told you',
+  chipQuote: 'Tickets double after every release.',
+  chipTag: EXAMPLE,
   fig: 'FIG 0.1 · card A·07, handed 19:42, tapped 07:58',
   figNote: EXAMPLE,
-  headline: 'Make every introduction worth more.',
 };
 
 export const steps = {
   fig: (n: number) => `FIG 0.${n + 1} · 0${n}`,
   items: [
     {
-      title: 'They tell you.',
-      lead: '60 seconds, in your own voice.',
+      title: 'You listen.',
+      lead: 'Record 60 seconds in your own voice.',
       body: 'Their words, saved from a voice note. Nothing to type.',
     },
     {
       title: 'We research.',
-      lead: 'What it costs his company.',
-      body: 'A range with sources, confirmed by you before it is sent.',
+      lead: 'What the problem costs their company.',
+      body: 'A range with sources. You confirm it before anything is sent.',
     },
     {
       title: 'They get a page, not a pitch.',
       lead: 'Their problem, a team like theirs, one next step.',
-      body: 'Private to Daniel. Quoted back as his.',
+      body: 'Private to them, in their own words.',
     },
   ],
 };
 
 export const film = {
   label: '[ THE FILM · 46 SECONDS ]',
-  title: 'Daniel told Maya one thing.',
+  title: 'You met them. Here is what happens next.',
   play: 'Play',
   pause: 'Pause',
   replay: 'Replay',
@@ -61,28 +63,33 @@ export const film = {
       t: '0:00',
       start: 0,
       end: 5,
-      line: 'Daniel runs support. He told Maya one thing at the event.',
+      line: 'You met them at an event. They told you one thing.',
     },
     {
       t: '0:05',
       start: 5,
       end: 11,
-      line: 'By Thursday, most people send him a pitch about themselves.',
+      line: 'By Thursday, your email is one more pitch about you.',
     },
-    { t: '0:11', start: 11, end: 17, line: 'INSIGNAR starts with his problem. In his own words.' },
+    {
+      t: '0:11',
+      start: 11,
+      end: 17,
+      line: 'INSIGNAR starts with their problem. In their own words.',
+    },
     {
       t: '0:17',
       start: 17,
       end: 25,
-      line: 'Then what it costs his company. Researched, with sources.',
+      line: 'Then what it costs their company. Researched, with sources.',
     },
     {
       t: '0:25',
       start: 25,
       end: 32,
-      line: 'You said it. We listened. Here is a team like yours that fixed it.',
+      line: 'The page says we listened, and shows a team like theirs that fixed it.',
     },
-    { t: '0:32', start: 32, end: 38, line: 'He taps the card and reads it.' },
+    { t: '0:32', start: 32, end: 38, line: 'They tap your card and read it.' },
     { t: '0:38', start: 38, end: 42, line: 'A meeting.' },
     { t: '0:42', start: 42, end: 46, line: 'INSIGNAR. Make every introduction worth more.' },
   ],
@@ -158,32 +165,32 @@ export const card = {
     {
       n: '01',
       h: 'Numbered. Named. Yours.',
-      p: 'Every card carries the rep’s name and its own number, A·07.',
+      p: 'Every card carries your name and its own number, A·07.',
     },
     {
       n: '02',
-      h: 'The back says whose notes these are.',
-      p: 'Notes from Maya Okafor, from the event. Private. Tap to read.',
+      h: 'The back says who wrote the notes.',
+      p: 'Your name and the event, so they know the page is from you. Private. Tap to read.',
     },
     {
       n: '03',
       h: 'Tap here.',
-      p: 'The NFC point opens Daniel’s page. When it is tapped, we already know who it is for. No form.',
+      p: 'The NFC point opens their page. When they tap, we already know who it is for. No form.',
     },
     { n: '04', h: 'No NFC? Scan.', p: 'Every card carries a QR code that opens the same page.' },
   ],
 };
 
 export const page = {
-  label: '[ THE PROSPECT’S PAGE ]',
-  title: 'A page about his problem. Not a pitch.',
-  lead: 'Five parts, in this order. Private to Daniel, with a way out on every screen.',
-  figs: 'FIG 3.1 · Daniel’s page at Northwind',
+  label: '[ WHAT THEY GET ]',
+  title: 'A page about their problem. Not a pitch.',
+  lead: 'Five parts, in this order. Private to the person you met, with a way out on every screen.',
+  figs: 'FIG 3.1 · EXAMPLE page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
   one: {
     h: 'Your problem',
     q: '“Tickets double after every release.”',
-    by: 'Daniel, in his own words',
+    by: 'You, at the event',
   },
   two: {
     h: 'What it costs your team',
@@ -213,14 +220,14 @@ export const page = {
   trust: [
     { h: 'One tap to remove.', p: 'They can remove their details in one tap.' },
     { h: 'Their ideas stay theirs.', p: 'Quoted back as theirs.' },
-    { h: 'Drafts wait for you.', p: 'Nothing is sent until the rep sends it.' },
+    { h: 'Drafts wait for you.', p: 'Nothing is sent until you send it.' },
   ],
 };
 
 export const exploded = {
   label: '[ THE CARD, EXPLODED ]',
   title: 'One card. One person. One page.',
-  body: 'Every card is numbered and live before the event. When it is tapped, we already know who it is for. No form.',
+  body: 'Every card is numbered and live before the event. When they tap it, we already know who it is for. No form.',
   layers: [
     '[ 01 ] DEBOSSED MARK, BLIND',
     '[ 02 ] QR, FALLBACK FOR ANY PHONE',
@@ -233,7 +240,7 @@ export const exploded = {
 export const five = {
   label: '[ THE 5 THAT MATTER ]',
   title: '500 contacts don’t close deals. The right five might.',
-  note: 'For sales directors only. Never on the prospect’s page.',
+  note: 'For sales directors only. Never on the page your prospect sees.',
   manager: {
     label: '[ MANAGER VIEW, DAY ONE ]',
     note: 'EXAMPLE numbers. Managers see status, never page content.',
@@ -258,8 +265,8 @@ export const pilot = {
   label: '[ PILOT ]',
   title: 'Ten introductions per rep. Four weeks. Your numbers decide.',
   offer: [
-    'Three or more reps, ten numbered cards each',
-    'A scorecard agreed in writing before day one',
+    'Three or more of your reps, ten numbered cards each',
+    'A scorecard you agree in writing before day one',
     'A CSV export and a clean exit',
   ],
   noPrice: 'No price in the demo.',
@@ -292,7 +299,7 @@ export const faq = {
   items: [
     {
       q: 'Is this a business card company?',
-      a: 'No. The card is a key; the product is the software behind it.',
+      a: 'No. The card is only the key. The product is the software that turns what you heard into a page about their problem.',
     },
     {
       q: 'What if their phone has no NFC?',
@@ -301,7 +308,7 @@ export const faq = {
     { q: 'Does it send emails for me?', a: 'No. It drafts; you review and send.' },
     {
       q: 'What does the pilot involve?',
-      a: 'Ten cards, ten real conversations, and we measure taps and meetings booked.',
+      a: 'Ten cards for you, ten real conversations, and we measure taps and meetings booked.',
     },
   ],
 };

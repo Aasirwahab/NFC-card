@@ -267,7 +267,7 @@ export function FilmCalm() {
               color: '#ece9e2',
             }}
           >
-            His problem is nowhere on it.
+            Their problem is nowhere on it.
           </p>
           <Cap i={1} />
         </div>
