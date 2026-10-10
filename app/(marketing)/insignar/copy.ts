@@ -48,7 +48,7 @@ export const steps = {
 };
 
 export const film = {
-  label: '[ THE FILM · 46 SECONDS ]',
+  label: '[ THE FILM · 42 SECONDS ]',
   title: 'You met them. Here is what happens next.',
   play: 'Play',
   pause: 'Pause',

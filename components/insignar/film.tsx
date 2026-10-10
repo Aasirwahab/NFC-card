@@ -4,17 +4,18 @@
 
 import { useRef, useState, useSyncExternalStore } from 'react';
 import { gsap, MQ, useGSAP } from '@/lib/motion/gsap';
+import { REAL_END, VISUAL_END, unwarp, warp } from '@/lib/motion/warp';
 import { sfx, type SfxKind, type SfxOpt } from '@/lib/motion/sfx';
 import { film } from '@/app/(marketing)/insignar/copy';
 import { FilmCalm } from './film-calm';
 
 /**
- * INSIGNAR film v6, the fast cut. One paused GSAP master timeline, 46 s.
+ * INSIGNAR film v6, the fast cut. One paused GSAP master timeline, 46 s visual, played on a 42.05 s real clock (lib/motion/warp.ts).
  * Spec: insignar-design/film/FILM_V6_FAST_CUT.md. Reduced motion gets the calm v5 film (film-calm.tsx).
  */
 const U = film.ui;
 const B = film.beats;
-const DURATION = 46;
+const DURATION = VISUAL_END;
 const NC = 20;
 const NR = 11;
 const WAVE = Array.from(
@@ -131,6 +132,8 @@ function FilmFast() {
   const clips = useRef<Map<string, HTMLAudioElement | null>>(new Map());
   const live = useRef<Set<HTMLAudioElement>>(new Set());
   const userPaused = useRef(false);
+  const running = useRef(false);
+  const clock = useRef(0); // real seconds played so far
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [sound, setSound] = useState(false);
@@ -173,7 +176,7 @@ function FilmFast() {
         paused: true,
         defaults: { ease: 'power3.out', duration: 0.5 },
         onUpdate: () => {
-          gsap.set(bar, { scaleX: tl.progress() });
+          gsap.set(bar, { scaleX: clock.current / REAL_END });
         },
         onComplete: () => {
           box.dataset.play = 'off';
@@ -656,15 +659,23 @@ function FilmFast() {
       });
 
       /* ---------- player ---------- */
+      /** The timeline stays paused; a real-time clock sets its playhead to warp(r) each tick. */
+      const tick = (_t: number, dt: number) => {
+        clock.current = Math.min(clock.current + dt / 1000, REAL_END);
+        tl.time(warp(clock.current), false);
+      };
       const go = () => {
         box.dataset.play = 'on';
-        tl.play();
+        running.current = true;
+        gsap.ticker.remove(tick);
+        gsap.ticker.add(tick);
         setPlaying(true);
         if (sfx.on) live.current.forEach((a) => a.play().catch(() => {}));
       };
       const halt = () => {
         box.dataset.play = 'off';
-        tl.pause();
+        running.current = false;
+        gsap.ticker.remove(tick);
         sfx.cut();
         stopClips(false);
         setPlaying(false);
@@ -675,8 +686,9 @@ function FilmFast() {
       if (debug && debugT !== null) {
         userPaused.current = true;
         (window as unknown as { __filmTl?: gsap.core.Timeline }).__filmTl = tl;
-        tl.time(Math.min(Math.max(debugT, 0), DURATION), false);
-        gsap.set(bar, { scaleX: tl.progress() });
+        clock.current = unwarp(debugT); // filmT is visual time
+        tl.time(warp(clock.current), false);
+        gsap.set(bar, { scaleX: clock.current / REAL_END });
         requestAnimationFrame(() => box.scrollIntoView({ block: 'center', behavior: 'instant' }));
       } else {
         io = new IntersectionObserver(
@@ -684,7 +696,7 @@ function FilmFast() {
             if (!e) return;
             if (e.isIntersecting) {
               if (!userPaused.current && tl.progress() < 1) go();
-            } else if (!tl.paused()) {
+            } else if (running.current) {
               halt();
             }
           },
@@ -695,6 +707,8 @@ function FilmFast() {
 
       return () => {
         io?.disconnect();
+        gsap.ticker.remove(tick);
+        running.current = false;
         sfx.cut();
         stopClips(true);
         api.current = null;
@@ -711,9 +725,10 @@ function FilmFast() {
     if (tl.progress() >= 1) {
       userPaused.current = false;
       setEnded(false);
-      tl.restart();
+      clock.current = 0;
+      tl.time(0, true);
       a.go();
-    } else if (tl.paused()) {
+    } else if (!running.current) {
       userPaused.current = false;
       a.go();
     } else {
