@@ -488,7 +488,7 @@ export function FilmCalm() {
               borderColor: '#f2491c',
             }}
           >
-            Request a pilot
+            Discuss a founding pilot
           </span>
           <Cap i={7} />
         </div>

@@ -124,6 +124,10 @@ export default function InsignarPage() {
             <h2 data-rv style={{ marginTop: 12 }}>
               {pilot.title}
             </h2>
+            <p className="lead" data-rv>
+              {pilot.outline}
+            </p>
+            <p data-rv>{pilot.trust}</p>
             <ul className="offer" data-rv>
               {pilot.offer.map((o) => (
                 <li key={o}>{o}</li>
