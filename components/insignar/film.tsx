@@ -58,7 +58,6 @@ const VO: readonly VoClip[] = [
   { at: 8, src: '/insignar/vo/line-06.m4a' },
   { at: 10.5, src: '/insignar/vo/line-07.m4a' },
   { at: 12.5, src: '/insignar/vo/line-08.m4a' },
-  { at: 15, src: '/insignar/vo/line-09.m4a' },
   { at: 16.6, src: '/insignar/vo/line-10.m4a' },
   { at: 19, src: '/insignar/vo/line-11.m4a' },
   { at: 22, src: '/insignar/vo/line-12.m4a' },
