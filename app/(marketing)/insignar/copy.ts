@@ -278,7 +278,10 @@ export const pilot = {
     company: 'Company',
     reps: 'Number of reps',
     submit: 'Request a pilot',
-    demo: 'Demo: nothing was sent',
+    sending: 'Sending…',
+    success: 'Thanks. We will be in touch to arrange your pilot.',
+    error: 'Something went wrong. Please check your details and try again.',
+    privacyLine: 'We use these details only to arrange your pilot. Remove them any time.',
     privacy: 'How we handle your details',
   },
 };
