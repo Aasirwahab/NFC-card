@@ -749,7 +749,7 @@ function FilmFast() {
         className="film-box f6"
         data-play="off"
         role="img"
-        aria-label={`${film.title} ${film.note} Full text in the transcript below.`}
+        aria-label={`${film.title} ${film.note}`}
       >
         <div className="shk">
           <div className="cam">
@@ -1406,18 +1406,6 @@ function FilmFast() {
       </div>
       <p className="note">{film.note}</p>
       <p className="note">{film.voiceNote}</p>
-
-      <h3 className="fig" style={{ marginTop: 22 }}>
-        {film.transcript}
-      </h3>
-      <ol className="transcript">
-        {B.map((b) => (
-          <li key={b.t + b.start}>
-            <time>{b.t}</time>
-            <span>{b.line || film.silence}</span>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }

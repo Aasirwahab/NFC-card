@@ -475,29 +475,6 @@
   transform-origin: left;
   transform: scaleX(0);
 }
-.ins .transcript {
-  margin-top: 22px;
-  border-top: 1px solid #3a3935;
-  padding-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px 40px;
-  font-size: 15px;
-  color: #cfcbc2;
-  list-style: none;
-  padding-left: 0;
-}
-.ins .transcript li {
-  display: flex;
-  gap: 12px;
-}
-.ins .transcript time {
-  font-family: var(--f-mono);
-  font-size: 12px;
-  color: #a8a49c;
-  flex: none;
-  padding-top: 2px;
-}
 .ins .note {
   font-size: 13px;
   color: #a8a49c;
@@ -1002,9 +979,6 @@
   .ins .stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  .ins .transcript {
-    grid-template-columns: 1fr;
-  }
   .ins .fs .cap {
     font-size: 4cqi;
     bottom: 3cqi;
@@ -1238,4 +1212,31 @@
     transition: none;
     transform: none;
   }
+}
+
+/* transcript page: plain, readable */
+.ins .tx {
+  padding-block: 56px;
+}
+.ins .tx ol {
+  list-style: none;
+  padding: 0;
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+  max-width: 40em;
+}
+.ins .tx li {
+  display: flex;
+  gap: 14px;
+}
+.ins .tx time {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  color: var(--muted);
+  flex: none;
+  padding-top: 3px;
+}
+.ins .tx .note {
+  color: var(--muted);
 }

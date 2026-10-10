@@ -171,6 +171,7 @@ export default function InsignarPage() {
         <div className="wrap">
           <span>{footer.line}</span>
           <span>{footer.note}</span>
+          <Link href="/insignar/transcript">{footer.readFilm}</Link>
           <Link href="/privacy">{footer.privacy}</Link>
         </div>
       </footer>

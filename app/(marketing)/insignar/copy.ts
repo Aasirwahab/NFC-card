@@ -306,5 +306,6 @@ export const faq = {
 export const footer = {
   line: 'INSIGNAR · Introduction software',
   privacy: 'Privacy',
+  readFilm: 'Read the film',
   note: 'Concept page. Nothing here is a claim about results.',
 };

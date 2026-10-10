@@ -222,7 +222,7 @@ export function FilmCalm() {
       <div
         className="film-box"
         role="img"
-        aria-label={`${film.title} ${film.note} Full text in the transcript below.`}
+        aria-label={`${film.title} ${film.note}`}
       >
         {/* 1 */}
         <div className="fs s1">
@@ -506,18 +506,6 @@ export function FilmCalm() {
         </button>
       </div>
       <p className="note">{film.note}</p>
-
-      <h3 className="fig" style={{ marginTop: 22 }}>
-        {film.transcript}
-      </h3>
-      <ol className="transcript">
-        {S.map((s) => (
-          <li key={s.t}>
-            <time>{s.t}</time>
-            <span>{s.line}</span>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }
