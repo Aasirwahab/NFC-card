@@ -26,34 +26,7 @@ export default function InsignarPage() {
 
       <Hero />
 
-      <section className="sec" id="how">
-        <Reveal className="wrap">
-          <div className="three">
-            {steps.items.map((s, i) => (
-              <div key={s.title} data-rv>
-                <p className="fig">{steps.fig(i + 1)}</p>
-                <h3>{s.title}</h3>
-                <p className="lead2">{s.lead}</p>
-                <p className="b">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="sec dark" id="film" aria-labelledby="film-h">
-        <div className="wrap">
-          <p className="fig">{film.label}</p>
-          <h2 id="film-h" style={{ marginTop: 12 }}>
-            {film.title}
-          </h2>
-          <Film />
-        </div>
-      </section>
-
-      <CardStage />
-
-      <section className="sec" id="page" style={{ borderTop: '1px solid var(--line)' }}>
+      <section className="sec" id="page">
         <Reveal className="wrap two">
           <div>
             <p className="fig" data-rv>
@@ -82,6 +55,33 @@ export default function InsignarPage() {
           </div>
         </Reveal>
       </section>
+
+      <section className="sec dark" id="film" aria-labelledby="film-h">
+        <div className="wrap">
+          <p className="fig">{film.label}</p>
+          <h2 id="film-h" style={{ marginTop: 12 }}>
+            {film.title}
+          </h2>
+          <Film />
+        </div>
+      </section>
+
+      <section className="sec" id="how">
+        <Reveal className="wrap">
+          <div className="three">
+            {steps.items.map((s, i) => (
+              <div key={s.title} data-rv>
+                <p className="fig">{steps.fig(i + 1)}</p>
+                <h3>{s.title}</h3>
+                <p className="lead2">{s.lead}</p>
+                <p className="b">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
+      <CardStage />
 
       <section className="sec" style={{ borderTop: '1px solid var(--line)' }}>
         <div className="wrap iso-wrap">
