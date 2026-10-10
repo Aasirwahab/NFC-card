@@ -546,10 +546,49 @@
   -webkit-backface-visibility: hidden;
   border-radius: 4.4% / 6.5%;
   overflow: hidden;
-  box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.45);
+  transform: translateZ(3px);
 }
 .ins .face.back {
-  transform: rotateY(180deg);
+  transform: rotateY(180deg) translateZ(3px);
+}
+/* card thickness: thin slabs between the two faces, seen as an edge when tilted */
+.ins .card-tilt,
+.ins .card-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.ins .card-flip {
+  cursor: pointer;
+}
+.ins .card-flip:focus-visible {
+  outline: 2px solid var(--verm-ink);
+  outline-offset: 6px;
+}
+.ins .edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 4.4% / 6.5%;
+  background: #cfcbc0;
+}
+/* specular sheen: oversized gradient moved with transforms, clipped by the face */
+.ins .sheen {
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 45%);
+}
+/* contact shadow: static blur, only x/opacity move */
+.ins .card-shadow {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -9%;
+  height: 12%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  filter: blur(14px);
+  transform: translateZ(-12px);
 }
 .ins .face img {
   width: 100%;
@@ -627,6 +666,13 @@
   position: relative;
   inset: auto;
   aspect-ratio: 91 / 61;
+  transform: none;
+}
+.ins .stage-sec.static :is(.card-tilt, .card-flip) {
+  display: contents;
+}
+.ins .stage-sec.static :is(.edge, .sheen, .card-shadow) {
+  display: none;
 }
 
 /* prospect page */
