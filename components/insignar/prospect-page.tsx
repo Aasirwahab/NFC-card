@@ -6,6 +6,7 @@ export function ProspectPage() {
     <article className="pg" aria-label={page.figs}>
       <header>
         <p className="fig">{page.header}</p>
+        <span className="tag ex">EXAMPLE</span>
       </header>
       <section>
         <p className="tag">01 · {page.one.h}</p>
@@ -13,9 +14,7 @@ export function ProspectPage() {
         <p className="srcs">{page.one.by}</p>
       </section>
       <section>
-        <p className="tag">
-          02 · {page.two.h} <span className="tag ex">EXAMPLE</span>
-        </p>
+        <p className="tag">02 · {page.two.h}</p>
         <p className="rng">{page.two.range}</p>
         <p className="srcs">{page.two.sources.join(' · ')}</p>
         <p className="srcs">✓ {page.two.confirmed}</p>
@@ -41,9 +40,7 @@ export function ProspectPage() {
           <button type="button" className="btn">
             {page.five.book}
           </button>
-          <span className="srcs">
-            {page.five.forward} <span className="tag ex">{page.concept}</span>
-          </span>
+          <span className="srcs">{page.five.forward}</span>
         </div>
         <button type="button" className="linkish">
           {page.five.remove}

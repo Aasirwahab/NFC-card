@@ -196,12 +196,9 @@ export function Hero() {
             <div className="hchip-in">
               <span className="fig">{hero.chipCaption}</span>
               <q>{hero.chipQuote}</q>
-              <span className="tag ex">{hero.chipTag}</span>
             </div>
           </div>
-          <p className="fig">
-            {hero.fig} · {hero.figNote}
-          </p>
+          <p className="fig">{hero.fig}</p>
         </div>
       </div>
     </section>

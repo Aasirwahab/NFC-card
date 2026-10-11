@@ -1,55 +1,51 @@
 /**
- * Every string on the INSIGNAR landing page. Source: insignar-design/COPY.md and film/FILM_SCRIPT.md.
- * Voice: the page speaks to the visitor (the rep) as "you". Daniel (prospect) and Maya (rep) appear only inside labelled EXAMPLE mockups. Every number is EXAMPLE until sourced.
- * Strings marked BUILD-DRAFT are not in COPY.md; they were written for layout and need sign-off.
+ * Every string on the INSIGNAR landing page. Source: insignar-design/COPY_V3_SELL.md.
  */
 export const EXAMPLE = 'EXAMPLE';
 
 export const meta = {
-  title: 'Make every introduction worth more',
+  title: 'Be the one they call back',
   description:
-    'INSIGNAR is introduction software. You record what you heard; they get a private page about their problem.',
+    'Everyone follows up with a deck. With INSIGNAR you send a private page about their problem, what it costs them and how you fix it.',
 };
 
 export const hero = {
   eyebrow: 'Introduction software',
-  headline: 'Open with their problem, not yours.',
-  subStrong: 'Generic pitches get deleted. You listen for 60 seconds instead.',
+  headline: 'Be the one they call back.',
+  subStrong: 'Everyone follows up with a deck.',
   subSoft:
-    'Record a voice note after you meet someone. INSIGNAR turns it into a private page about their problem, researched with sources and ready for you to approve.',
-  primary: 'Discuss a founding pilot',
+    "You send a private page about their problem, what it's costing them and how you fix it. One minute of your voice. Approved by you.",
+  primary: 'Request a founding pilot',
   secondary: 'Watch the film',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
-  chipTag: EXAMPLE,
   fig: 'FIG 0.1 · card A·07, handed 19:42, tapped 07:58',
-  figNote: EXAMPLE,
 };
 
 export const steps = {
   fig: (n: number) => `FIG 0.${n + 1} · 0${n}`,
   items: [
     {
-      title: 'You listen.',
-      lead: 'Record 60 seconds in your own voice.',
-      body: 'Their words, saved from a voice note. Nothing to type.',
+      title: 'Say it',
+      lead: 'One minute, walking to the car',
+      body: '',
     },
     {
-      title: 'We research.',
-      lead: 'What the problem costs their company.',
-      body: 'A range with sources. You confirm it before anything is sent.',
+      title: 'We build it',
+      lead: 'Their problem, the cost, your fix',
+      body: '',
     },
     {
-      title: 'You send a page, not a pitch.',
-      lead: 'Their problem, a team like theirs, one next step.',
-      body: 'Private to them, in their own words.',
+      title: 'You approve. They book.',
+      lead: 'Nothing reaches them until you say so',
+      body: '',
     },
   ],
 };
 
 export const film = {
   label: '[ THE FILM · 42 SECONDS ]',
-  title: 'You met them. Here is what happens next.',
+  title: 'Watch it. Then think about your last event.',
   play: 'Play',
   pause: 'Pause',
   replay: 'Replay',
@@ -164,27 +160,27 @@ export const card = {
   items: [
     {
       n: '01',
-      h: 'Numbered. Named. Yours.',
-      p: 'Every card carries your name and its own number, A·07.',
+      h: 'They keep the card.',
+      p: 'The card opens the page.',
     },
     {
       n: '02',
-      h: 'The back says who wrote the notes.',
-      p: 'Your name and the event, so they know the page is from you. Private. Tap to read.',
+      h: 'Numbered, named, matte black.',
+      p: '',
     },
     {
       n: '03',
-      h: 'Tap here.',
-      p: 'The NFC point opens their page. When they tap, we already know who it is for. No form.',
+      h: 'No app.',
+      p: '',
     },
-    { n: '04', h: 'No NFC? Scan.', p: 'Every card carries a QR code that opens the same page.' },
+    { n: '04', h: 'No NFC? They scan it.', p: '' },
   ],
 };
 
 export const page = {
   label: '[ WHAT THEY GET ]',
-  title: 'A page about their problem. Not a pitch.',
-  lead: 'Five parts, in this order. Private to the person you met, with a way out on every screen.',
+  title: 'This is what lands on their phone.',
+  lead: 'No deck. No form. Their problem, priced and solved.',
   figs: 'FIG 3.1 · EXAMPLE page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
   one: {
@@ -216,7 +212,6 @@ export const page = {
     ai: 'Written with AI. Checked and sent by Maya Okafor.',
   },
   concept: 'CONCEPT',
-  exampleNote: 'All figures on this page are EXAMPLE.',
   trust: [
     { h: 'One tap to remove.', p: 'They can remove their details in one tap.' },
     { h: 'Their ideas stay theirs.', p: 'Quoted back as theirs.' },
@@ -226,8 +221,8 @@ export const page = {
 
 export const exploded = {
   label: '[ THE CARD, EXPLODED ]',
-  title: 'One card. One person. One page.',
-  body: 'Every card is numbered and live before the event. When they tap it, we already know who it is for. No form.',
+  title: 'Built to be kept.',
+  body: '',
   layers: [
     '[ 01 ] DEBOSSED MARK, BLIND',
     '[ 02 ] QR, FALLBACK FOR ANY PHONE',
@@ -239,11 +234,12 @@ export const exploded = {
 
 export const five = {
   label: '[ THE 5 THAT MATTER ]',
-  title: '500 contacts don’t close deals. The right five might.',
-  note: 'For sales directors only. Never on the page your prospect sees.',
+  title: 'Fifty names. Five that matter. Know which.',
+  note: 'Only you see this. Never on the page they get.',
   manager: {
-    label: '[ MANAGER VIEW, DAY ONE ]',
-    note: 'EXAMPLE numbers. Managers see status, never page content.',
+    label: '[ MANAGER VIEW ]',
+    note: 'Running a team? See which introductions turned into meetings.',
+    example: 'EXAMPLE',
     stats: [
       { v: '28', l: 'Cards in the field' },
       { v: '18 of 28', l: 'Claimed within 24 hours' },
@@ -263,31 +259,17 @@ export const five = {
 
 export const pilot = {
   label: '[ PILOT ]',
-  title: 'Ten introductions per rep. Four weeks. Your numbers decide.',
-  offer: [
-    'Three or more of your reps, ten numbered cards each',
-    'A scorecard you agree in writing before day one',
-    'A CSV export and a clean exit',
-  ],
-  outline: '3+ reps, 10 cards each, 4 weeks.',
+  title: 'Your next ten introductions, done properly.',
+  offer: ['Ten numbered cards', 'Four weeks', 'Founding places are limited'],
+  outline: '',
   trust:
     'You record. INSIGNAR prepares. You review before anything is shared. They can remove their details in one tap.',
-  noPrice: 'No price in the demo.',
-  results: {
-    title: 'Pilot results',
-    items: [
-      { l: 'Tapped within 24 hours', v: '—' },
-      { l: 'Meetings booked per 10 taps', v: '—' },
-      { l: 'Minutes saved', v: '—' },
-    ],
-    note: 'Blank until real.',
-  },
   form: {
     name: 'Your name',
     email: 'Work email',
     company: 'Company',
     reps: 'Number of reps',
-    submit: 'Send request',
+    submit: 'Request a founding pilot',
     sending: 'Sending…',
     success: 'Request received (demo: not stored yet).',
     error: 'Something went wrong. Please check your details and try again.',
@@ -301,24 +283,26 @@ export const faq = {
   title: 'Short answers.',
   items: [
     {
-      q: 'Is this a business card company?',
-      a: 'No. The card is only the key. The product is the software that turns what you heard into a page about their problem.',
+      q: "I don't have time.",
+      a: "One minute, after you've walked away. Less than the email you'd write anyway.",
     },
     {
       q: 'What if their phone has no NFC?',
       a: 'Every card carries a QR code that opens the same page.',
     },
-    { q: 'Does it send emails for me?', a: 'No. It drafts; you review and send.' },
     {
-      q: 'What does the pilot involve?',
-      a: 'Ten cards for you, ten real conversations, and we measure taps and meetings booked.',
+      q: "Isn't it just a fancy business card?",
+      a: 'The card is the key. The page wins the meeting.',
+    },
+    {
+      q: 'Will it feel creepy?',
+      a: 'It only uses what they told you. You approve every word. They can delete it in one tap.',
     },
   ],
 };
 
 export const footer = {
-  line: 'INSIGNAR · Introduction software',
+  line: 'INSIGNAR. Make every introduction count.',
   privacy: 'Privacy',
   readFilm: 'Read the film',
-  note: 'Concept page. Nothing here is a claim about results.',
 };

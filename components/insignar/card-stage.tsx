@@ -228,7 +228,7 @@ export function CardStage() {
                   FIG 2.{i + 1} · {s.n} / 04
                 </p>
                 <h2>{s.h}</h2>
-                <p>{s.p}</p>
+                {s.p && <p>{s.p}</p>}
               </div>
             ))}
           </div>

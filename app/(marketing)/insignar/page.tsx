@@ -46,9 +46,6 @@ export default function InsignarPage() {
                 </div>
               ))}
             </div>
-            <p className="note" style={{ color: 'var(--muted)' }}>
-              {page.exampleNote}
-            </p>
           </div>
           <div data-rv>
             <ProspectPage />
@@ -74,7 +71,7 @@ export default function InsignarPage() {
                 <p className="fig">{steps.fig(i + 1)}</p>
                 <h3>{s.title}</h3>
                 <p className="lead2">{s.lead}</p>
-                <p className="b">{s.body}</p>
+                {s.body && <p className="b">{s.body}</p>}
               </div>
             ))}
           </div>
@@ -88,7 +85,7 @@ export default function InsignarPage() {
           <div>
             <p className="fig">{exploded.label}</p>
             <h2 style={{ marginTop: 12 }}>{exploded.title}</h2>
-            <p className="lead">{exploded.body}</p>
+            {exploded.body && <p className="lead">{exploded.body}</p>}
             <p className="fig" style={{ marginTop: 18 }}>
               {exploded.fig}
             </p>
@@ -124,29 +121,17 @@ export default function InsignarPage() {
             <h2 data-rv style={{ marginTop: 12 }}>
               {pilot.title}
             </h2>
-            <p className="lead" data-rv>
-              {pilot.outline}
-            </p>
+            {pilot.outline && (
+              <p className="lead" data-rv>
+                {pilot.outline}
+              </p>
+            )}
             <p data-rv>{pilot.trust}</p>
             <ul className="offer" data-rv>
               {pilot.offer.map((o) => (
                 <li key={o}>{o}</li>
               ))}
             </ul>
-            <div className="results" data-rv>
-              <p className="fig">{pilot.results.title}</p>
-              <dl>
-                {pilot.results.items.map((r) => (
-                  <div key={r.l}>
-                    <dt>{r.l}</dt>
-                    <dd>{r.v}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="note" style={{ color: 'var(--muted)' }}>
-                {pilot.results.note} {pilot.noPrice}
-              </p>
-            </div>
           </div>
           <div data-rv>
             <PilotForm />
@@ -174,7 +159,6 @@ export default function InsignarPage() {
       <footer className="foot">
         <div className="wrap">
           <span>{footer.line}</span>
-          <span>{footer.note}</span>
           <Link href="/insignar/transcript">{footer.readFilm}</Link>
           <Link href="/privacy">{footer.privacy}</Link>
         </div>

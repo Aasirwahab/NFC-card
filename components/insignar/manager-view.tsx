@@ -18,7 +18,9 @@ export function ManagerView() {
           <li key={a}>{a}</li>
         ))}
       </ul>
-      <p className="note">{m.note}</p>
+      <p className="note">
+        {m.note} <span className="tag ex">{m.example}</span>
+      </p>
     </div>
   );
 }
