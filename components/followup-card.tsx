@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import styles from '@/app/ui-slice.module.css';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { FollowupItem } from '@/lib/db/rep';
@@ -41,10 +42,10 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
   }
 
   return (
-    <div className="border-line bg-surface rounded-xl border px-3.5 py-3">
+    <div className={styles.followup}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ink truncate text-[15px] font-medium">{who}</p>
-        <span className="text-ink-3 shrink-0 font-mono text-[11px]">
+        <p className="text-ink min-w-0 text-base font-semibold wrap-anywhere">{who}</p>
+        <span className="text-ink-3 max-w-[40%] shrink-0 font-mono text-[11px]">
           Card {item.sequence} · {item.colour}
         </span>
       </div>

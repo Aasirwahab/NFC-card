@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import styles from '@/app/ui-slice.module.css';
 import Cal from '@calcom/embed-react';
 import { CalendarDays } from 'lucide-react';
 import { SESSION_METADATA_KEY, type CalLink } from '@/lib/booking/link';
@@ -49,7 +50,7 @@ export function Booking({
           // A count, not a gate: a failure here must never stop anyone booking.
           apiSend(`/api/landing/${code}/booking-opened`, 'POST').catch(() => {});
         }}
-        className="bg-accent hover:bg-accent-hover mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg text-[15px] font-medium text-white"
+        className={`${styles.primaryAction} mt-4`}
       >
         <CalendarDays className="h-4 w-4" aria-hidden="true" />
         Pick a time

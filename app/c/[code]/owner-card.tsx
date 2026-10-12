@@ -1,4 +1,5 @@
 import { CalendarDays } from 'lucide-react';
+import styles from '@/app/ui-slice.module.css';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { linkedinHref } from '@/lib/domain/linkedin';
@@ -30,30 +31,25 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
     .slice(0, 3);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col px-5 pb-12">
+    <div className={`${styles.surface} ${styles.publicPage} ${styles.ownerPage}`}>
       <Header rep={rep} business={business} />
 
       <main className="flex-1">
-        <p className="font-display text-ink mt-7 text-2xl font-semibold tracking-tight">
-          Great to meet you.
-        </p>
-        <div className="text-ink-2 mt-3 space-y-3.5 text-[17px] leading-relaxed">
-          {business?.tagline ? <p>{business.tagline}</p> : null}
+        <h1 className={styles.headline}>Great to meet you.</h1>
+        <div className={styles.ownerIntro}>
+          {business?.tagline ? <p className={styles.tagline}>{business.tagline}</p> : null}
           <p>If you want to pick up where we left off, {first} will come prepared.</p>
         </div>
 
         {services.length > 0 ? (
-          <section className="mt-7">
+          <section className={styles.services}>
             <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
               What {business?.companyName ?? first} does
             </h2>
-            <ul className="mt-2.5 space-y-2">
+            <ul className="mt-1.5">
               {services.map((service) => (
-                <li key={service} className="text-ink-2 flex gap-2.5 text-[15px] leading-snug">
-                  <span
-                    aria-hidden="true"
-                    className="bg-accent mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full"
-                  />
+                <li key={service} className={styles.service}>
+                  <span aria-hidden="true" className={styles.serviceDot} />
                   <span>{service}</span>
                 </li>
               ))}
@@ -61,7 +57,7 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
           </section>
         ) : null}
 
-        <div className="mt-8">
+        <div className={styles.ownerActions}>
           {booking ? (
             // A plain link, not the embed: there is no session to attach a
             // booking to, and the rep's Cal.com page stands on its own.
@@ -69,17 +65,17 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
               href={`${booking.calOrigin}/${booking.calLink}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-accent hover:bg-accent-hover flex h-12 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold text-white"
+              className={styles.primaryAction}
             >
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              Book 15 minutes with {first}
+              Book a time with {first}
             </a>
           ) : null}
-          <SaveContact code={code} repName={first} />
           {linkedin ? (
             // preview: no session to count against, so never recorded.
             <LinkedInConnect code={code} href={linkedin} repName={first} preview />
           ) : null}
+          <SaveContact code={code} repName={first} />
         </div>
       </main>
 

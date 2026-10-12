@@ -19,7 +19,7 @@ const plexMono = IBM_Plex_Mono({
 const archivo = Archivo({
   variable: '--font-archivo',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['500', '600', '700', '800'],
   display: 'swap',
 });
 

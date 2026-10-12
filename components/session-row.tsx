@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Mic } from 'lucide-react';
+import styles from '@/app/ui-slice.module.css';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { SessionListItem } from '@/lib/db/rep';
@@ -17,27 +19,27 @@ export function SessionRow({ session }: { session: SessionListItem }) {
   const who = [session.prospect_name, session.prospect_company].filter(Boolean).join(' · ');
 
   return (
-    <Link
-      href={`/sessions/${session.id}/edit`}
-      className="border-line bg-surface hover:border-accent/40 flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors"
-    >
-      <span
-        aria-hidden="true"
-        className="h-8 w-1.5 shrink-0 rounded-full"
-        style={{ backgroundColor: hex }}
-      />
+    <Link href={`/sessions/${session.id}/edit`} className={styles.sessionRow}>
+      <span aria-hidden="true" className={styles.miniCard} style={{ borderColor: hex }}>
+        {session.cards ? printedCode(session.cards.code) : session.event_sequence_number}
+      </span>
 
       <div className="min-w-0 flex-1">
-        <p className="text-ink truncate text-[15px] font-medium">
+        <p className="text-ink text-base font-semibold wrap-anywhere">
           {who || <span className="text-ink-3 italic">No details yet</span>}
         </p>
-        <p className="text-ink-3 mt-0.5 font-mono text-[11px]">
+        <p className="text-ink-3 mt-1 font-mono text-[11px] wrap-anywhere">
           Card {session.event_sequence_number} · {session.colour_tag}
           {session.cards ? ` · ${printedCode(session.cards.code)}` : ''}
         </p>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex max-w-[30%] shrink-0 flex-col items-end gap-1">
+        {!session.details_completed_at ? (
+          <span className={styles.captureIcon} aria-hidden="true">
+            <Mic className="h-5 w-5" />
+          </span>
+        ) : null}
         <StatusPill session={session} />
         {session.first_viewed_at ? (
           <span className="text-ok text-[11px] font-medium">Tapped</span>

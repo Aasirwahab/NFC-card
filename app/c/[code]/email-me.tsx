@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import styles from '@/app/ui-slice.module.css';
 import { Mail } from 'lucide-react';
 import { ApiError, apiSend } from '@/lib/http/client';
 
@@ -26,11 +27,7 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="text-accent mt-4 flex items-center gap-1.5 text-sm font-medium underline underline-offset-2"
-      >
+      <button type="button" onClick={() => setOpen(true)} className={styles.emailLink}>
         <Mail className="h-4 w-4" aria-hidden="true" />
         Not ready? Email me this page
       </button>
@@ -78,12 +75,12 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-11 min-w-0 flex-1 rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+          className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-11 min-w-0 flex-1 rounded-[6px] border px-3 text-base focus:ring-2 focus:outline-none"
         />
         <button
           type="submit"
           disabled={status === 'sending'}
-          className="bg-accent hover:bg-accent-hover h-11 shrink-0 rounded-lg px-4 text-[15px] font-medium text-white disabled:opacity-50"
+          className="bg-accent hover:bg-accent-hover h-11 shrink-0 rounded-[6px] px-4 text-[15px] font-medium text-white disabled:opacity-50"
         >
           {status === 'sending' ? 'Sending…' : 'Send'}
         </button>
@@ -99,7 +96,7 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
         placeholder="linkedin.com/in/…"
         value={linkedin}
         onChange={(e) => setLinkedin(e.target.value)}
-        className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-11 rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+        className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-11 rounded-[6px] border px-3 text-base focus:ring-2 focus:outline-none"
       />
       <p className="text-ink-3 text-[12px]">
         We&rsquo;ll send you this page. {repFirstName} will see your email too.

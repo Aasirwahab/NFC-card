@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import styles from '@/app/ui-slice.module.css';
 import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
@@ -63,13 +64,13 @@ export function ProspectView({
 
   return (
     // pb-28 keeps the footer links clear of the floating chat button.
-    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col px-5 pb-28">
-      <Header rep={rep} business={business} />
+    <div className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
+      <Header rep={rep} business={business}>
+        <SaveContact code={code} repName={firstName(rep.fullName)} compact />
+      </Header>
 
       <main className="flex-1">
-        <p className="font-display text-ink mt-7 text-2xl font-semibold tracking-tight">
-          {greeting(session.prospect_name)}
-        </p>
+        <h1 className={styles.headline}>{greeting(session.prospect_name)}</h1>
 
         {view.state === 'completed' ? (
           <Pitch text={view.pitch} />
@@ -85,12 +86,6 @@ export function ProspectView({
           />
         )}
 
-        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
-
-        {business && business.services.length > 0 && view.state !== 'crafting' ? (
-          <SolutionPoints services={business.services} companyName={business.companyName} />
-        ) : null}
-
         <CallToActionBlock label={cta} repName={firstName(rep.fullName)}>
           {bookingLink ? (
             <Booking
@@ -101,19 +96,20 @@ export function ProspectView({
               preview={preview}
             />
           ) : null}
-          {emailConfigured() && !preview ? (
-            <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
+          {linkedin ? (
+            <LinkedInConnect
+              code={code}
+              href={linkedin}
+              repName={firstName(rep.fullName)}
+              preview={Boolean(preview)}
+            />
           ) : null}
         </CallToActionBlock>
 
-        <SaveContact code={code} repName={firstName(rep.fullName)} />
-        {linkedin ? (
-          <LinkedInConnect
-            code={code}
-            href={linkedin}
-            repName={firstName(rep.fullName)}
-            preview={Boolean(preview)}
-          />
+        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
+
+        {business && business.services.length > 0 && view.state !== 'crafting' ? (
+          <SolutionPoints services={business.services} companyName={business.companyName} />
         ) : null}
 
         <ChatWidget
@@ -131,7 +127,11 @@ export function ProspectView({
         />
       </main>
 
-      <Footer removeCode={preview ? undefined : code} />
+      <Footer removeCode={preview ? undefined : code}>
+        {emailConfigured() && !preview ? (
+          <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
+        ) : null}
+      </Footer>
     </div>
   );
 }
@@ -143,7 +143,7 @@ export function ProspectView({
  */
 function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['playbook']> }) {
   return (
-    <section className="border-line bg-surface mt-7 rounded-2xl border p-5">
+    <section className={styles.playbook}>
       {playbook.why ? (
         <>
           <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
@@ -204,7 +204,9 @@ function initials(fullName: string): string {
 export function Header({
   rep,
   business,
+  children,
 }: {
+  children?: React.ReactNode;
   rep: ProspectResolved['rep'];
   business: ProspectResolved['business'];
 }) {
@@ -242,13 +244,14 @@ export function Header({
           {titleLine(rep.title, business?.companyName ?? null)}
         </p>
       </div>
+      {children}
     </header>
   );
 }
 
 function Pitch({ text }: { text: string }) {
   return (
-    <div className="text-ink-2 mt-3 space-y-3.5 text-[17px] leading-relaxed">
+    <div className={styles.pitch}>
       {text
         .split(/\n{2,}/)
         .map((paragraph) => paragraph.trim())
@@ -274,7 +277,7 @@ function PendingBody({
   repName: string;
 }) {
   return (
-    <div className="text-ink-2 mt-3 space-y-3.5 text-[17px] leading-relaxed">
+    <div className={styles.pitch}>
       <p>{eventName ? `Great to meet you at ${eventName}.` : 'Great to meet you the other day.'}</p>
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
@@ -294,17 +297,14 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
   if (points.length === 0) return null;
 
   return (
-    <section className="mt-7">
+    <section className={styles.services}>
       <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
         What {companyName} does
       </h2>
-      <ul className="mt-2.5 space-y-2">
+      <ul className="mt-1.5">
         {points.map((point) => (
-          <li key={point} className="text-ink-2 flex gap-2.5 text-[15px] leading-snug">
-            <span
-              aria-hidden="true"
-              className="bg-accent mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full"
-            />
+          <li key={point} className={styles.service}>
+            <span aria-hidden="true" className={styles.serviceDot} />
             <span>{point}</span>
           </li>
         ))}
@@ -330,7 +330,7 @@ function CallToActionBlock({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="border-accent-soft bg-surface shadow-card mt-8 rounded-xl border p-5">
+    <section className={styles.cta}>
       <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
         {label}
       </p>
@@ -347,21 +347,33 @@ function CallToActionBlock({
  * and Android open straight into "Add contact". It is a real, working button —
  * the rule for this page is that nothing on it pretends to work.
  */
-export function SaveContact({ code, repName }: { code: string; repName: string }) {
+export function SaveContact({
+  code,
+  repName,
+  compact = false,
+}: {
+  code: string;
+  repName: string;
+  compact?: boolean;
+}) {
   return (
-    <a
-      href={`/c/${code}/contact`}
-      className="border-accent text-accent hover:bg-accent-soft mt-3 flex h-12 items-center justify-center gap-2 rounded-lg border-[1.5px] text-[15px] font-medium"
-    >
+    <a href={`/c/${code}/contact`} className={compact ? styles.compactSave : styles.saveContact}>
       <UserPlus className="h-4 w-4" aria-hidden="true" />
-      Save {repName}&rsquo;s contact
+      {compact ? 'Save contact' : <>Save {repName}&rsquo;s contact</>}
     </a>
   );
 }
 
-export function Footer({ removeCode }: { removeCode?: string }) {
+export function Footer({
+  removeCode,
+  children,
+}: {
+  removeCode?: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
+    <footer className={styles.footer}>
+      {children}
       {/*
        * The acquisition loop (2026-09-25 review): whoever is holding this card
        * goes to events and hands out cards — exactly who INSIGNAR is for.
