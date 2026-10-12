@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Hero } from '@/components/insignar/hero';
-import { Film } from '@/components/insignar/film';
+import { FilmVideo } from '@/components/insignar/film-video';
 import { CardStage } from '@/components/insignar/card-stage';
 import { Reveal } from '@/components/insignar/reveal';
 import { Exploded } from '@/components/insignar/exploded';
@@ -59,7 +59,7 @@ export default function InsignarPage() {
           <h2 id="film-h" style={{ marginTop: 12 }}>
             {film.title}
           </h2>
-          <Film />
+          <FilmVideo />
         </div>
       </section>
 

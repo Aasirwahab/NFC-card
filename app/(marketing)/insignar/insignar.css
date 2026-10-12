@@ -382,6 +382,12 @@
   container-type: inline-size;
   border: 1px solid #2b2a28;
 }
+.ins .film-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .ins .fs {
   position: absolute;
   inset: 0;
