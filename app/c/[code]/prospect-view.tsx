@@ -4,10 +4,11 @@ import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
-import { callToAction, greeting, primaryProblem, templatePitch } from '@/lib/domain/pitch';
+import { primaryProblem, publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
+import { StickyAction } from './sticky-action';
 import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
 import { linkedinHref } from '@/lib/domain/linkedin';
@@ -56,37 +57,64 @@ export function ProspectView({
   // No link, no button: a dead button on this page is worse than none (§16).
   const bookingLink = parseBookingUrl(rep.bookingUrl);
   const linkedin = linkedinHref(rep.linkedinUrl);
-  const cta = callToAction({
-    problems: session.problems,
-    customProblems: session.custom_problems,
-    repName: firstName(rep.fullName),
-  });
+  const publicEvent = publicEventName(eventName);
+  const prospectFirst = session.prospect_name?.trim() ? firstName(session.prospect_name) : null;
+  const topics = session.problems.filter((problem) => problem.trim());
+  const customTopic = session.custom_problems?.trim();
 
   return (
     // pb-28 keeps the footer links clear of the floating chat button.
     <div className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
       <Header rep={rep} business={business}>
-        <SaveContact code={code} repName={firstName(rep.fullName)} compact />
+        {bookingLink ? <SaveContact code={code} repName={firstName(rep.fullName)} compact /> : null}
       </Header>
 
       <main className="flex-1">
-        <h1 className={styles.headline}>{greeting(session.prospect_name)}</h1>
+        <h1 className={prospectFirst ? styles.preparedFor : styles.headline}>
+          {prospectFirst ? `Prepared for ${prospectFirst}` : 'Picking up our conversation.'}
+        </h1>
+        {publicEvent ? <h2 className={styles.headline}>After {publicEvent}</h2> : null}
 
-        {view.state === 'completed' ? (
-          <Pitch text={view.pitch} />
-        ) : view.state === 'crafting' ? (
-          <Crafting code={code} fallbackPitch={fallbackPitch} />
-        ) : view.state === 'failed' ? (
-          <Pitch text={fallbackPitch} />
-        ) : (
-          <PendingBody
-            eventName={eventName}
-            business={business}
-            repName={firstName(rep.fullName)}
-          />
-        )}
+        {topics.length > 0 || customTopic || business?.tagline ? (
+          <section className={styles.issuePanel} aria-labelledby="discussed-issue">
+            <h2 id="discussed-issue" className={styles.sectionLabel}>
+              The issue we discussed
+            </h2>
+            {topics.map((topic, index) => (
+              <p key={index} className={styles.issueTopic}>
+                {topic}
+              </p>
+            ))}
+            {customTopic ? <p className={styles.issueTopic}>{customTopic}</p> : null}
+            {topics.length === 0 && !customTopic && business?.tagline ? (
+              <p className={styles.issueTopic}>{business.tagline}</p>
+            ) : null}
+            {session.prospect_company ? (
+              <p className={styles.issueCompany}>{session.prospect_company}</p>
+            ) : null}
+          </section>
+        ) : null}
 
-        <CallToActionBlock label={cta} repName={firstName(rep.fullName)}>
+        <section className={styles.pitchSection}>
+          <h2 className={styles.sectionLabel}>{firstName(rep.fullName)}&rsquo;s read on it</h2>
+          {view.state === 'completed' ? (
+            <Pitch text={view.pitch} />
+          ) : view.state === 'crafting' ? (
+            <Crafting code={code} fallbackPitch={fallbackPitch} />
+          ) : view.state === 'failed' ? (
+            <Pitch text={fallbackPitch} />
+          ) : (
+            <PendingBody
+              eventName={publicEvent}
+              business={business}
+              repName={firstName(rep.fullName)}
+            />
+          )}
+        </section>
+
+        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
+
+        <CallToActionBlock label="Pick up where we left off." repName={firstName(rep.fullName)}>
           {bookingLink ? (
             <Booking
               code={code}
@@ -95,7 +123,11 @@ export function ProspectView({
               link={bookingLink}
               preview={preview}
             />
-          ) : null}
+          ) : (
+            <StickyAction enabled={!preview}>
+              <SaveContact code={code} repName={firstName(rep.fullName)} primary />
+            </StickyAction>
+          )}
           {linkedin ? (
             <LinkedInConnect
               code={code}
@@ -106,25 +138,25 @@ export function ProspectView({
           ) : null}
         </CallToActionBlock>
 
-        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
-
         {business && business.services.length > 0 && view.state !== 'crafting' ? (
           <SolutionPoints services={business.services} companyName={business.companyName} />
         ) : null}
 
-        <ChatWidget
-          code={code}
-          repFirstName={firstName(rep.fullName)}
-          opening={openingLine(
-            firstName(rep.fullName),
-            primaryProblem({
-              problems: session.problems,
-              customProblems: session.custom_problems,
-            }),
-          )}
-          enabled={env.CHAT_ENABLED}
-          preview={preview}
-        />
+        <div className={styles.chatRegion}>
+          <ChatWidget
+            code={code}
+            repFirstName={firstName(rep.fullName)}
+            opening={openingLine(
+              firstName(rep.fullName),
+              primaryProblem({
+                problems: session.problems,
+                customProblems: session.custom_problems,
+              }),
+            )}
+            enabled={env.CHAT_ENABLED}
+            preview={preview}
+          />
+        </div>
       </main>
 
       <Footer removeCode={preview ? undefined : code}>
@@ -161,9 +193,14 @@ function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['p
           >
             Worth checking this week
           </h2>
-          <ol className="text-ink-2 mt-1.5 list-decimal space-y-1.5 pl-5 text-[16px] leading-relaxed">
-            {playbook.checks.map((check) => (
-              <li key={check}>{check}</li>
+          <ol className={styles.stepper}>
+            {playbook.checks.map((check, index) => (
+              <li key={check}>
+                <span className={styles.stepNumber} aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span>{check}</span>
+              </li>
             ))}
           </ol>
         </>
@@ -334,9 +371,7 @@ function CallToActionBlock({
       <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
         {label}
       </p>
-      <p className="text-ink-2 mt-1.5 text-sm">
-        {repName} will come prepared: no pitch deck, no warm-up questions.
-      </p>
+      <p className="text-ink-2 mt-1.5 text-sm">{repName} will come prepared.</p>
       {children}
     </section>
   );
@@ -351,13 +386,18 @@ export function SaveContact({
   code,
   repName,
   compact = false,
+  primary = false,
 }: {
   code: string;
   repName: string;
   compact?: boolean;
+  primary?: boolean;
 }) {
   return (
-    <a href={`/c/${code}/contact`} className={compact ? styles.compactSave : styles.saveContact}>
+    <a
+      href={`/c/${code}/contact`}
+      className={primary ? styles.primaryAction : compact ? styles.compactSave : styles.saveContact}
+    >
       <UserPlus className="h-4 w-4" aria-hidden="true" />
       {compact ? 'Save contact' : <>Save {repName}&rsquo;s contact</>}
     </a>

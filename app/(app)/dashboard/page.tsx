@@ -73,6 +73,12 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       </p>
       <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
 
+      {!progress.booking ? (
+        <aside className={styles.bookingWarning}>
+          <Link href="/settings#booking_url">Add a booking link before you hand out cards</Link>
+        </aside>
+      ) : null}
+
       <FirstRunChecklist progress={progress} />
 
       {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}

@@ -97,7 +97,7 @@ export function PhotoUpload({ name, photoUrl }: { name: string; photoUrl: string
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div id="public-photo" tabIndex={-1} className="flex scroll-mt-24 items-center gap-4">
       {photoUrl ? (
         // A plain <img>: the file is one we stored, square and small.
         // eslint-disable-next-line @next/next/no-img-element

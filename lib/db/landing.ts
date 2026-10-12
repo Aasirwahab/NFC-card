@@ -91,6 +91,9 @@ export type RepProfile = {
   bookingUrl: string | null;
   /** The rep's own LinkedIn profile, from Setup. */
   linkedinUrl: string | null;
+  /** Explicitly public vCard fields, never the sign-in email. */
+  contactEmail: string | null;
+  phone: string | null;
 };
 
 export type BusinessProfile = {
@@ -98,6 +101,7 @@ export type BusinessProfile = {
   tagline: string | null;
   logoUrl: string | null;
   services: string[];
+  website: string | null;
 };
 
 export type Resolved =
@@ -305,12 +309,12 @@ async function repFace(
   const [{ data: profile }, { data: business }] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, title, photo_url, booking_url, linkedin_url')
+      .select('full_name, title, photo_url, booking_url, linkedin_url, contact_email, phone')
       .eq('id', userId)
       .maybeSingle(),
     db
       .from('business_profiles')
-      .select('company_name, tagline, logo_url, services')
+      .select('company_name, tagline, logo_url, services, website')
       .eq('user_id', userId)
       .maybeSingle(),
   ]);
@@ -324,6 +328,8 @@ async function repFace(
       photoUrl: profile.photo_url,
       bookingUrl: profile.booking_url,
       linkedinUrl: profile.linkedin_url,
+      contactEmail: profile.contact_email,
+      phone: profile.phone,
     },
     business: business
       ? {
@@ -331,6 +337,7 @@ async function repFace(
           tagline: business.tagline,
           logoUrl: business.logo_url,
           services: business.services,
+          website: business.website,
         }
       : null,
   };

@@ -118,7 +118,11 @@ export function ProfileForm({
           />
         </Field>
 
-        <Field label="Phone" htmlFor="phone">
+        <Field
+          label="Phone"
+          hint="Shown on your public card page and in your saved contact. Leave it blank to leave it off."
+          htmlFor="phone"
+        >
           <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
         </Field>
 
@@ -138,7 +142,7 @@ export function ProfileForm({
 
         <Field
           label="Email for your contact card"
-          hint="Shown when a prospect saves your contact from their page. Leave it blank to leave it off."
+          hint="Shown on your public card page and when a prospect saves your contact. Leave it blank to leave it off."
           htmlFor="contact_email"
         >
           <Input

@@ -1,4 +1,5 @@
 .surface,
+.profileCheck,
 .appShell:has(.repSurface) {
   --color-ground: #efeeea;
   --color-surface: #f8f7f3;
@@ -157,6 +158,11 @@
   font-weight: 600;
   line-height: 1.3;
   text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.primaryAction > svg {
+  flex-shrink: 0;
 }
 
 .primaryAction:hover {
@@ -176,7 +182,7 @@
   text-align: center;
 }
 
-.ownerActions > a[href$='/contact'] {
+.ownerActions > a[href$='/contact']:not(.primaryAction) {
   min-height: 44px;
   height: auto;
   margin-top: 2px;
@@ -207,7 +213,8 @@
 }
 
 .prospectPage {
-  padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  --book-bar-height: calc(73px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--book-bar-height) + 88px);
 }
 
 .prospectPage > header > div:last-of-type {
@@ -555,4 +562,326 @@
 
 .footer button {
   min-height: 44px;
+}
+
+.preparedFor {
+  margin-top: 28px;
+  color: var(--color-accent);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.preparedFor + .headline {
+  margin-top: 12px;
+}
+
+.sectionLabel {
+  color: var(--color-ink-3);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.issuePanel {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-left: 4px solid #f2491c;
+  border-radius: 3px 12px 12px 3px;
+  background: var(--color-surface);
+}
+
+.issueTopic {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.issueCompany {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pitchSection {
+  margin-top: 28px;
+  max-width: 34em;
+}
+
+.pitchSection :is(p, .pitch) {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.stepper {
+  margin-top: 16px;
+  list-style: none;
+}
+
+.stepper > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 14px;
+  padding-bottom: 20px;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.stepper > li:last-child {
+  padding-bottom: 0;
+}
+
+.stepper > li:not(:last-child)::before {
+  position: absolute;
+  top: 32px;
+  bottom: 0;
+  left: 15px;
+  width: 1px;
+  background: var(--color-ink);
+  content: '';
+}
+
+.stepNumber {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-ink);
+  border-radius: 50%;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 11px;
+}
+
+.ownerPage > header {
+  gap: 14px;
+  padding-block: 8px;
+}
+
+.ownerPage > header > :is(img, div[aria-hidden]) {
+  width: 72px;
+  height: 72px;
+  font-size: 22px;
+}
+
+.ownerPage > header p:first-child {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ownerActions {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.ownerSection {
+  margin-top: 32px;
+}
+
+.ownerSection > h2 {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-ink);
+}
+
+.numberedServices > li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.numberedServices > li > span {
+  padding-top: 4px;
+  color: var(--color-accent);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 11px;
+}
+
+.numberedServices p {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.publicDetail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.publicDetail svg {
+  flex-shrink: 0;
+  color: var(--color-ink-3);
+}
+
+.publicDetail > div {
+  min-width: 0;
+}
+
+.publicDetail span {
+  color: var(--color-ink-3);
+  font-size: 14px;
+}
+
+.publicDetail p {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.publicDetail[href]:hover p {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.keepInTouch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.keepInTouch > a {
+  flex: 1 1 140px;
+  max-width: none;
+  margin: 0;
+  border: 1px solid var(--color-ink);
+  border-radius: 3px;
+  color: var(--color-ink);
+  font-size: 14px;
+}
+
+.ownerPage > footer {
+  margin-top: 28px;
+}
+
+:global(html):has(.prospectPage) {
+  scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+.stickyAction {
+  position: relative;
+  min-height: 52px;
+  margin-top: 16px;
+}
+
+.stickyClearance {
+  position: absolute;
+  width: 1px;
+  height: var(--book-bar-height);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stickyActionControl > :is(button, a) {
+  margin-top: 0;
+}
+
+.stickyAction[data-docked='true'] > .stickyActionControl {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 20;
+  width: 100%;
+  max-width: 34rem;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  border-top: 1px solid var(--color-line);
+  background: var(--color-ground);
+}
+
+.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > :is(button, [role='dialog']) {
+  bottom: calc(var(--book-bar-height) + 1rem);
+}
+
+.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > [role='dialog'] {
+  max-height: min(34rem, calc(100dvh - var(--book-bar-height) - 3rem));
+}
+
+.profileCheck {
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.profileCheckRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 12px;
+  border-top: 1px solid var(--color-line);
+}
+
+.profileCheckRow > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.profilePresent,
+.profileMissing {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.profilePresent {
+  background: var(--color-ink);
+  color: white;
+}
+
+.profileMissing {
+  border: 1px dashed var(--color-accent);
+}
+
+.profileCheck ~ form :is(input, textarea) {
+  scroll-margin-top: 96px;
+}
+
+.bookingWarning {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  background: var(--color-accent-soft);
+}
+
+.bookingWarning a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

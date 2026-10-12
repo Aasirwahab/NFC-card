@@ -1,8 +1,9 @@
-import { CalendarDays } from 'lucide-react';
+import { Building2, CalendarDays, Globe, Mail, Phone } from 'lucide-react';
 import styles from '@/app/ui-slice.module.css';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { linkedinHref } from '@/lib/domain/linkedin';
+import { publicWebsiteHref } from '@/lib/domain/public-profile';
 import { LinkedInConnect } from './linkedin-connect';
 import { Footer, Header, SaveContact } from './prospect-view';
 
@@ -25,6 +26,11 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
   const first = rep.fullName.trim().split(/\s+/)[0] || rep.fullName;
   const booking = parseBookingUrl(rep.bookingUrl);
   const linkedin = linkedinHref(rep.linkedinUrl);
+  const website = publicWebsiteHref(business?.website);
+  const tagline = business?.tagline?.trim();
+  const company = business?.companyName?.trim();
+  const contactEmail = rep.contactEmail?.trim();
+  const phone = rep.phone?.trim();
   const services = (business?.services ?? [])
     .map((s) => s.trim())
     .filter(Boolean)
@@ -36,26 +42,7 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
 
       <main className="flex-1">
         <h1 className={styles.headline}>Great to meet you.</h1>
-        <div className={styles.ownerIntro}>
-          {business?.tagline ? <p className={styles.tagline}>{business.tagline}</p> : null}
-          <p>If you want to pick up where we left off, {first} will come prepared.</p>
-        </div>
-
-        {services.length > 0 ? (
-          <section className={styles.services}>
-            <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-              What {business?.companyName ?? first} does
-            </h2>
-            <ul className="mt-1.5">
-              {services.map((service) => (
-                <li key={service} className={styles.service}>
-                  <span aria-hidden="true" className={styles.serviceDot} />
-                  <span>{service}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        {tagline ? <p className={`${styles.tagline} mt-3`}>{tagline}</p> : null}
 
         <div className={styles.ownerActions}>
           {booking ? (
@@ -70,13 +57,93 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
               Book a time with {first}
             </a>
-          ) : null}
+          ) : (
+            <SaveContact code={code} repName={first} primary />
+          )}
           {linkedin ? (
             // preview: no session to count against, so never recorded.
             <LinkedInConnect code={code} href={linkedin} repName={first} preview />
           ) : null}
-          <SaveContact code={code} repName={first} />
+          {booking ? <SaveContact code={code} repName={first} /> : null}
+          {!booking ? (
+            <p className="text-ink-3 mt-3 text-center text-sm">Save my details to reconnect.</p>
+          ) : null}
         </div>
+
+        {services.length > 0 ? (
+          <section className={styles.ownerSection}>
+            <h2 className={styles.sectionLabel}>What I do</h2>
+            <ol className={styles.numberedServices}>
+              {services.map((service, index) => (
+                <li key={service}>
+                  <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                  <p>{service}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : (
+          <p className={`${styles.tagline} mt-7`}>
+            Let&rsquo;s discuss what you&rsquo;re looking for.
+          </p>
+        )}
+
+        {company || website ? (
+          <section className={styles.ownerSection}>
+            <h2 className={styles.sectionLabel}>Business details</h2>
+            {company ? (
+              <div className={styles.publicDetail}>
+                <Building2 aria-hidden="true" className="h-5 w-5" />
+                <div>
+                  <span>Company</span>
+                  <p>{company}</p>
+                </div>
+              </div>
+            ) : null}
+            {website ? (
+              <a
+                href={website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.publicDetail}
+              >
+                <Globe aria-hidden="true" className="h-5 w-5" />
+                <div>
+                  <span>Website</span>
+                  <p>{business?.website}</p>
+                </div>
+              </a>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section className={styles.ownerSection}>
+          <h2 className={styles.sectionLabel}>Keep in touch</h2>
+          <div className={styles.keepInTouch}>
+            <SaveContact code={code} repName={first} compact />
+            {linkedin ? (
+              <LinkedInConnect code={code} href={linkedin} repName={first} preview />
+            ) : null}
+          </div>
+          {contactEmail ? (
+            <a href={`mailto:${contactEmail}`} className={styles.publicDetail}>
+              <Mail aria-hidden="true" className="h-5 w-5" />
+              <div>
+                <span>Email</span>
+                <p>{contactEmail}</p>
+              </div>
+            </a>
+          ) : null}
+          {phone ? (
+            <a href={`tel:${phone}`} className={styles.publicDetail}>
+              <Phone aria-hidden="true" className="h-5 w-5" />
+              <div>
+                <span>Phone</span>
+                <p>{phone}</p>
+              </div>
+            </a>
+          ) : null}
+        </section>
       </main>
 
       <Footer />
