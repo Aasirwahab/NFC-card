@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import styles from '@/app/ui-slice.module.css';
+import { ChatOpenContext } from './prospect-shell';
 
 /** Dock the same control; the placeholder stays in flow for a stable observer target. */
 export function StickyAction({
@@ -11,13 +12,15 @@ export function StickyAction({
   children: React.ReactNode;
   enabled?: boolean;
 }) {
+  const chatOpen = useContext(ChatOpenContext);
+  const active = enabled && !chatOpen;
   const anchor = useRef<HTMLDivElement>(null);
   const clearance = useRef<HTMLDivElement>(null);
   const control = useRef<HTMLDivElement>(null);
   const [docked, setDocked] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !anchor.current || typeof IntersectionObserver === 'undefined') return;
+    if (!active || !anchor.current || typeof IntersectionObserver === 'undefined') return;
     const target = anchor.current;
     const action = control.current?.firstElementChild;
     const page = target.closest<HTMLElement>(`.${styles.prospectPage}`);
@@ -31,7 +34,7 @@ export function StickyAction({
         '--book-bar-height',
         `calc(${height + 21}px + env(safe-area-inset-bottom, 0px))`,
       );
-      const bottom = clearance.current?.getBoundingClientRect().height ?? 73;
+      const bottom = clearance.current?.getBoundingClientRect().height ?? 89;
       observer = new IntersectionObserver(
         ([entry]) => {
           if (entry) setDocked(entry.intersectionRatio < 1);
@@ -52,10 +55,10 @@ export function StickyAction({
       else page?.style.removeProperty('--book-bar-height');
       window.removeEventListener('resize', observe);
     };
-  }, [enabled]);
+  }, [active]);
 
   return (
-    <div ref={anchor} className={styles.stickyAction} data-docked={enabled && docked}>
+    <div ref={anchor} className={styles.stickyAction} data-docked={active && docked}>
       <div ref={clearance} className={styles.stickyClearance} aria-hidden="true" />
       <div ref={control} className={styles.stickyActionControl}>
         {children}

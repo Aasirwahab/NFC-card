@@ -165,10 +165,6 @@
   flex-shrink: 0;
 }
 
-.primaryAction:hover {
-  background: var(--color-accent-hover);
-}
-
 .ownerActions > a[target='_blank']:not(.primaryAction) {
   min-height: 48px;
   height: auto;
@@ -214,7 +210,7 @@
 
 .prospectPage {
   --book-bar-height: calc(73px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(var(--book-bar-height) + 88px);
+  padding-bottom: calc(var(--book-bar-height) + 16px);
 }
 
 .prospectPage > header > div:last-of-type {
@@ -267,10 +263,6 @@
 
 .linkedin svg {
   flex-shrink: 0;
-}
-
-.linkedin:hover {
-  background: var(--color-surface);
 }
 
 .saveContact,
@@ -404,10 +396,6 @@
   min-height: 80px;
   padding-block: 12px;
   border-bottom: 1px solid var(--color-line);
-}
-
-.sessionRow:hover {
-  background: var(--color-surface);
 }
 
 .miniCard {
@@ -748,11 +736,6 @@
   overflow-wrap: anywhere;
 }
 
-.publicDetail[href]:hover p {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .keepInTouch {
   display: flex;
   flex-wrap: wrap;
@@ -775,7 +758,9 @@
 }
 
 :global(html):has(.prospectPage) {
-  scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: calc(
+    var(--book-bar-height, calc(73px + env(safe-area-inset-bottom, 0px))) + 16px
+  );
 }
 
 .stickyAction {
@@ -787,7 +772,7 @@
 .stickyClearance {
   position: absolute;
   width: 1px;
-  height: var(--book-bar-height);
+  height: calc(var(--book-bar-height) + 16px);
   visibility: hidden;
   pointer-events: none;
 }
@@ -796,7 +781,9 @@
   margin-top: 0;
 }
 
-.stickyAction[data-docked='true'] > .stickyActionControl {
+.prospectPage:not(:has(.chatRegion > [role='dialog']))
+  .stickyAction[data-docked='true']
+  > .stickyActionControl {
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -809,12 +796,21 @@
   background: var(--color-ground);
 }
 
-.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > :is(button, [role='dialog']) {
-  bottom: calc(var(--book-bar-height) + 1rem);
+.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > button {
+  bottom: calc(var(--book-bar-height) + 16px);
 }
 
-.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > [role='dialog'] {
-  max-height: min(34rem, calc(100dvh - var(--book-bar-height) - 3rem));
+.prospectPage .chatRegion > [role='dialog'] {
+  top: calc(var(--visual-viewport-top, 0px) + max(16px, env(safe-area-inset-top, 0px)));
+  bottom: auto;
+  max-height: min(
+    34rem,
+    calc(
+      var(--visual-viewport-height, 100dvh) - 32px - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    )
+  );
+  overflow-y: auto;
 }
 
 .profileCheck {
@@ -884,4 +880,57 @@
   line-height: 1.35;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+@media (max-width: 430px) {
+  .prospectPage > header {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .prospectPage > header > .compactSave {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    flex-shrink: initial;
+  }
+}
+
+.surface :is(button:not(:disabled), a, summary):active,
+.appShell:has(.repSurface) :is(button:not(:disabled), a, summary):active {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+/* Keep the existing chat close control's hover capability-scoped without editing it. */
+.prospectPage .chatRegion button[aria-label='Close'] {
+  color: var(--color-ink-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primaryAction:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .linkedin:hover {
+    background: var(--color-surface);
+  }
+
+  .sessionRow:hover {
+    background: var(--color-surface);
+  }
+
+  .publicDetail[href]:hover p {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prospectPage .chatRegion button[aria-label='Close']:hover {
+    color: var(--color-ink);
+  }
+}
+
+/* Reserve the existing floating launcher's own height as well as the Book clearance. */
+.prospectPage:has(.chatRegion > button) > footer {
+  padding-bottom: calc(3.5rem + 16px);
 }

@@ -127,7 +127,7 @@ export function PhotoUpload({ name, photoUrl }: { name: string; photoUrl: string
             type="button"
             disabled={busy}
             onClick={() => input.current?.click()}
-            className="border-line bg-surface text-ink hover:border-ink-3 inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium disabled:opacity-60"
+            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium disabled:opacity-60"
           >
             <Camera className="h-4 w-4" aria-hidden="true" />
             {busy ? 'Working…' : photoUrl ? 'Change photo' : 'Add photo'}
@@ -137,7 +137,7 @@ export function PhotoUpload({ name, photoUrl }: { name: string; photoUrl: string
               type="button"
               disabled={busy}
               onClick={() => void remove()}
-              className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
+              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
             >
               Remove
             </button>

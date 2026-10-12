@@ -80,7 +80,7 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
         <button
           type="submit"
           disabled={status === 'sending'}
-          className="bg-accent hover:bg-accent-hover h-11 shrink-0 rounded-[6px] px-4 text-[15px] font-medium text-white disabled:opacity-50"
+          className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover h-11 shrink-0 rounded-[6px] px-4 text-[15px] font-medium text-white disabled:opacity-50"
         >
           {status === 'sending' ? 'Sending…' : 'Send'}
         </button>

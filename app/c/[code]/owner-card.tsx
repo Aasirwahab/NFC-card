@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Globe, Mail, Phone } from 'lucide-react';
+import { Building2, CalendarDays, Globe } from 'lucide-react';
 import styles from '@/app/ui-slice.module.css';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
@@ -29,12 +29,10 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
   const website = publicWebsiteHref(business?.website);
   const tagline = business?.tagline?.trim();
   const company = business?.companyName?.trim();
-  const contactEmail = rep.contactEmail?.trim();
-  const phone = rep.phone?.trim();
   const services = (business?.services ?? [])
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, 8);
 
   return (
     <div className={`${styles.surface} ${styles.publicPage} ${styles.ownerPage}`}>
@@ -117,33 +115,14 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
           </section>
         ) : null}
 
-        <section className={styles.ownerSection}>
-          <h2 className={styles.sectionLabel}>Keep in touch</h2>
-          <div className={styles.keepInTouch}>
-            <SaveContact code={code} repName={first} compact />
-            {linkedin ? (
+        {linkedin ? (
+          <section className={styles.ownerSection}>
+            <h2 className={styles.sectionLabel}>Keep in touch</h2>
+            <div className={styles.keepInTouch}>
               <LinkedInConnect code={code} href={linkedin} repName={first} preview />
-            ) : null}
-          </div>
-          {contactEmail ? (
-            <a href={`mailto:${contactEmail}`} className={styles.publicDetail}>
-              <Mail aria-hidden="true" className="h-5 w-5" />
-              <div>
-                <span>Email</span>
-                <p>{contactEmail}</p>
-              </div>
-            </a>
-          ) : null}
-          {phone ? (
-            <a href={`tel:${phone}`} className={styles.publicDetail}>
-              <Phone aria-hidden="true" className="h-5 w-5" />
-              <div>
-                <span>Phone</span>
-                <p>{phone}</p>
-              </div>
-            </a>
-          ) : null}
-        </section>
+            </div>
+          </section>
+        ) : null}
       </main>
 
       <Footer />

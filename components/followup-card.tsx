@@ -60,7 +60,7 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
             href={item.linkedinUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-ink-2 hover:text-ink text-[14px] underline underline-offset-2"
+            className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink text-[14px] underline underline-offset-2"
           >
             Open LinkedIn
           </a>
@@ -68,7 +68,7 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
         {item.channel === 'email' && item.prospectEmail ? (
           <a
             href={`mailto:${item.prospectEmail}`}
-            className="text-ink-2 hover:text-ink text-[14px] underline underline-offset-2"
+            className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink text-[14px] underline underline-offset-2"
           >
             Open email
           </a>

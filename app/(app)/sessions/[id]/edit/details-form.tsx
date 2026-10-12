@@ -347,7 +347,7 @@ export function DetailsForm({
         <button
           type="button"
           onClick={() => void undoRegistration()}
-          className="text-ink-3 hover:text-ink-2 mt-2 text-[13px] underline underline-offset-2"
+          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-2 text-[13px] underline underline-offset-2"
         >
           Tapped by mistake? Put this card back
         </button>
@@ -651,7 +651,7 @@ export function DetailsForm({
         {saved && !error ? (
           <Link
             href="/dashboard"
-            className="border-line bg-surface text-ink hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
           >
             Next card
           </Link>
@@ -674,7 +674,7 @@ export function DetailsForm({
 
         <Link
           href={`/sessions/${session.id}/preview`}
-          className="border-line bg-surface text-ink hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
         >
           Preview their page
         </Link>
@@ -690,7 +690,7 @@ export function DetailsForm({
         <button
           type="button"
           onClick={deleteSession}
-          className="text-ink-3 hover:text-crit self-center text-[13px] underline underline-offset-2"
+          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
         >
           Delete this lead completely
         </button>
@@ -874,7 +874,7 @@ function QuickNote({
         type="button"
         disabled={busy || line.trim().length < 3}
         onClick={() => void run()}
-        className="bg-accent hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+        className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
       >
         {busy ? 'Reading…' : 'Fill the form'}
       </button>

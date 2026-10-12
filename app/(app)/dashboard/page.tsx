@@ -182,7 +182,7 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
       className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-3 text-sm whitespace-nowrap ${
         active
           ? 'border-accent bg-accent-soft text-accent'
-          : 'border-line bg-surface text-ink-2 hover:border-accent/40'
+          : 'border-line bg-surface text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:border-accent/40'
       }`}
     >
       {label}

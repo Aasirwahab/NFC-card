@@ -51,7 +51,7 @@ export default async function SettingsPage() {
   const entries = Object.fromEntries((knowledge.data ?? []).map((row) => [row.topic, row.content]));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`${styles.surface} ${styles.repSurface} flex flex-col gap-5`}>
       <div>
         <BackLink href="/dashboard">Today</BackLink>
         <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">Setup</h1>

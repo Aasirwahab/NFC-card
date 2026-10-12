@@ -9,6 +9,7 @@ import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
 import { StickyAction } from './sticky-action';
+import { ProspectShell } from './prospect-shell';
 import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
 import { linkedinHref } from '@/lib/domain/linkedin';
@@ -64,7 +65,7 @@ export function ProspectView({
 
   return (
     // pb-28 keeps the footer links clear of the floating chat button.
-    <div className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
+    <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
       <Header rep={rep} business={business}>
         {bookingLink ? <SaveContact code={code} repName={firstName(rep.fullName)} compact /> : null}
       </Header>
@@ -164,7 +165,7 @@ export function ProspectView({
           <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
         ) : null}
       </Footer>
-    </div>
+    </ProspectShell>
   );
 }
 
@@ -420,16 +421,22 @@ export function Footer({
        */}
       <Link
         href="/?ref=card"
-        className="text-ink-2 hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
+        className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
       >
         Get your own INSIGNAR card
       </Link>
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">
-        <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">
+        <Link
+          href="/how-it-works"
+          className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
+        >
           How it works
         </Link>
-        <Link href="/privacy" className="hover:text-ink-2 underline underline-offset-2">
+        <Link
+          href="/privacy"
+          className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
+        >
           Privacy
         </Link>
       </div>

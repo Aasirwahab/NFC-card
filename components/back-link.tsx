@@ -9,7 +9,7 @@ export function BackLink({ href, children }: { href: string; children: React.Rea
   return (
     <Link
       href={href}
-      className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
+      className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
     >
       ← {children}
     </Link>

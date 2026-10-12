@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
+              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
             >
               Sign out
             </button>
@@ -68,7 +68,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: Rea
   return (
     <Link
       href={href}
-      className="text-ink-3 hover:text-accent flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium"
+      className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-accent flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium"
     >
       {icon}
       {label}

@@ -12,10 +12,14 @@ const button = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-accent text-white hover:bg-accent-hover',
-        secondary: 'bg-surface text-ink border border-line hover:bg-surface-2',
-        ghost: 'text-ink-2 hover:bg-surface-2 hover:text-ink',
-        danger: 'bg-crit-bg text-crit border border-crit/25 hover:bg-crit hover:text-white',
+        primary:
+          'bg-accent text-white [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover',
+        secondary:
+          'bg-surface text-ink border border-line [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2',
+        ghost:
+          'text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink',
+        danger:
+          'bg-crit-bg text-crit border border-crit/25 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-crit [@media(hover:hover)_and_(pointer:fine)]:hover:text-white',
       },
       size: {
         sm: 'h-9 px-3 text-sm',
