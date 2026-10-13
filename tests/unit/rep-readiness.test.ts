@@ -1,5 +1,15 @@
 import { expect, it } from 'vitest';
-import { repReadiness } from '@/lib/domain/rep-readiness';
+import { eventOwnersWithRealEvents, repReadiness } from '@/lib/domain/rep-readiness';
+
+it('does not count the Unsorted filing bucket as a configured event', () => {
+  expect(
+    eventOwnersWithRealEvents([
+      { user_id: 'rep-unsorted', name: 'Unsorted' },
+      { user_id: 'rep-real', name: 'Plant Hire Expo' },
+      { user_id: 'rep-empty', name: '  ' },
+    ]),
+  ).toEqual(new Set(['rep-real']));
+});
 
 it('requires prepared stock, a complete profile, valid booking and an event without email', () => {
   const complete = {

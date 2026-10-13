@@ -1,6 +1,13 @@
 import { parseBookingUrl } from '@/lib/booking/link';
+import { publicEventName } from '@/lib/domain/pitch';
 import type { Stock } from '@/lib/ops/stock';
 import { linkedinHref } from './linkedin';
+
+export function eventOwnersWithRealEvents(events: { user_id: string; name: string | null }[]) {
+  return new Set(
+    events.filter((event) => publicEventName(event.name) !== null).map((event) => event.user_id),
+  );
+}
 
 type ReadinessInput = {
   profile: {
