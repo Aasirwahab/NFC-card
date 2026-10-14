@@ -6,6 +6,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
+      "env": { "SUPABASE_URL": "https://gkxvycemqdqwkimjigsg.supabase.co" },
       "autoPort": true
     }
   ]
