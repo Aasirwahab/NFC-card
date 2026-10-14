@@ -20,7 +20,8 @@ export async function resultsForEvent(
     .select('id, name, event_date')
     .eq('id', eventId)
     .eq('user_id', userId)
-    .maybeSingle();
+    .maybeSingle()
+    .throwOnError();
   if (!event) return null;
 
   const { data: rows } = await db
@@ -29,7 +30,8 @@ export async function resultsForEvent(
       'id, status, registered_at, details_completed_at, first_viewed_at, first_view_source, chat_response_count, research',
     )
     .eq('event_id', eventId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .throwOnError();
 
   const sessions: ResultSession[] = (rows ?? []).map((s) => {
     const research = s.research as { domainSource?: unknown } | null;
@@ -55,13 +57,15 @@ export async function resultsForEvent(
           .from('session_events')
           .select('session_id, type')
           .in('session_id', ids)
-          .in('type', ['booking_opened', 'linkedin_opened', 'released']),
-        db.from('bookings').select('session_id, status').in('session_id', ids),
+          .in('type', ['booking_opened', 'linkedin_opened', 'released'])
+          .throwOnError(),
+        db.from('bookings').select('session_id, status').in('session_id', ids).throwOnError(),
         db
           .from('pitch_ratings')
           .select('session_id, rating')
           .in('session_id', ids)
-          .eq('user_id', userId),
+          .eq('user_id', userId)
+          .throwOnError(),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
 

@@ -1,6 +1,7 @@
 import { requireStaff } from '@/lib/auth/staff';
 import Link from 'next/link';
 import { listReps, type OpsRep } from '@/lib/ops/data';
+import { env } from '@/lib/env';
 import { CodeSearch } from './code-search';
 
 export const metadata = { title: 'Operator console' };
@@ -17,6 +18,15 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
   await requireStaff();
   const { error } = await searchParams;
   const reps = await listReps();
+  const systemChecks: [string, boolean][] = [
+    ['Pitch model', Boolean(env.MODEL_API_KEY && env.MODEL_PITCH !== 'mock')],
+    ['Chat model', Boolean(env.MODEL_API_KEY && env.MODEL_CHAT !== 'mock')],
+    ['Vision model', Boolean(env.MODEL_API_KEY && env.MODEL_VISION && env.MODEL_VISION !== 'mock')],
+    ['Search key', Boolean(env.SEARCH_API_KEY)],
+    ['Cron secret', Boolean(env.CRON_SECRET)],
+    ['Worker secret', Boolean(env.WORKER_SECRET)],
+    ['Chat enabled', env.CHAT_ENABLED],
+  ];
 
   return (
     <div>
@@ -36,6 +46,23 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
       <div className="mt-4">
         <CodeSearch />
       </div>
+
+      <section className="border-line bg-surface shadow-card mt-5 rounded-xl border px-4 py-3.5">
+        <h2 className="text-ink text-[15px] font-semibold">System checks</h2>
+        <p className="text-ink-3 mt-1 text-[12px]">
+          Configuration only; does not test provider connectivity.
+        </p>
+        <dl className="mt-3 grid gap-2 text-[13px] sm:grid-cols-2">
+          {systemChecks.map(([label, ready]) => (
+            <div key={label} className="flex items-center justify-between gap-3">
+              <dt className="text-ink-2">{label}</dt>
+              <dd className={ready ? 'text-ok font-medium' : 'text-crit font-medium'}>
+                {ready ? 'Ready' : 'Missing'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <ul className="mt-5 flex flex-col gap-2.5">
         {reps.map((rep) => (
@@ -67,6 +94,27 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
               {todo(rep).length > 0 ? (
                 <p className="text-ink-3 mt-1 text-[12px]">{todo(rep).join(' · ')}</p>
               ) : null}
+              <div className="border-line mt-3 border-t pt-2">
+                <p
+                  className={
+                    rep.readiness.ready
+                      ? 'text-ok text-[13px] font-semibold'
+                      : 'text-crit text-[13px] font-semibold'
+                  }
+                >
+                  {rep.readiness.ready ? 'Ready' : 'Needs attention'}
+                </p>
+                <p className="text-ink-2 mt-1 text-[12px]">
+                  In-stock cards:{' '}
+                  {rep.stock.inStock - rep.stock.needsWriting - rep.stock.needsVerifying} verified ·{' '}
+                  {rep.stock.inStock - rep.stock.needsWriting} written · {rep.stock.inStock} issued
+                </p>
+                {!rep.readiness.ready ? (
+                  <p className="text-ink-3 mt-1 text-[12px]">
+                    Missing: {rep.readiness.missing.join(' · ')}
+                  </p>
+                ) : null}
+              </div>
             </Link>
           </li>
         ))}
