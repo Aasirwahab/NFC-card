@@ -1,3 +1,7 @@
+import Link from 'next/link';
+import { Check } from 'lucide-react';
+import styles from '@/app/ui-slice.module.css';
+import { publicProfileCheck } from '@/lib/domain/public-profile';
 import { BackLink } from '@/components/back-link';
 import { getBusinessProfile, getProfile } from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
@@ -34,6 +38,9 @@ export default async function SettingsPage() {
     serviceClient().from('events').select('niches').eq('user_id', rep.userId),
   ]);
 
+  const publicFields = publicProfileCheck(profile, business);
+  const presentFields = publicFields.filter((field) => field.present).length;
+
   const have = new Set((playbook.data ?? []).map((e) => e.problem.trim().toLowerCase()));
   const suggestions = [
     ...new Set(
@@ -44,11 +51,42 @@ export default async function SettingsPage() {
   const entries = Object.fromEntries((knowledge.data ?? []).map((row) => [row.topic, row.content]));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`${styles.surface} ${styles.repSurface} flex flex-col gap-5`}>
       <div>
         <BackLink href="/dashboard">Today</BackLink>
         <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">Setup</h1>
       </div>
+      <section className={styles.profileCheck} aria-labelledby="public-profile-heading">
+        <h2 id="public-profile-heading" className={styles.sectionLabel}>
+          Public profile check
+        </h2>
+        <p className="mt-2 text-xl font-semibold">
+          {presentFields} of {publicFields.length} details added
+        </p>
+        <p className="text-ink-3 mt-2 text-sm">Missing details are left out of your public page.</p>
+        <ul className="mt-4">
+          {publicFields.map((field) => (
+            <li key={field.label} className={styles.profileCheckRow}>
+              <span
+                className={field.present ? styles.profilePresent : styles.profileMissing}
+                aria-hidden="true"
+              >
+                {field.present ? <Check className="h-4 w-4" /> : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{field.label}</p>
+                <p className="text-ink-3 text-sm">{field.present ? 'Present' : 'Missing'}</p>
+              </div>
+              <Link
+                href={field.href}
+                aria-label={`${field.present ? 'Edit' : 'Add'} ${field.label}`}
+              >
+                {field.present ? 'Edit' : 'Add'}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
       <ProfileForm profile={profile} />
       <PitchVoiceForm profile={profile} />
       <BusinessForm business={business} />

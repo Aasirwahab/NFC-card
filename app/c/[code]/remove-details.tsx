@@ -51,7 +51,7 @@ export function RemoveDetails({ code }: { code: string }) {
           <button
             type="button"
             onClick={() => setStep('idle')}
-            className="hover:text-ink-2 underline underline-offset-2"
+            className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
           >
             Keep them
           </button>
@@ -64,7 +64,7 @@ export function RemoveDetails({ code }: { code: string }) {
     <button
       type="button"
       onClick={() => setStep('confirm')}
-      className="hover:text-ink-2 mt-4 block underline underline-offset-2"
+      className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-4 block underline underline-offset-2"
     >
       Remove my details
     </button>

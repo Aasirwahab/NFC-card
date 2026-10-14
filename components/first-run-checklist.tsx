@@ -69,7 +69,7 @@ export function FirstRunChecklist({ progress }: { progress: SetupProgress }) {
                 ) : (
                   <Link
                     href={step.href}
-                    className="text-ink text-[15px] font-medium underline-offset-2 hover:underline"
+                    className="text-ink text-[15px] font-medium underline-offset-2 [@media(hover:hover)_and_(pointer:fine)]:hover:underline"
                   >
                     {step.label}
                   </Link>

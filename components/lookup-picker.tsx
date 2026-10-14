@@ -79,7 +79,7 @@ export function LookupPicker({
         type="button"
         disabled={disabled || busy}
         onClick={() => void run()}
-        className="border-line bg-surface text-ink hover:border-ink-3 h-11 rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
+        className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 h-11 rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
       >
         {busy ? 'Looking…' : buttonLabel}
       </button>
@@ -107,7 +107,7 @@ export function LookupPicker({
                 className={`w-full rounded-xl border px-3.5 py-3 text-left ${
                   item.likely
                     ? 'border-accent bg-accent-soft'
-                    : 'border-line bg-surface hover:border-ink-3'
+                    : 'border-line bg-surface [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3'
                 }`}
               >
                 <span className="flex items-center justify-between gap-2">
@@ -129,7 +129,7 @@ export function LookupPicker({
                   href={item.checkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink-3 hover:text-ink-2 mt-1 ml-1 inline-block text-[12px] underline underline-offset-2"
+                  className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-1 ml-1 inline-block text-[12px] underline underline-offset-2"
                 >
                   Open to check
                 </a>
@@ -140,7 +140,7 @@ export function LookupPicker({
             <button
               type="button"
               onClick={() => setItems(null)}
-              className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
+              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
             >
               None of these? Type it in the field above.
             </button>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import styles from '@/app/ui-slice.module.css';
 import { CreditCard, LayoutGrid, Settings, Tags } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
 import { TimezoneSync } from '@/components/timezone-sync';
@@ -23,7 +24,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const isStaff = isStaffEmail(rep.email, env.STAFF_EMAILS);
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className={`${styles.appShell} flex min-h-dvh flex-col`}>
       <TimezoneSync />
       <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
@@ -41,7 +42,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="text-ink-3 hover:text-ink-2 text-[13px] underline underline-offset-2"
+              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
             >
               Sign out
             </button>
@@ -67,7 +68,7 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: Rea
   return (
     <Link
       href={href}
-      className="text-ink-3 hover:text-accent flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium"
+      className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-accent flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium"
     >
       {icon}
       {label}

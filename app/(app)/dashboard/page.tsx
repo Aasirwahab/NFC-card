@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import styles from '@/app/ui-slice.module.css';
 import { CardCodeLookup } from '@/components/card-code-lookup';
 import { FirstRunChecklist } from '@/components/first-run-checklist';
 import { TapGuide } from '@/components/tap-guide';
@@ -57,19 +58,32 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   const tapped = sessions.filter((s) => s.first_viewed_at).length;
 
   return (
-    <div>
+    <div className={`${styles.surface} ${styles.repSurface} ${styles.today}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="font-display text-ink text-2xl font-bold tracking-tight">Today</h1>
+        <h1 className={styles.todayTitle}>Today</h1>
         <p className="text-ink-3 font-mono text-[11px]">
           {sessions.length} lead{sessions.length === 1 ? '' : 's'} · {tapped} tapped
         </p>
       </div>
 
+      <p className={styles.headline}>
+        {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'}
+        <br />
+        need{needsDetails.length === 1 ? 's' : ''} you.
+      </p>
+      <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
+
+      {!progress.booking ? (
+        <aside className={styles.bookingWarning}>
+          <Link href="/settings#booking_url">Add a booking link before you hand out cards</Link>
+        </aside>
+      ) : null}
+
       <FirstRunChecklist progress={progress} />
 
       {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
 
-      <CardCodeLookup className="border-line bg-surface mt-4 rounded-xl border p-4" />
+      <CardCodeLookup className={styles.cardLookup} />
 
       {sessions.length === 0 ? (
         <EmptyState />
@@ -90,14 +104,12 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
           {followups.length > 0 ? (
             <section>
-              <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-                Follow up · {followups.length}
-              </h2>
+              <h2 className="text-ink text-base font-semibold">Follow up · {followups.length}</h2>
               <p className="text-ink-3 mt-1 text-[13px] leading-snug">
                 A day on and they haven&rsquo;t opened their card. A note to send yourself. It
                 follows up on the conversation and says nothing about the card.
               </p>
-              <div className="mt-2.5 flex flex-col gap-2">
+              <div className="mt-2.5 flex flex-col">
                 {followups.map((item) => (
                   <FollowupCard key={item.sessionId} item={item} />
                 ))}
@@ -127,16 +139,12 @@ function Group({
 
   return (
     <section>
-      <h2
-        className={`font-mono text-[11px] tracking-[0.08em] uppercase ${
-          tone === 'warn' ? 'text-warn' : 'text-ink-3'
-        }`}
-      >
+      <h2 className={`text-base font-semibold ${tone === 'warn' ? 'text-warn' : 'text-ink'}`}>
         {title} · {sessions.length}
       </h2>
       {hint ? <p className="text-ink-3 mt-1 text-[13px] leading-snug">{hint}</p> : null}
 
-      <div className="mt-2.5 flex flex-col gap-2">
+      <div className="mt-2.5 flex flex-col">
         {sessions.map((session) => (
           <SessionRow key={session.id} session={session} />
         ))}
@@ -153,7 +161,7 @@ function EventFilter({
   selected: string | undefined;
 }) {
   return (
-    <div className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-1">
+    <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
       <FilterChip href="/dashboard" label="All" active={!selected} />
       {events.map((event) => (
         <FilterChip
@@ -171,10 +179,10 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
   return (
     <Link
       href={href}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium whitespace-nowrap ${
+      className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-3 text-sm whitespace-nowrap ${
         active
           ? 'border-accent bg-accent-soft text-accent'
-          : 'border-line bg-surface text-ink-2 hover:border-accent/40'
+          : 'border-line bg-surface text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:border-accent/40'
       }`}
     >
       {label}

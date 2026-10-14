@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import styles from '@/app/ui-slice.module.css';
 import Cal from '@calcom/embed-react';
 import { CalendarDays } from 'lucide-react';
 import { SESSION_METADATA_KEY, type CalLink } from '@/lib/booking/link';
 import { apiSend } from '@/lib/http/client';
+import { StickyAction } from './sticky-action';
 
 /**
  * The booking calendar on the prospect page (spec §19.1).
@@ -30,6 +32,10 @@ export function Booking({
   preview: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const calendar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) calendar.current?.scrollIntoView({ block: 'start' });
+  }, [open]);
 
   if (preview) {
     return (
@@ -42,18 +48,20 @@ export function Booking({
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(true);
-          // A count, not a gate: a failure here must never stop anyone booking.
-          apiSend(`/api/landing/${code}/booking-opened`, 'POST').catch(() => {});
-        }}
-        className="bg-accent hover:bg-accent-hover mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg text-[15px] font-medium text-white"
-      >
-        <CalendarDays className="h-4 w-4" aria-hidden="true" />
-        Pick a time
-      </button>
+      <StickyAction>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true);
+            // A count, not a gate: a failure here must never stop anyone booking.
+            apiSend(`/api/landing/${code}/booking-opened`, 'POST').catch(() => {});
+          }}
+          className={`${styles.primaryAction} mt-4`}
+        >
+          <CalendarDays className="h-4 w-4" aria-hidden="true" />
+          Pick a time
+        </button>
+      </StickyAction>
     );
   }
 
@@ -61,7 +69,10 @@ export function Booking({
   const cloud = link.calOrigin === 'https://cal.com';
 
   return (
-    <div className="border-line-soft -mx-2 mt-4 h-[36rem] overflow-hidden rounded-lg border">
+    <div
+      ref={calendar}
+      className="border-line-soft -mx-2 mt-4 h-[36rem] scroll-mt-4 overflow-hidden rounded-lg border"
+    >
       <Cal
         calLink={link.calLink}
         calOrigin={cloud ? undefined : link.calOrigin}

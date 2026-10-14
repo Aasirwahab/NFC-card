@@ -98,6 +98,7 @@ export type BusinessProfile = {
   tagline: string | null;
   logoUrl: string | null;
   services: string[];
+  website: string | null;
 };
 
 export type Resolved =
@@ -310,7 +311,7 @@ async function repFace(
       .maybeSingle(),
     db
       .from('business_profiles')
-      .select('company_name, tagline, logo_url, services')
+      .select('company_name, tagline, logo_url, services, website')
       .eq('user_id', userId)
       .maybeSingle(),
   ]);
@@ -331,6 +332,7 @@ async function repFace(
           tagline: business.tagline,
           logoUrl: business.logo_url,
           services: business.services,
+          website: business.website,
         }
       : null,
   };

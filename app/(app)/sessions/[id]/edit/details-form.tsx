@@ -2,6 +2,8 @@
 
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Camera, ChevronDown } from 'lucide-react';
+import styles from '@/app/ui-slice.module.css';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/field';
@@ -309,14 +311,14 @@ export function DetailsForm({
   const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6F685F';
 
   return (
-    <div className="pb-4">
+    <div className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4`}>
       <header className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
           className="h-4 w-4 rounded-full ring-2 ring-white"
           style={{ backgroundColor: hex }}
         />
-        <h1 className="font-display text-ink text-2xl font-bold tracking-tight">
+        <h1 className="text-ink text-base font-semibold">
           Card {session.event_sequence_number} — {session.colour_tag}
         </h1>
       </header>
@@ -328,7 +330,6 @@ export function DetailsForm({
           ? 'opened by them before you registered it'
           : `registered by ${session.registered_by}`}
       </p>
-      <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
 
       {justRegistered ? (
         <p className="bg-ok-bg text-ok mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
@@ -346,7 +347,7 @@ export function DetailsForm({
         <button
           type="button"
           onClick={() => void undoRegistration()}
-          className="text-ink-3 hover:text-ink-2 mt-2 text-[13px] underline underline-offset-2"
+          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-2 text-[13px] underline underline-offset-2"
         >
           Tapped by mistake? Put this card back
         </button>
@@ -392,6 +393,7 @@ export function DetailsForm({
       />
 
       <div className="mt-6 flex flex-col gap-4">
+        <h2 className={styles.checkTitle}>Is this right?</h2>
         <Field label="Their name" htmlFor="name">
           <Input
             id="name"
@@ -413,75 +415,6 @@ export function DetailsForm({
             spellCheck={false}
           />
         </Field>
-
-        <Field
-          label="Their website"
-          htmlFor="website"
-          hint="Optional. Makes sure we research the right company — worth it for a gmail address or a common name."
-        >
-          <Input
-            id="website"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            placeholder="abcservices.co.uk"
-            inputMode="url"
-            autoCapitalize="none"
-            autoComplete="off"
-          />
-          {lookupEnabled ? (
-            <LookupPicker
-              buttonLabel="Find their website"
-              disabled={company.trim().length < 2}
-              path="/api/lookup/company"
-              body={() => ({ name: company.trim() })}
-              toItems={(response: SiteLookup) =>
-                response.candidates.map((c) => ({
-                  key: c.url,
-                  primary: c.domain,
-                  secondary: c.title,
-                  badge: c.url === response.likelyUrl ? 'Likely' : undefined,
-                  likely: c.url === response.likelyUrl,
-                  value: c.domain,
-                }))
-              }
-              onPick={setWebsite}
-              onReady={setSiteApi}
-              emptyText="Nothing found. Type the website if you know it."
-            />
-          ) : null}
-        </Field>
-
-        {niches.length > 0 ? (
-          <fieldset>
-            <legend className="text-ink-2 text-sm font-medium">Niche</legend>
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-              {niches.map((n) => {
-                const selected = n.name === niche;
-                return (
-                  <button
-                    key={n.name}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      if (selected) return;
-                      setNiche(n.name);
-                      // Problems belong to a niche, so switching niche clears any
-                      // selections that no longer have a home.
-                      setProblems([]);
-                    }}
-                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
-                      selected
-                        ? 'border-accent bg-accent-soft text-accent'
-                        : 'border-line bg-surface text-ink-2'
-                    }`}
-                  >
-                    {n.name}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : null}
 
         {quickSelect.length > 0 ? (
           <fieldset>
@@ -512,114 +445,193 @@ export function DetailsForm({
           </fieldset>
         ) : null}
 
-        <Field
-          label="Anything else they said"
-          hint="Their own words, if you can remember them."
-          htmlFor="custom"
-        >
-          <Textarea
-            id="custom"
-            rows={3}
-            value={customProblems}
-            onChange={(e) => setCustomProblems(e.target.value)}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Field>
 
-        <Field
-          label="To remember them by"
-          // §23.1 — the sharp edge. A rep typing quickly at a networking event
-          // will not be drawing the special-category line, so the form does.
-          hint="Only for you. Never shown to them and never seen by the AI. Business-relevant details only: no health, religion, politics or personal circumstances."
-          htmlFor="memorable"
-        >
-          <Textarea
-            id="memorable"
-            rows={2}
-            value={memorable}
-            onChange={(e) => setMemorable(e.target.value)}
-            maxLength={500}
-          />
-        </Field>
+          <Field label="Phone" htmlFor="phone">
+            <Input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </Field>
+        </div>
 
-        <div className="border-line-soft border-t pt-4">
-          <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-            How to reach them
-          </h2>
-
-          <div className="mt-3 flex flex-col gap-4">
+        <details className={styles.optionalDetails}>
+          <summary>
+            <span>More details (optional)</span>
+            <ChevronDown aria-hidden="true" className="h-5 w-5" />
+          </summary>
+          <div className="flex flex-col gap-4 pb-4">
             <Field
-              label="LinkedIn"
-              hint="Best: paste the link. Ask to scan their LinkedIn QR code (search bar, QR icon) or copy it from the app. The search below is a helper and often wrong."
-              htmlFor="linkedin"
+              label="Anything else they said"
+              hint="Their own words, if you can remember them."
+              htmlFor="custom"
+            >
+              <Textarea
+                id="custom"
+                rows={3}
+                value={customProblems}
+                onChange={(e) => setCustomProblems(e.target.value)}
+              />
+            </Field>
+
+            <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
+            <Field
+              label="Their website"
+              htmlFor="website"
+              hint="Optional. Makes sure we research the right company — worth it for a gmail address or a common name."
             >
               <Input
-                id="linkedin"
-                type="url"
+                id="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="abcservices.co.uk"
                 inputMode="url"
-                value={linkedin}
-                onChange={(e) => setLinkedin(e.target.value)}
-                placeholder="https://linkedin.com/in/…"
+                autoCapitalize="none"
+                autoComplete="off"
               />
               {lookupEnabled ? (
                 <LookupPicker
-                  buttonLabel="Search the web for LinkedIn"
-                  disabled={name.trim().split(/\s+/).length < 2}
-                  path="/api/lookup/linkedin"
-                  body={() => ({ name: name.trim(), company: company.trim() || undefined })}
-                  toItems={(response: ProfileLookup) =>
+                  buttonLabel="Find their website"
+                  disabled={company.trim().length < 2}
+                  path="/api/lookup/company"
+                  body={() => ({ name: company.trim() })}
+                  toItems={(response: SiteLookup) =>
                     response.candidates.map((c) => ({
                       key: c.url,
-                      checkUrl: c.url,
-                      primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
-                      secondary: c.snippet || undefined,
-                      badge:
-                        c.url === response.likelyUrl
-                          ? 'Likely'
-                          : c.label === 'exact_match'
-                            ? 'Check'
-                            : c.label === 'ambiguous'
-                              ? 'Unsure'
-                              : c.label === 'namesake'
-                                ? 'Other company'
-                                : undefined,
+                      primary: c.domain,
+                      secondary: c.title,
+                      badge: c.url === response.likelyUrl ? 'Likely' : undefined,
                       likely: c.url === response.likelyUrl,
-                      value: c.url,
+                      value: c.domain,
                     }))
                   }
-                  onPick={setLinkedin}
-                  onReady={setProfileApi}
-                  emptyText="No profile found. Paste the link if they shared it."
+                  onPick={setWebsite}
+                  onReady={setSiteApi}
+                  emptyText="Nothing found. Type the website if you know it."
                 />
               ) : null}
             </Field>
 
-            <Field label="Email" htmlFor="email">
-              <Input
-                id="email"
-                type="email"
-                inputMode="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+            {niches.length > 0 ? (
+              <fieldset>
+                <legend className="text-ink-2 text-sm font-medium">Niche</legend>
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {niches.map((n) => {
+                    const selected = n.name === niche;
+                    return (
+                      <button
+                        key={n.name}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          if (selected) return;
+                          setNiche(n.name);
+                          // Problems belong to a niche, so switching niche clears any
+                          // selections that no longer have a home.
+                          setProblems([]);
+                        }}
+                        className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                          selected
+                            ? 'border-accent bg-accent-soft text-accent'
+                            : 'border-line bg-surface text-ink-2'
+                        }`}
+                      >
+                        {n.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
+
+            <Field
+              label="To remember them by"
+              // §23.1 — the sharp edge. A rep typing quickly at a networking event
+              // will not be drawing the special-category line, so the form does.
+              hint="Only for you. Never shown to them and never seen by the AI. Business-relevant details only: no health, religion, politics or personal circumstances."
+              htmlFor="memorable"
+            >
+              <Textarea
+                id="memorable"
+                rows={2}
+                value={memorable}
+                onChange={(e) => setMemorable(e.target.value)}
+                maxLength={500}
               />
             </Field>
 
-            <Field label="Phone" htmlFor="phone">
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </Field>
+            <div className="border-line-soft border-t pt-4">
+              <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
+                How to reach them
+              </h2>
+
+              <div className="mt-3 flex flex-col gap-4">
+                <Field
+                  label="LinkedIn"
+                  hint="Best: paste the link. Ask to scan their LinkedIn QR code (search bar, QR icon) or copy it from the app. The search below is a helper and often wrong."
+                  htmlFor="linkedin"
+                >
+                  <Input
+                    id="linkedin"
+                    type="url"
+                    inputMode="url"
+                    value={linkedin}
+                    onChange={(e) => setLinkedin(e.target.value)}
+                    placeholder="https://linkedin.com/in/…"
+                  />
+                  {lookupEnabled ? (
+                    <LookupPicker
+                      buttonLabel="Search the web for LinkedIn"
+                      disabled={name.trim().split(/\s+/).length < 2}
+                      path="/api/lookup/linkedin"
+                      body={() => ({ name: name.trim(), company: company.trim() || undefined })}
+                      toItems={(response: ProfileLookup) =>
+                        response.candidates.map((c) => ({
+                          key: c.url,
+                          checkUrl: c.url,
+                          primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
+                          secondary: c.snippet || undefined,
+                          badge:
+                            c.url === response.likelyUrl
+                              ? 'Likely'
+                              : c.label === 'exact_match'
+                                ? 'Check'
+                                : c.label === 'ambiguous'
+                                  ? 'Unsure'
+                                  : c.label === 'namesake'
+                                    ? 'Other company'
+                                    : undefined,
+                          likely: c.url === response.likelyUrl,
+                          value: c.url,
+                        }))
+                      }
+                      onPick={setLinkedin}
+                      onReady={setProfileApi}
+                      emptyText="No profile found. Paste the link if they shared it."
+                    />
+                  ) : null}
+                </Field>
+              </div>
+            </div>
           </div>
-
-          {noChannel ? (
-            <p className="bg-warn-bg text-warn mt-3 rounded-lg px-3 py-2.5 text-[13px] font-medium">
-              No way to follow up if they don&rsquo;t tap. Add LinkedIn or email?
-            </p>
-          ) : null}
-        </div>
+        </details>
+        {noChannel ? (
+          <p className="bg-warn-bg text-warn mt-3 rounded-lg px-3 py-2.5 text-[13px] font-medium">
+            No way to follow up if they don&rsquo;t tap. Add LinkedIn or email?
+          </p>
+        ) : null}
 
         {error ? (
           <p
@@ -639,7 +651,7 @@ export function DetailsForm({
         {saved && !error ? (
           <Link
             href="/dashboard"
-            className="border-line bg-surface text-ink hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
           >
             Next card
           </Link>
@@ -662,7 +674,7 @@ export function DetailsForm({
 
         <Link
           href={`/sessions/${session.id}/preview`}
-          className="border-line bg-surface text-ink hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
         >
           Preview their page
         </Link>
@@ -678,7 +690,7 @@ export function DetailsForm({
         <button
           type="button"
           onClick={deleteSession}
-          className="text-ink-3 hover:text-crit self-center text-[13px] underline underline-offset-2"
+          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
         >
           Delete this lead completely
         </button>
@@ -842,27 +854,27 @@ function QuickNote({
   }
 
   return (
-    <section className="border-line bg-surface mt-6 rounded-xl border p-4">
-      <label htmlFor="quick-note" className="text-ink text-[15px] font-semibold">
-        Say it or type it
+    <section className={styles.quickNote}>
+      <label htmlFor="quick-note" className={styles.noteTitle}>
+        What did they say?
       </label>
       <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
         One line is enough. Tap the microphone on your keyboard to dictate.
       </p>
       <Textarea
         id="quick-note"
-        rows={2}
+        rows={7}
         value={line}
         onChange={(e) => setLine(e.target.value)}
         placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
         maxLength={600}
-        className="mt-2"
+        className={styles.noteInput}
       />
       <button
         type="button"
         disabled={busy || line.trim().length < 3}
         onClick={() => void run()}
-        className="bg-accent hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+        className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
       >
         {busy ? 'Reading…' : 'Fill the form'}
       </button>
@@ -872,10 +884,12 @@ function QuickNote({
             type="button"
             disabled={scanning}
             onClick={() => camera.current?.click()}
-            className="border-line bg-surface text-ink hover:border-ink-3 mt-2 ml-2 h-11 rounded-lg border px-4 text-sm font-medium disabled:opacity-50"
+            className={styles.scanButton}
           >
+            <Camera className="h-5 w-5" aria-hidden="true" />
             {scanning ? 'Reading card…' : 'Scan their card'}
           </button>
+          <p className="text-ink-3 mt-2 text-sm">The photo is read, not stored.</p>
           <input
             ref={camera}
             type="file"

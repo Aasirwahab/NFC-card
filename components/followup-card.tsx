@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import styles from '@/app/ui-slice.module.css';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { FollowupItem } from '@/lib/db/rep';
@@ -41,10 +42,10 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
   }
 
   return (
-    <div className="border-line bg-surface rounded-xl border px-3.5 py-3">
+    <div className={styles.followup}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ink truncate text-[15px] font-medium">{who}</p>
-        <span className="text-ink-3 shrink-0 font-mono text-[11px]">
+        <p className="text-ink min-w-0 text-base font-semibold wrap-anywhere">{who}</p>
+        <span className="text-ink-3 max-w-[40%] shrink-0 font-mono text-[11px]">
           Card {item.sequence} · {item.colour}
         </span>
       </div>
@@ -59,7 +60,7 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
             href={item.linkedinUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-ink-2 hover:text-ink text-[14px] underline underline-offset-2"
+            className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink text-[14px] underline underline-offset-2"
           >
             Open LinkedIn
           </a>
@@ -67,7 +68,7 @@ export function FollowupCard({ item }: { item: FollowupItem }) {
         {item.channel === 'email' && item.prospectEmail ? (
           <a
             href={`mailto:${item.prospectEmail}`}
-            className="text-ink-2 hover:text-ink text-[14px] underline underline-offset-2"
+            className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink text-[14px] underline underline-offset-2"
           >
             Open email
           </a>

@@ -1,12 +1,15 @@
 import Link from 'next/link';
+import styles from '@/app/ui-slice.module.css';
 import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
-import { callToAction, greeting, primaryProblem, templatePitch } from '@/lib/domain/pitch';
+import { primaryProblem, publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
+import { StickyAction } from './sticky-action';
+import { ProspectShell } from './prospect-shell';
 import { ChatWidget } from './chat-widget';
 import { EmailMe } from './email-me';
 import { linkedinHref } from '@/lib/domain/linkedin';
@@ -55,43 +58,64 @@ export function ProspectView({
   // No link, no button: a dead button on this page is worse than none (§16).
   const bookingLink = parseBookingUrl(rep.bookingUrl);
   const linkedin = linkedinHref(rep.linkedinUrl);
-  const cta = callToAction({
-    problems: session.problems,
-    customProblems: session.custom_problems,
-    repName: firstName(rep.fullName),
-  });
+  const publicEvent = publicEventName(eventName);
+  const prospectFirst = session.prospect_name?.trim() ? firstName(session.prospect_name) : null;
+  const topics = session.problems.filter((problem) => problem.trim());
+  const customTopic = session.custom_problems?.trim();
 
   return (
     // pb-28 keeps the footer links clear of the floating chat button.
-    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col px-5 pb-28">
-      <Header rep={rep} business={business} />
+    <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
+      <Header rep={rep} business={business}>
+        {bookingLink ? <SaveContact code={code} repName={firstName(rep.fullName)} compact /> : null}
+      </Header>
 
       <main className="flex-1">
-        <p className="font-display text-ink mt-7 text-2xl font-semibold tracking-tight">
-          {greeting(session.prospect_name)}
-        </p>
+        <h1 className={prospectFirst ? styles.preparedFor : styles.headline}>
+          {prospectFirst ? `Prepared for ${prospectFirst}` : 'Picking up our conversation.'}
+        </h1>
+        {publicEvent ? <h2 className={styles.headline}>After {publicEvent}</h2> : null}
 
-        {view.state === 'completed' ? (
-          <Pitch text={view.pitch} />
-        ) : view.state === 'crafting' ? (
-          <Crafting code={code} fallbackPitch={fallbackPitch} />
-        ) : view.state === 'failed' ? (
-          <Pitch text={fallbackPitch} />
-        ) : (
-          <PendingBody
-            eventName={eventName}
-            business={business}
-            repName={firstName(rep.fullName)}
-          />
-        )}
+        {topics.length > 0 || customTopic || business?.tagline ? (
+          <section className={styles.issuePanel} aria-labelledby="discussed-issue">
+            <h2 id="discussed-issue" className={styles.sectionLabel}>
+              The issue we discussed
+            </h2>
+            {topics.map((topic, index) => (
+              <p key={index} className={styles.issueTopic}>
+                {topic}
+              </p>
+            ))}
+            {customTopic ? <p className={styles.issueTopic}>{customTopic}</p> : null}
+            {topics.length === 0 && !customTopic && business?.tagline ? (
+              <p className={styles.issueTopic}>{business.tagline}</p>
+            ) : null}
+            {session.prospect_company ? (
+              <p className={styles.issueCompany}>{session.prospect_company}</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section className={styles.pitchSection}>
+          <h2 className={styles.sectionLabel}>{firstName(rep.fullName)}&rsquo;s read on it</h2>
+          {view.state === 'completed' ? (
+            <Pitch text={view.pitch} />
+          ) : view.state === 'crafting' ? (
+            <Crafting code={code} fallbackPitch={fallbackPitch} />
+          ) : view.state === 'failed' ? (
+            <Pitch text={fallbackPitch} />
+          ) : (
+            <PendingBody
+              eventName={publicEvent}
+              business={business}
+              repName={firstName(rep.fullName)}
+            />
+          )}
+        </section>
 
         {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
 
-        {business && business.services.length > 0 && view.state !== 'crafting' ? (
-          <SolutionPoints services={business.services} companyName={business.companyName} />
-        ) : null}
-
-        <CallToActionBlock label={cta} repName={firstName(rep.fullName)}>
+        <CallToActionBlock label="Pick up where we left off." repName={firstName(rep.fullName)}>
           {bookingLink ? (
             <Booking
               code={code}
@@ -100,39 +124,48 @@ export function ProspectView({
               link={bookingLink}
               preview={preview}
             />
-          ) : null}
-          {emailConfigured() && !preview ? (
-            <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
+          ) : (
+            <StickyAction enabled={!preview}>
+              <SaveContact code={code} repName={firstName(rep.fullName)} primary />
+            </StickyAction>
+          )}
+          {linkedin ? (
+            <LinkedInConnect
+              code={code}
+              href={linkedin}
+              repName={firstName(rep.fullName)}
+              preview={Boolean(preview)}
+            />
           ) : null}
         </CallToActionBlock>
 
-        <SaveContact code={code} repName={firstName(rep.fullName)} />
-        {linkedin ? (
-          <LinkedInConnect
-            code={code}
-            href={linkedin}
-            repName={firstName(rep.fullName)}
-            preview={Boolean(preview)}
-          />
+        {business && business.services.length > 0 && view.state !== 'crafting' ? (
+          <SolutionPoints services={business.services} companyName={business.companyName} />
         ) : null}
 
-        <ChatWidget
-          code={code}
-          repFirstName={firstName(rep.fullName)}
-          opening={openingLine(
-            firstName(rep.fullName),
-            primaryProblem({
-              problems: session.problems,
-              customProblems: session.custom_problems,
-            }),
-          )}
-          enabled={env.CHAT_ENABLED}
-          preview={preview}
-        />
+        <div className={styles.chatRegion}>
+          <ChatWidget
+            code={code}
+            repFirstName={firstName(rep.fullName)}
+            opening={openingLine(
+              firstName(rep.fullName),
+              primaryProblem({
+                problems: session.problems,
+                customProblems: session.custom_problems,
+              }),
+            )}
+            enabled={env.CHAT_ENABLED}
+            preview={preview}
+          />
+        </div>
       </main>
 
-      <Footer removeCode={preview ? undefined : code} />
-    </div>
+      <Footer removeCode={preview ? undefined : code}>
+        {emailConfigured() && !preview ? (
+          <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
+        ) : null}
+      </Footer>
+    </ProspectShell>
   );
 }
 
@@ -143,7 +176,7 @@ export function ProspectView({
  */
 function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['playbook']> }) {
   return (
-    <section className="border-line bg-surface mt-7 rounded-2xl border p-5">
+    <section className={styles.playbook}>
       {playbook.why ? (
         <>
           <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
@@ -161,9 +194,14 @@ function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['p
           >
             Worth checking this week
           </h2>
-          <ol className="text-ink-2 mt-1.5 list-decimal space-y-1.5 pl-5 text-[16px] leading-relaxed">
-            {playbook.checks.map((check) => (
-              <li key={check}>{check}</li>
+          <ol className={styles.stepper}>
+            {playbook.checks.map((check, index) => (
+              <li key={check}>
+                <span className={styles.stepNumber} aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span>{check}</span>
+              </li>
             ))}
           </ol>
         </>
@@ -204,7 +242,9 @@ function initials(fullName: string): string {
 export function Header({
   rep,
   business,
+  children,
 }: {
+  children?: React.ReactNode;
   rep: ProspectResolved['rep'];
   business: ProspectResolved['business'];
 }) {
@@ -242,13 +282,14 @@ export function Header({
           {titleLine(rep.title, business?.companyName ?? null)}
         </p>
       </div>
+      {children}
     </header>
   );
 }
 
 function Pitch({ text }: { text: string }) {
   return (
-    <div className="text-ink-2 mt-3 space-y-3.5 text-[17px] leading-relaxed">
+    <div className={styles.pitch}>
       {text
         .split(/\n{2,}/)
         .map((paragraph) => paragraph.trim())
@@ -274,7 +315,7 @@ function PendingBody({
   repName: string;
 }) {
   return (
-    <div className="text-ink-2 mt-3 space-y-3.5 text-[17px] leading-relaxed">
+    <div className={styles.pitch}>
       <p>{eventName ? `Great to meet you at ${eventName}.` : 'Great to meet you the other day.'}</p>
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
@@ -294,17 +335,14 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
   if (points.length === 0) return null;
 
   return (
-    <section className="mt-7">
+    <section className={styles.services}>
       <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
         What {companyName} does
       </h2>
-      <ul className="mt-2.5 space-y-2">
+      <ul className="mt-1.5">
         {points.map((point) => (
-          <li key={point} className="text-ink-2 flex gap-2.5 text-[15px] leading-snug">
-            <span
-              aria-hidden="true"
-              className="bg-accent mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full"
-            />
+          <li key={point} className={styles.service}>
+            <span aria-hidden="true" className={styles.serviceDot} />
             <span>{point}</span>
           </li>
         ))}
@@ -330,13 +368,11 @@ function CallToActionBlock({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="border-accent-soft bg-surface shadow-card mt-8 rounded-xl border p-5">
+    <section className={styles.cta}>
       <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
         {label}
       </p>
-      <p className="text-ink-2 mt-1.5 text-sm">
-        {repName} will come prepared: no pitch deck, no warm-up questions.
-      </p>
+      <p className="text-ink-2 mt-1.5 text-sm">{repName} will come prepared.</p>
       {children}
     </section>
   );
@@ -347,37 +383,60 @@ function CallToActionBlock({
  * and Android open straight into "Add contact". It is a real, working button —
  * the rule for this page is that nothing on it pretends to work.
  */
-export function SaveContact({ code, repName }: { code: string; repName: string }) {
+export function SaveContact({
+  code,
+  repName,
+  compact = false,
+  primary = false,
+}: {
+  code: string;
+  repName: string;
+  compact?: boolean;
+  primary?: boolean;
+}) {
   return (
     <a
       href={`/c/${code}/contact`}
-      className="border-accent text-accent hover:bg-accent-soft mt-3 flex h-12 items-center justify-center gap-2 rounded-lg border-[1.5px] text-[15px] font-medium"
+      className={primary ? styles.primaryAction : compact ? styles.compactSave : styles.saveContact}
     >
       <UserPlus className="h-4 w-4" aria-hidden="true" />
-      Save {repName}&rsquo;s contact
+      {compact ? 'Save contact' : <>Save {repName}&rsquo;s contact</>}
     </a>
   );
 }
 
-export function Footer({ removeCode }: { removeCode?: string }) {
+export function Footer({
+  removeCode,
+  children,
+}: {
+  removeCode?: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <footer className="border-line-soft text-ink-3 mt-10 border-t pt-5 text-[13px]">
+    <footer className={styles.footer}>
+      {children}
       {/*
        * The acquisition loop (2026-09-25 review): whoever is holding this card
        * goes to events and hands out cards — exactly who INSIGNAR is for.
        */}
       <Link
         href="/?ref=card"
-        className="text-ink-2 hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
+        className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
       >
         Get your own INSIGNAR card
       </Link>
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">
-        <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">
+        <Link
+          href="/how-it-works"
+          className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
+        >
           How it works
         </Link>
-        <Link href="/privacy" className="hover:text-ink-2 underline underline-offset-2">
+        <Link
+          href="/privacy"
+          className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
+        >
           Privacy
         </Link>
       </div>

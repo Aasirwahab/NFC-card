@@ -208,7 +208,7 @@ export function PitchVoiceForm({
                 type="button"
                 aria-pressed={tone === t.value}
                 onClick={() => setTone(t.value)}
-                className={`rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                className={`min-h-11 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                   tone === t.value
                     ? 'border-accent bg-accent-soft text-accent'
                     : 'border-line bg-surface text-ink-2'
@@ -410,7 +410,7 @@ export function PlaybookForm({
           key={entry.id}
           className="border-line-soft border-t pt-3 first:border-t-0 first:pt-0"
         >
-          <summary className="text-ink cursor-pointer text-[15px] font-medium">
+          <summary className="text-ink min-h-11 cursor-pointer py-3 text-[15px] font-medium">
             {entry.problem}
           </summary>
           <PlaybookEntry entry={entry} draftEnabled={draftEnabled} />
@@ -426,7 +426,7 @@ export function PlaybookForm({
                 key={problem}
                 type="button"
                 onClick={() => setStarting(problem)}
-                className="border-line bg-surface text-ink-2 hover:bg-surface-2 rounded-full border px-3 py-2 text-left text-[13px] font-medium"
+                className="border-line bg-surface text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 rounded-full border px-3 py-2 text-left text-[13px] font-medium"
               >
                 + {problem}
               </button>
@@ -436,7 +436,7 @@ export function PlaybookForm({
       ) : null}
 
       <details open={starting !== null} className="border-line-soft border-t pt-3">
-        <summary className="text-accent cursor-pointer text-[15px] font-medium">
+        <summary className="text-accent min-h-11 cursor-pointer py-3 text-[15px] font-medium">
           Add an entry
         </summary>
         <PlaybookEntry
@@ -508,7 +508,7 @@ function PlaybookEntry({ entry, draftEnabled }: { entry: PlaybookRow; draftEnabl
             type="button"
             onClick={() => void draft()}
             disabled={drafting || problem.trim().length < 2}
-            className="border-line bg-surface text-ink hover:border-ink-3 h-11 self-start rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
+            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 h-11 self-start rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
           >
             {drafting ? 'Drafting…' : 'Draft it from my notes'}
           </button>
@@ -558,7 +558,10 @@ function PlaybookEntry({ entry, draftEnabled }: { entry: PlaybookRow; draftEnabl
       {entry.id ? (
         <form action={deletePlaybookAction}>
           <input type="hidden" name="id" value={entry.id} />
-          <button type="submit" className="text-crit text-[13px] underline underline-offset-2">
+          <button
+            type="submit"
+            className="text-crit inline-flex min-h-11 items-center px-2 text-[13px] underline underline-offset-2"
+          >
             Delete this entry
           </button>
         </form>
