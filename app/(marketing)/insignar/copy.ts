@@ -6,13 +6,13 @@ export const EXAMPLE = 'EXAMPLE';
 export const meta = {
   title: 'Be the one they call back',
   description:
-    'Everyone follows up with a deck. With INSIGNAR you send a private page about their problem, what it costs them and how you fix it.',
+    'Turn event introductions into booked meetings. Say what they told you; INSIGNAR builds a private page about their problem. Request a UK founding pilot.',
 };
 
 export const hero = {
   eyebrow: 'Introduction software',
   headline: 'Be the one they call back.',
-  subStrong: 'Your follow-up, written from what they told you.',
+  subStrong: 'Introduction and follow-up software, written from what they told you.',
   subSoft:
     'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. You approve it before they see it.',
   primary: 'Request a founding pilot',
@@ -113,10 +113,10 @@ export const page = {
   two: {
     h: 'What it costs your team',
     range: '£38k to £92k a year',
-    sources: ['EXAMPLE source 1', 'EXAMPLE source 2'],
+    sources: ['Built from your figures and public data. You confirm it.'],
     confirmed: 'Rep confirmed by Maya Okafor',
   },
-  three: { h: 'We listened', q: '“You said tickets double after every release.”' },
+  three: { h: 'What we checked', q: 'Northwind ships every two weeks, so the pattern repeats.' },
   four: {
     h: 'A team like yours',
     p: 'A support team of 40 with the same pattern. One case, not a logo wall.',
@@ -212,8 +212,8 @@ export const faq = {
       a: 'Every card carries a QR code that opens the same page.',
     },
     {
-      q: "Isn't it just a fancy business card?",
-      a: 'The card is the key. The page wins the meeting.',
+      q: 'How is this different from a digital business card?',
+      a: 'A digital business card shares your contact details. INSIGNAR builds a private page about their problem and gets the meeting booked. The card is only the key.',
     },
     {
       q: 'Will it feel creepy?',

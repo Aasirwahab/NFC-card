@@ -7,3 +7,10 @@
 - **Dependencies added for the landing:** `gsap`, `@gsap/react` (hero and card motion).
 - **Not done yet:** `/privacy` still has placeholders (controller name and email); the domain is pending; a monitored email destination for new requests.
 - **Preview locally:** `npm ci && npm run dev`, then open `/` or `/insignar`.
+
+## SEO (set up 2026-10-16)
+
+- `app/(marketing)/insignar/page.tsx`: absolute title, description, `robots: index, follow` (the root layout is noindex for the private pages), canonical `/`, Open Graph and Twitter card, JSON-LD (Organization + SoftwareApplication, no ratings/reviews/prices).
+- `app/layout.tsx`: `metadataBase` from `NEXT_PUBLIC_APP_URL`. **When the domain arrives, set `NEXT_PUBLIC_APP_URL` to it** (canonical, sitemap, OG image and JSON-LD all follow it).
+- `app/robots.ts` and `app/sitemap.ts`; `/c/`, `/ops` and the rep app are disallowed. Social image: `app/(marketing)/insignar/opengraph-image.jpg` (1200x630).
+- Do after the domain is live: verify in Google Search Console and Bing Webmaster Tools, submit `/sitemap.xml`, add the LinkedIn company page and link it from the site (then add it to `sameAs`).

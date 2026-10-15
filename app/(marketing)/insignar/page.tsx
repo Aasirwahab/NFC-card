@@ -13,13 +13,50 @@ import { exploded, faq, film, five, footer, meta, page, pilot, steps } from './c
 import './insignar.css';
 
 export const metadata: Metadata = {
-  title: meta.title,
+  title: { absolute: 'INSIGNAR | B2B Introduction & Follow-Up Software' },
   description: meta.description,
+  // The root layout is noindex (prospect pages are private); the landing is the one public page.
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'INSIGNAR',
+    title: meta.title,
+    description: meta.description,
+    url: '/',
+    locale: 'en_GB',
+  },
+  twitter: { card: 'summary_large_image', title: meta.title, description: meta.description },
+};
+
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+
+/** Entity markup only: no ratings, reviews or prices exist yet, so none are claimed. */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'INSIGNAR',
+      ...(siteUrl ? { url: siteUrl, logo: `${siteUrl}/icon.png` } : {}),
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'INSIGNAR',
+      applicationCategory: 'BusinessApplication',
+      description: meta.description,
+      ...(siteUrl ? { url: siteUrl } : {}),
+    },
+  ],
 };
 
 export default function InsignarPage() {
   return (
     <div className="ins" data-m="pre">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <noscript>
         <style>{`.ins[data-m='pre'] .hero h1, .ins[data-m='pre'] .fi, .ins[data-m='pre'] .hchip, .ins[data-m='pre'] .hc { opacity: 1 !important; }`}</style>
       </noscript>
