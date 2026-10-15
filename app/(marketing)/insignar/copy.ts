@@ -14,7 +14,7 @@ export const hero = {
   headline: 'Be the one they call back.',
   subStrong: 'Introduction and follow-up software, written from what they told you.',
   subSoft:
-    'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. You approve it before they see it.',
+    'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. Only the person you give the card to sees it.',
   primary: 'Request a founding pilot',
   secondary: 'Watch the film',
   chipCaption: 'What they told you',
@@ -131,7 +131,7 @@ export const page = {
     book: 'Book 20 minutes',
     forward: 'Forward to your team',
     remove: 'Remove my details',
-    ai: 'Written with AI. Checked and sent by Maya Okafor.',
+    ai: '',
   },
   concept: 'CONCEPT',
   trust: [
