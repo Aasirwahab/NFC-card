@@ -82,20 +82,24 @@ export const card = {
   items: [
     {
       n: '01',
-      h: 'They keep the card.',
-      p: 'The card opens the page.',
+      h: 'A card they keep.',
+      p: 'Nobody bins a card that was handed over after a real conversation. One tap opens a page about their problem, not yours.',
     },
     {
       n: '02',
-      h: 'Numbered, named, matte black.',
-      p: '',
+      h: 'Numbered to them.',
+      p: 'Each card carries a number, so the page that opens is the one you wrote for that person.',
     },
     {
       n: '03',
-      h: 'No app.',
-      p: '',
+      h: 'No app. No sign-up.',
+      p: 'It opens in their phone browser the moment they tap. Nothing to download, nothing to remember.',
     },
-    { n: '04', h: 'No NFC? They scan it.', p: '' },
+    {
+      n: '04',
+      h: 'No NFC? They scan it.',
+      p: 'The QR on the back opens the same page on any phone.',
+    },
   ],
 };
 
@@ -144,12 +148,12 @@ export const page = {
 export const exploded = {
   label: '',
   title: 'Built to be kept.',
-  body: '',
+  body: 'One card, one page. The NFC tag opens it, the QR is the fallback for any phone, and the number ties it to the person you gave it to.',
   layers: [
     '[ 01 ] DEBOSSED MARK, BLIND',
     '[ 02 ] QR, FALLBACK FOR ANY PHONE',
     '[ 03 ] NFC STICKER, ONE PER CARD',
-    '[ 04 ] MATTE BLACK CARD  A·07',
+    '[ 04 ] THE CARD, NUMBERED A·07',
   ],
   fig: 'Card A·07, taken apart',
 };
