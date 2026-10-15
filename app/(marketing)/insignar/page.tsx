@@ -64,7 +64,7 @@ export default function InsignarPage() {
       </section>
 
       <section className="sec" id="how">
-        <Reveal className="wrap">
+        <div className="wrap">
           <div className="three">
             {steps.items.map((s) => (
               <div key={s.title} data-rv>
@@ -75,7 +75,7 @@ export default function InsignarPage() {
               </div>
             ))}
           </div>
-        </Reveal>
+        </div>
       </section>
 
       <CardStage />
@@ -95,7 +95,7 @@ export default function InsignarPage() {
       </section>
 
       <section className="sec dark" id="five">
-        <Reveal className="wrap">
+        <div className="wrap">
           <p className="fig" data-rv>
             {five.label}
           </p>
@@ -109,11 +109,11 @@ export default function InsignarPage() {
             <FiveDots />
           </div>
           <ManagerView />
-        </Reveal>
+        </div>
       </section>
 
       <section className="sec" id="pilot">
-        <Reveal className="wrap pilot-grid">
+        <div className="wrap pilot-grid">
           <div>
             <p className="fig" data-rv>
               {pilot.label}
@@ -136,11 +136,11 @@ export default function InsignarPage() {
           <div data-rv>
             <PilotForm />
           </div>
-        </Reveal>
+        </div>
       </section>
 
       <section className="sec faq" style={{ borderTop: '1px solid var(--line)', paddingTop: 56 }}>
-        <Reveal className="wrap">
+        <div className="wrap">
           <p className="fig" data-rv>
             {faq.label}
           </p>
@@ -153,7 +153,7 @@ export default function InsignarPage() {
               <p>{f.a}</p>
             </details>
           ))}
-        </Reveal>
+        </div>
       </section>
 
       <footer className="foot">
