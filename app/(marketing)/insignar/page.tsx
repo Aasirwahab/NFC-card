@@ -66,9 +66,9 @@ export default function InsignarPage() {
       <section className="sec" id="how">
         <Reveal className="wrap">
           <div className="three">
-            {steps.items.map((s, i) => (
+            {steps.items.map((s) => (
               <div key={s.title} data-rv>
-                <p className="fig">{steps.fig(i + 1)}</p>
+                <p className="fig">{steps.fig()}</p>
                 <h3>{s.title}</h3>
                 <p className="lead2">{s.lead}</p>
                 {s.body && <p className="b">{s.body}</p>}

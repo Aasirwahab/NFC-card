@@ -12,18 +12,18 @@ export const meta = {
 export const hero = {
   eyebrow: 'Introduction software',
   headline: 'Be the one they call back.',
-  subStrong: 'Everyone follows up with a deck.',
+  subStrong: 'Your follow-up, written from what they told you.',
   subSoft:
-    "You send a private page about their problem, what it's costing them and how you fix it. One minute of your voice. Approved by you.",
+    'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. You approve it before they see it.',
   primary: 'Request a founding pilot',
   secondary: 'Watch the film',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
-  fig: 'FIG 0.1 · card A·07, handed 19:42, tapped 07:58',
+  fig: 'Card A·07, handed over at 19:42, tapped at 07:58 the next morning',
 };
 
 export const steps = {
-  fig: (n: number) => `FIG 0.${n + 1} · 0${n}`,
+  fig: () => '',
   items: [
     {
       title: 'Say it',
@@ -44,7 +44,7 @@ export const steps = {
 };
 
 export const film = {
-  label: '[ THE FILM · 27 SECONDS ]',
+  label: '',
   title: 'Watch it. Then think about your last event.',
   play: 'Play',
   pause: 'Pause',
@@ -77,7 +77,7 @@ export const film = {
 };
 
 export const card = {
-  label: '[ THE CARD ]',
+  label: '',
   stepsAria: 'How the card works',
   items: [
     {
@@ -100,10 +100,10 @@ export const card = {
 };
 
 export const page = {
-  label: '[ WHAT THEY GET ]',
+  label: '',
   title: 'This is what lands on their phone.',
-  lead: 'No deck. No form. Their problem, priced and solved.',
-  figs: 'FIG 3.1 · EXAMPLE page for Daniel at Northwind',
+  lead: 'A page about their problem: what it costs them and how you would fix it.',
+  figs: 'Example page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
   one: {
     h: 'Your problem',
@@ -135,14 +135,14 @@ export const page = {
   },
   concept: 'CONCEPT',
   trust: [
-    { h: 'One tap to remove.', p: 'They can remove their details in one tap.' },
-    { h: 'Their ideas stay theirs.', p: 'Quoted back as theirs.' },
+    { h: 'They can delete it.', p: 'Every page has a button that removes their details.' },
+    { h: 'Their words stay theirs.', p: 'Shown back to them as they said it, never rewritten.' },
     { h: 'Drafts wait for you.', p: 'Nothing is sent until you send it.' },
   ],
 };
 
 export const exploded = {
-  label: '[ THE CARD, EXPLODED ]',
+  label: '',
   title: 'Built to be kept.',
   body: '',
   layers: [
@@ -151,15 +151,15 @@ export const exploded = {
     '[ 03 ] NFC STICKER, ONE PER CARD',
     '[ 04 ] MATTE BLACK CARD  A·07',
   ],
-  fig: 'FIG 4.1 · card A·07, exploded',
+  fig: 'Card A·07, taken apart',
 };
 
 export const five = {
-  label: '[ THE 5 THAT MATTER ]',
-  title: 'Fifty names. Five that matter. Know which.',
+  label: '',
+  title: 'Fifty names from one event. Five are worth your next hour.',
   note: 'Only you see this. Never on the page they get.',
   manager: {
-    label: '[ MANAGER VIEW ]',
+    label: '',
     note: 'Running a team? See which introductions turned into meetings.',
     example: 'EXAMPLE',
     stats: [
@@ -180,7 +180,7 @@ export const five = {
 };
 
 export const pilot = {
-  label: '[ PILOT ]',
+  label: '',
   title: 'Your next ten introductions, done properly.',
   offer: ['Ten numbered cards', 'Four weeks'],
   outline: '',
@@ -200,7 +200,7 @@ export const pilot = {
 };
 
 export const faq = {
-  label: '[ QUESTIONS ]',
+  label: '',
   title: 'Short answers.',
   items: [
     {
