@@ -12,17 +12,16 @@ export function FilmVideo() {
   useEffect(() => {
     const element = video.current;
     if (!element || !box.current) return;
+    // Entering the view starts playback and never touches the sound the visitor chose.
+    // Leaving the view pauses and re-mutes, so the film is never audible off screen.
     const observer = new IntersectionObserver((entries) => {
       if (entries[0]?.isIntersecting) {
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          element.muted = true;
-          setSound(false);
           element.play().catch(() => {});
         }
       } else {
         element.pause();
         element.muted = true;
-        setSound(false);
       }
     });
     observer.observe(box.current);
@@ -34,10 +33,14 @@ export function FilmVideo() {
     else video.current?.pause();
   };
 
+  // One tap must work: unmute and (re)start playback inside the same user gesture,
+  // because muted autoplay may have been blocked or paused. The label follows the
+  // element's real state (volumechange), never a guess.
   const toggleSound = () => {
-    if (!video.current) return;
-    video.current.muted = !sound;
-    setSound(!sound);
+    const element = video.current;
+    if (!element) return;
+    element.muted = !element.muted;
+    if (!element.muted) element.play().catch(() => {});
   };
 
   return (
@@ -55,6 +58,7 @@ export function FilmVideo() {
           preload="metadata"
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
+          onVolumeChange={(event) => setSound(!event.currentTarget.muted)}
         />
       </div>
       <div className="film-bar">
