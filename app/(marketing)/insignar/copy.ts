@@ -192,7 +192,7 @@ export const pilot = {
     reps: 'Team size (just you is fine)',
     submit: 'Request a founding pilot',
     sending: 'Sending…',
-    success: 'Request received (demo: not stored yet).',
+    success: 'Thanks. We have your request and will be in touch to arrange your pilot.',
     error: 'Something went wrong. Please check your details and try again.',
     privacyLine: 'We use these details only to arrange your pilot. Remove them any time.',
     privacy: 'How we handle your details',
