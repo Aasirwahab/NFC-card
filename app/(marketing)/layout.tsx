@@ -25,6 +25,9 @@ export default function MarketingLayout({ children }: LayoutProps<'/'>) {
           <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">
             How it works
           </Link>
+          <Link href="/facts" className="hover:text-ink-2 underline underline-offset-2">
+            Facts
+          </Link>
           <Link href="/privacy" className="hover:text-ink-2 underline underline-offset-2">
             Privacy
           </Link>

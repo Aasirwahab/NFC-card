@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/insignar'],
+        allow: ['/', '/insignar', '/facts', '/how-it-works', '/llms.txt'],
         disallow: [
           '/c/',
           '/ops',

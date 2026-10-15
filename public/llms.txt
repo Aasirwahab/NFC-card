@@ -1,0 +1,9 @@
+# INSIGNAR
+
+> INSIGNAR is B2B introduction and follow-up software. After an event conversation, the rep records what the person said and INSIGNAR builds a private page about their problem, opened by tapping an NFC / QR card. Pre-launch; UK founding pilot by request.
+
+## Pages
+- [Home](/): what it does and how to request a pilot
+- [Facts](/facts): plain statements about the product and its stage
+- [How it works](/how-it-works): what a prospect sees and what is and is not collected
+- [Privacy](/privacy): data handling
