@@ -51,6 +51,14 @@ export function PilotForm() {
         {f.reps}
         <input name="reps" inputMode="numeric" pattern="[0-9]*" maxLength={4} />
       </label>
+      <input
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hp"
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+      />
       <button type="submit" className="btn" disabled={status === 'sending'}>
         {status === 'sending' ? f.sending : f.submit}
       </button>

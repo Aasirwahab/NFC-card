@@ -18,14 +18,14 @@ export const metadata = {
  */
 
 const CONTROLLER = 'INSIGNAR'; // TODO(zaid): registered company name
-const CONTACT_EMAIL = 'privacy@taplead.app'; // TODO(zaid): a monitored address
+const CONTACT_EMAIL = 'hello@insignar.com'; // TODO(zaid): confirm this mailbox exists and is monitored
 const RETENTION = '12 months from the last activity on your record';
 
 export default function PrivacyPage() {
   return (
     <article className="max-w-xl">
       <h1 className="font-display text-ink text-3xl font-bold tracking-tight">Privacy notice</h1>
-      <p className="text-ink-3 mt-2 text-sm">Last updated 21 September 2026</p>
+      <p className="text-ink-3 mt-2 text-sm">Last updated 16 October 2026</p>
 
       <p className="text-ink-2 mt-5 text-lg">
         If you tapped one of our cards, this page explains what we hold about you and how to have it
@@ -40,6 +40,14 @@ export default function PrivacyPage() {
             {CONTACT_EMAIL}
           </a>
           .
+        </p>
+      </Section>
+
+      <Section title="If you request a pilot">
+        <p>
+          The form on our website collects your name, work email, company and, optionally, team
+          size. We use it only to reply to your request. We keep it for {RETENTION}, and you can ask
+          us to delete it at any time using the address above.
         </p>
       </Section>
 

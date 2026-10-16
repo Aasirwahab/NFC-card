@@ -1008,6 +1008,8 @@
 }
 .ins .pf small a,
 .ins .foot a {
+  display: inline-block;
+  padding-block: 12px;
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;

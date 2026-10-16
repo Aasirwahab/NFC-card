@@ -1,5 +1,7 @@
 import { serviceClient } from '@/lib/db/service';
 import { pilotRow } from '@/lib/insignar/pilot-request';
+import { env } from '@/lib/env';
+import { sendEmail } from '@/lib/email/mailer';
 import { checkRateLimit, clientIp } from '@/lib/security/rate-limit';
 
 /**
@@ -7,7 +9,8 @@ import { checkRateLimit, clientIp } from '@/lib/security/rate-limit';
  *
  * Saved to the existing early_access_requests table (one row per email, so a
  * second request updates the first). Same rate limit and honeypot idea as the
- * home page's early-access action. Nothing is emailed: Zaid reads the rows.
+ * home page's early-access action. Staff (STAFF_EMAILS) are emailed best-effort
+ * when a mail provider is configured; the saved row is the source of truth.
  */
 export const dynamic = 'force-dynamic';
 
@@ -36,5 +39,24 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, error: 'save_failed' }, { status: 500 });
   }
 
+  await notifyStaff(row).catch((e) =>
+    console.error(JSON.stringify({ event: 'pilot_notify_failed', error: String(e) })),
+  );
   return Response.json({ ok: true });
+}
+
+async function notifyStaff(row: NonNullable<ReturnType<typeof pilotRow>>) {
+  const text = `New pilot request\n\n${JSON.stringify(row, null, 2)}`;
+  const day = new Date().toISOString().slice(0, 10);
+  await Promise.all(
+    env.STAFF_EMAILS.map((to) =>
+      sendEmail({
+        to,
+        subject: 'INSIGNAR pilot request',
+        text,
+        html: `<pre>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>`,
+        idempotencyKey: `pilot-${row.email}-${day}-${to}`,
+      }),
+    ),
+  );
 }
