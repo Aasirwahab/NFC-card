@@ -76,9 +76,18 @@ html.lenis body {
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--line);
+  /* no rule at the top of the page; a hairline fades in over the first 80px of scroll */
+  border-bottom: 1px solid transparent;
   background: color-mix(in srgb, var(--canvas) 92%, transparent);
   backdrop-filter: blur(8px);
+  animation: head-rule linear both;
+  animation-timeline: scroll(root);
+  animation-range: 0 80px;
+}
+@keyframes head-rule {
+  to {
+    border-bottom-color: var(--line);
+  }
 }
 .ins-top .wrap {
   display: flex;
