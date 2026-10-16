@@ -54,6 +54,10 @@ needs the real accounts and real phones before Phase 5 is done:
 
 ---
 
+## Landing page
+
+The front door (`/`) is the INSIGNAR landing page, served from `/insignar`; the old home page is at `/legacy`. See [docs/INSIGNAR_LANDING.md](docs/INSIGNAR_LANDING.md).
+
 ## Getting started
 
 ```bash

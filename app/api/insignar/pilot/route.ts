@@ -1,7 +1,18 @@
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { serviceClient } from '@/lib/db/service';
+import { pilotRow } from '@/lib/insignar/pilot-request';
+import { env } from '@/lib/env';
+import { sendEmail } from '@/lib/email/mailer';
+import { checkRateLimit, clientIp } from '@/lib/security/rate-limit';
 
-const clean = (v: unknown, max: number) =>
-  typeof v === 'string' ? v.trim().slice(0, max + 1) : '';
+/**
+ * POST /api/insignar/pilot: the landing page's pilot request.
+ *
+ * Saved to the existing early_access_requests table (one row per email, so a
+ * second request updates the first). Same rate limit and honeypot idea as the
+ * home page's early-access action. Staff (STAFF_EMAILS) are emailed best-effort
+ * when a mail provider is configured; the saved row is the source of truth.
+ */
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
@@ -10,20 +21,42 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ ok: false, error: 'invalid_json' }, { status: 400 });
   }
-  const name = clean(body.name, 100);
-  const email = clean(body.email, 254);
-  const company = clean(body.company, 120);
-  const reps = clean(body.reps, 4);
-  const bad =
-    !name ||
-    name.length > 100 ||
-    !EMAIL.test(email) ||
-    email.length > 254 ||
-    !company ||
-    company.length > 120 ||
-    (reps !== '' && !/^\d{1,4}$/.test(reps));
-  if (bad) return Response.json({ ok: false, error: 'invalid_input' }, { status: 400 });
 
-  // storage not wired: needs Zaid's decision on where this data goes. Nothing is stored or sent.
+  // A bot that fills the invisible field is told thanks and nothing is saved.
+  if (typeof body.website === 'string' && body.website.trim()) return Response.json({ ok: true });
+
+  const row = pilotRow(body);
+  if (!row) return Response.json({ ok: false, error: 'invalid_input' }, { status: 400 });
+
+  const limit = await checkRateLimit('earlyAccess', clientIp(req.headers));
+  if (!limit.allowed) return Response.json({ ok: false, error: 'rate_limited' }, { status: 429 });
+
+  const { error } = await serviceClient()
+    .from('early_access_requests')
+    .upsert(row, { onConflict: 'email' });
+  if (error) {
+    console.error(JSON.stringify({ event: 'pilot_request_save_failed', error: error.message }));
+    return Response.json({ ok: false, error: 'save_failed' }, { status: 500 });
+  }
+
+  await notifyStaff(row).catch((e) =>
+    console.error(JSON.stringify({ event: 'pilot_notify_failed', error: String(e) })),
+  );
   return Response.json({ ok: true });
+}
+
+async function notifyStaff(row: NonNullable<ReturnType<typeof pilotRow>>) {
+  const text = `New pilot request\n\n${JSON.stringify(row, null, 2)}`;
+  const day = new Date().toISOString().slice(0, 10);
+  await Promise.all(
+    env.STAFF_EMAILS.map((to) =>
+      sendEmail({
+        to,
+        subject: 'INSIGNAR pilot request',
+        text,
+        html: `<pre>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>`,
+        idempotencyKey: `pilot-${row.email}-${day}-${to}`,
+      }),
+    ),
+  );
 }

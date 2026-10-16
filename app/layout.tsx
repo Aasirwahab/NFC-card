@@ -24,6 +24,10 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  // Absolute base for canonical and social-preview URLs.
+  metadataBase: process.env.NEXT_PUBLIC_APP_URL
+    ? new URL(process.env.NEXT_PUBLIC_APP_URL)
+    : undefined,
   title: {
     default: 'INSIGNAR',
     template: '%s · INSIGNAR',

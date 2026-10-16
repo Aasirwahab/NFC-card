@@ -6,24 +6,24 @@ export const EXAMPLE = 'EXAMPLE';
 export const meta = {
   title: 'Be the one they call back',
   description:
-    'Everyone follows up with a deck. With INSIGNAR you send a private page about their problem, what it costs them and how you fix it.',
+    'Turn event introductions into booked meetings. Say what they told you; INSIGNAR builds a private page about their problem. Request a UK founding pilot.',
 };
 
 export const hero = {
   eyebrow: 'Introduction software',
   headline: 'Be the one they call back.',
-  subStrong: 'Everyone follows up with a deck.',
+  subStrong: 'Introduction and follow-up software, written from what they told you.',
   subSoft:
-    "You send a private page about their problem, what it's costing them and how you fix it. One minute of your voice. Approved by you.",
+    'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. Only the person you give the card to sees it.',
   primary: 'Request a founding pilot',
   secondary: 'Watch the film',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
-  fig: 'FIG 0.1 · card A·07, handed 19:42, tapped 07:58',
+  fig: 'Card A·07, handed over at 19:42, tapped at 07:58 the next morning',
 };
 
 export const steps = {
-  fig: (n: number) => `FIG 0.${n + 1} · 0${n}`,
+  fig: () => '',
   items: [
     {
       title: 'Say it',
@@ -44,7 +44,7 @@ export const steps = {
 };
 
 export const film = {
-  label: '[ THE FILM · 27 SECONDS ]',
+  label: '',
   title: 'Watch it. Then think about your last event.',
   play: 'Play',
   pause: 'Pause',
@@ -77,33 +77,37 @@ export const film = {
 };
 
 export const card = {
-  label: '[ THE CARD ]',
+  label: '',
   stepsAria: 'How the card works',
   items: [
     {
       n: '01',
-      h: 'They keep the card.',
-      p: 'The card opens the page.',
+      h: 'A card they keep.',
+      p: 'Nobody bins a card that was handed over after a real conversation. One tap opens a page about their problem, not yours.',
     },
     {
       n: '02',
-      h: 'Numbered, named, matte black.',
-      p: '',
+      h: 'Numbered to them.',
+      p: 'Each card carries a number, so the page that opens is the one you wrote for that person.',
     },
     {
       n: '03',
-      h: 'No app.',
-      p: '',
+      h: 'No app. No sign-up.',
+      p: 'It opens in their phone browser the moment they tap. Nothing to download, nothing to remember.',
     },
-    { n: '04', h: 'No NFC? They scan it.', p: '' },
+    {
+      n: '04',
+      h: 'No NFC? They scan it.',
+      p: 'The QR on the back opens the same page on any phone.',
+    },
   ],
 };
 
 export const page = {
-  label: '[ WHAT THEY GET ]',
+  label: '',
   title: 'This is what lands on their phone.',
-  lead: 'No deck. No form. Their problem, priced and solved.',
-  figs: 'FIG 3.1 · EXAMPLE page for Daniel at Northwind',
+  lead: 'A page about their problem: what it costs them and how you would fix it.',
+  figs: 'Example page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
   one: {
     h: 'Your problem',
@@ -113,10 +117,10 @@ export const page = {
   two: {
     h: 'What it costs your team',
     range: '£38k to £92k a year',
-    sources: ['EXAMPLE source 1', 'EXAMPLE source 2'],
+    sources: ['Built from your figures and public data. You confirm it.'],
     confirmed: 'Rep confirmed by Maya Okafor',
   },
-  three: { h: 'We listened', q: '“You said tickets double after every release.”' },
+  three: { h: 'What we checked', q: 'Northwind ships every two weeks, so the pattern repeats.' },
   four: {
     h: 'A team like yours',
     p: 'A support team of 40 with the same pattern. One case, not a logo wall.',
@@ -131,35 +135,35 @@ export const page = {
     book: 'Book 20 minutes',
     forward: 'Forward to your team',
     remove: 'Remove my details',
-    ai: 'Written with AI. Checked and sent by Maya Okafor.',
+    ai: '',
   },
   concept: 'CONCEPT',
   trust: [
-    { h: 'One tap to remove.', p: 'They can remove their details in one tap.' },
-    { h: 'Their ideas stay theirs.', p: 'Quoted back as theirs.' },
+    { h: 'They can delete it.', p: 'Every page has a button that removes their details.' },
+    { h: 'Their words stay theirs.', p: 'Shown back to them as they said it, never rewritten.' },
     { h: 'Drafts wait for you.', p: 'Nothing is sent until you send it.' },
   ],
 };
 
 export const exploded = {
-  label: '[ THE CARD, EXPLODED ]',
+  label: '',
   title: 'Built to be kept.',
-  body: '',
+  body: 'One card, one page. The NFC tag opens it, the QR is the fallback for any phone, and the number ties it to the person you gave it to.',
   layers: [
     '[ 01 ] DEBOSSED MARK, BLIND',
     '[ 02 ] QR, FALLBACK FOR ANY PHONE',
     '[ 03 ] NFC STICKER, ONE PER CARD',
-    '[ 04 ] MATTE BLACK CARD  A·07',
+    '[ 04 ] THE CARD, NUMBERED A·07',
   ],
-  fig: 'FIG 4.1 · card A·07, exploded',
+  fig: 'Card A·07, taken apart',
 };
 
 export const five = {
-  label: '[ THE 5 THAT MATTER ]',
-  title: 'Fifty names. Five that matter. Know which.',
+  label: '',
+  title: 'Fifty names from one event. Five are worth your next hour.',
   note: 'Only you see this. Never on the page they get.',
   manager: {
-    label: '[ MANAGER VIEW ]',
+    label: '',
     note: 'Running a team? See which introductions turned into meetings.',
     example: 'EXAMPLE',
     stats: [
@@ -180,11 +184,11 @@ export const five = {
 };
 
 export const pilot = {
-  label: '[ PILOT ]',
+  label: '',
   title: 'Your next ten introductions, done properly.',
-  offer: ['Ten numbered cards', 'Four weeks'],
+  offer: ['Ten numbered cards per rep', 'Four weeks', 'A written scorecard at the end'],
   outline: '',
-  trust: 'You record. INSIGNAR prepares. You review before anything is shared.',
+  trust: 'You record. INSIGNAR prepares the page. You choose who gets the card.',
   form: {
     name: 'Your name',
     email: 'Work email',
@@ -192,7 +196,7 @@ export const pilot = {
     reps: 'Team size (just you is fine)',
     submit: 'Request a founding pilot',
     sending: 'Sending…',
-    success: 'Request received (demo: not stored yet).',
+    success: 'Thanks. We have your request and will be in touch to arrange your pilot.',
     error: 'Something went wrong. Please check your details and try again.',
     privacyLine: 'We use these details only to arrange your pilot. Remove them any time.',
     privacy: 'How we handle your details',
@@ -200,7 +204,7 @@ export const pilot = {
 };
 
 export const faq = {
-  label: '[ QUESTIONS ]',
+  label: '',
   title: 'Short answers.',
   items: [
     {
@@ -212,8 +216,8 @@ export const faq = {
       a: 'Every card carries a QR code that opens the same page.',
     },
     {
-      q: "Isn't it just a fancy business card?",
-      a: 'The card is the key. The page wins the meeting.',
+      q: 'How is this different from a digital business card?',
+      a: 'A digital business card shares your contact details. INSIGNAR builds a private page about their problem and gets the meeting booked. The card is only the key.',
     },
     {
       q: 'Will it feel creepy?',

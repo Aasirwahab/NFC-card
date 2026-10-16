@@ -222,11 +222,9 @@ export function CardStage() {
             </div>
           </div>
           <div className="steps">
-            {card.items.map((s, i) => (
+            {card.items.map((s) => (
               <div key={s.n} className="step">
-                <p className="fig">
-                  FIG 2.{i + 1} · {s.n} / 04
-                </p>
+                <p className="fig">{s.n}</p>
                 <h2>{s.h}</h2>
                 {s.p && <p>{s.p}</p>}
               </div>

@@ -13,13 +13,50 @@ import { exploded, faq, film, five, footer, meta, page, pilot, steps } from './c
 import './insignar.css';
 
 export const metadata: Metadata = {
-  title: meta.title,
+  title: { absolute: 'INSIGNAR | B2B Introduction & Follow-Up Software' },
   description: meta.description,
+  // The root layout is noindex (prospect pages are private); the landing is the one public page.
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'INSIGNAR',
+    title: meta.title,
+    description: meta.description,
+    url: '/',
+    locale: 'en_GB',
+  },
+  twitter: { card: 'summary_large_image', title: meta.title, description: meta.description },
+};
+
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+
+/** Entity markup only: no ratings, reviews or prices exist yet, so none are claimed. */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'INSIGNAR',
+      ...(siteUrl ? { url: siteUrl, logo: `${siteUrl}/icon.png` } : {}),
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'INSIGNAR',
+      applicationCategory: 'BusinessApplication',
+      description: meta.description,
+      ...(siteUrl ? { url: siteUrl } : {}),
+    },
+  ],
 };
 
 export default function InsignarPage() {
   return (
     <div className="ins" data-m="pre">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <noscript>
         <style>{`.ins[data-m='pre'] .hero h1, .ins[data-m='pre'] .fi, .ins[data-m='pre'] .hchip, .ins[data-m='pre'] .hc { opacity: 1 !important; }`}</style>
       </noscript>
@@ -64,18 +101,18 @@ export default function InsignarPage() {
       </section>
 
       <section className="sec" id="how">
-        <Reveal className="wrap">
+        <div className="wrap">
           <div className="three">
-            {steps.items.map((s, i) => (
+            {steps.items.map((s) => (
               <div key={s.title} data-rv>
-                <p className="fig">{steps.fig(i + 1)}</p>
+                <p className="fig">{steps.fig()}</p>
                 <h3>{s.title}</h3>
                 <p className="lead2">{s.lead}</p>
                 {s.body && <p className="b">{s.body}</p>}
               </div>
             ))}
           </div>
-        </Reveal>
+        </div>
       </section>
 
       <CardStage />
@@ -95,7 +132,7 @@ export default function InsignarPage() {
       </section>
 
       <section className="sec dark" id="five">
-        <Reveal className="wrap">
+        <div className="wrap">
           <p className="fig" data-rv>
             {five.label}
           </p>
@@ -109,11 +146,11 @@ export default function InsignarPage() {
             <FiveDots />
           </div>
           <ManagerView />
-        </Reveal>
+        </div>
       </section>
 
       <section className="sec" id="pilot">
-        <Reveal className="wrap pilot-grid">
+        <div className="wrap pilot-grid">
           <div>
             <p className="fig" data-rv>
               {pilot.label}
@@ -136,11 +173,11 @@ export default function InsignarPage() {
           <div data-rv>
             <PilotForm />
           </div>
-        </Reveal>
+        </div>
       </section>
 
       <section className="sec faq" style={{ borderTop: '1px solid var(--line)', paddingTop: 56 }}>
-        <Reveal className="wrap">
+        <div className="wrap">
           <p className="fig" data-rv>
             {faq.label}
           </p>
@@ -153,7 +190,7 @@ export default function InsignarPage() {
               <p>{f.a}</p>
             </details>
           ))}
-        </Reveal>
+        </div>
       </section>
 
       <footer className="foot">

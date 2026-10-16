@@ -82,19 +82,18 @@ export function Hero() {
         void document.fonts.ready.then(() => {
           if (cancelled) return;
           split = SplitText.create(title, { type: 'words', wordsClass: 'w' });
-          // One staged entrance, plays once, transform + opacity only, about 0.9 s: eyebrow, headline words,
+          // One staged entrance, plays once, transform + opacity only, about 0.9 s: headline words,
           // sub and buttons, then the card visual and the example chip.
           tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-          tl.fromTo('.hero .ey', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, 0)
-            .fromTo(
-              split.words,
-              { y: 40, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.5, stagger: 0.06 },
-              0.05,
-            )
+          tl.fromTo(
+            split.words,
+            { y: 40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.06 },
+            0.05,
+          )
             .call(() => sfx.play('thock'), [], 0.05)
             .fromTo(
-              '.hero .fi:not(.ey)',
+              '.hero .fi',
               { y: 16, opacity: 0 },
               { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
               0.3,
@@ -159,11 +158,10 @@ export function Hero() {
   );
 
   return (
-    <section ref={root} className="hero grain">
+    <section ref={root} className="hero">
       <canvas ref={cv} aria-hidden="true" />
       <div className="wrap hero-grid">
         <div>
-          <p className="fig fi ey">[ {hero.eyebrow} ]</p>
           <h1 ref={h1}>{hero.headline}</h1>
           <p className="sub fi">
             {hero.subStrong} <span>{hero.subSoft}</span>

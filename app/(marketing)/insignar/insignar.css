@@ -63,14 +63,8 @@
   padding-inline: max(18px, 4vw);
   position: relative;
 }
-.ins .grain::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.06;
-  mix-blend-mode: multiply;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+.ins .fig:empty {
+  display: none;
 }
 .ins .fig {
   font-family: var(--f-mono);
@@ -584,7 +578,8 @@
   perspective: 1400px;
   display: grid;
   place-items: center;
-  background: var(--panel);
+  background: radial-gradient(ellipse at 50% 55%, #fff 0%, var(--canvas) 72%);
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   height: min(64svh, 560px);
@@ -677,8 +672,9 @@
 }
 .ins .step p {
   font-size: 18px;
+  line-height: 1.5;
   color: #34332f;
-  max-width: 28em;
+  max-width: 30em;
 }
 .ins .pips {
   display: flex;
@@ -1012,6 +1008,8 @@
 }
 .ins .pf small a,
 .ins .foot a {
+  display: inline-block;
+  padding-block: 12px;
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;

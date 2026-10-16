@@ -45,7 +45,7 @@ export function ProspectPage() {
         <button type="button" className="linkish">
           {page.five.remove}
         </button>
-        <p className="ai">{page.five.ai}</p>
+        {page.five.ai && <p className="ai">{page.five.ai}</p>}
       </section>
     </article>
   );
