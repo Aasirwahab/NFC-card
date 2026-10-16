@@ -83,7 +83,6 @@ export function FilmVideo() {
         </button>
       </div>
       <p className="note">{film.note}</p>
-      <p className="note">{film.voiceNote}</p>
     </>
   );
 }

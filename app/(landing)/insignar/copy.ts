@@ -19,11 +19,10 @@ export const hero = {
   secondary: 'Watch the film',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
-  fig: 'Card A·07, handed over at 19:42, tapped at 07:58 the next morning',
+  fig: 'Card A·07. Handed over at 19:42, tapped at 07:58 the next morning.',
 };
 
 export const steps = {
-  fig: () => '',
   items: [
     {
       title: 'Say it',
@@ -52,8 +51,7 @@ export const film = {
   soundOn: 'Sound on',
   soundOff: 'Sound off',
   transcript: 'Transcript',
-  note: 'Muted by default. All figures on screen are EXAMPLE.',
-  voiceNote: 'Voice: optional. The film works muted.',
+  note: 'Muted by default. Every figure on screen is an example.',
   beats: [
     { t: '0:00', start: 0, end: 4, line: 'Everyone pitched him.' },
     { t: '0:04', start: 4, end: 7, line: 'You listened.' },
@@ -81,22 +79,18 @@ export const card = {
   stepsAria: 'How the card works',
   items: [
     {
-      n: '01',
       h: 'A card they keep.',
       p: 'Nobody bins a card that was handed over after a real conversation. One tap opens a page about their problem, not yours.',
     },
     {
-      n: '02',
       h: 'Numbered to them.',
       p: 'Each card carries a number, so the page that opens is the one you wrote for that person.',
     },
     {
-      n: '03',
       h: 'No app. No sign-up.',
       p: 'It opens in their phone browser the moment they tap. Nothing to download, nothing to remember.',
     },
     {
-      n: '04',
       h: 'No NFC? They scan it.',
       p: 'The QR on the back opens the same page on any phone.',
     },
@@ -104,11 +98,11 @@ export const card = {
 };
 
 export const page = {
-  label: '',
   title: 'This is what lands on their phone.',
   lead: 'A page about their problem: what it costs them and how you would fix it.',
   figs: 'Example page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
+  example: 'Example',
   one: {
     h: 'Your problem',
     q: '“Tickets double after every release.”',
@@ -146,26 +140,23 @@ export const page = {
 };
 
 export const exploded = {
-  label: '',
   title: 'Built to be kept.',
   body: 'One card, one page. The NFC tag opens it, the QR is the fallback for any phone, and the number ties it to the person you gave it to.',
   layers: [
-    '[ 01 ] DEBOSSED MARK, BLIND',
-    '[ 02 ] QR, FALLBACK FOR ANY PHONE',
-    '[ 03 ] NFC STICKER, ONE PER CARD',
-    '[ 04 ] THE CARD, NUMBERED A·07',
+    'Debossed mark',
+    'QR code, for any phone',
+    'NFC tag, one per card',
+    'The card, numbered A·07',
   ],
   fig: 'Card A·07, taken apart',
 };
 
 export const five = {
-  label: '',
   title: 'Fifty names from one event. Five are worth your next hour.',
   note: 'Only you see this. Never on the page they get.',
   manager: {
-    label: '',
+    label: 'Example team view',
     note: 'Running a team? See which introductions turned into meetings.',
-    example: 'EXAMPLE',
     stats: [
       { v: '28', l: 'Cards in the field' },
       { v: '18 of 28', l: 'Claimed within 24 hours' },
@@ -184,7 +175,6 @@ export const five = {
 };
 
 export const pilot = {
-  label: '',
   title: 'Your next ten introductions, done properly.',
   offer: ['Ten numbered cards per rep', 'Four weeks', 'A written scorecard at the end'],
   outline: '',
@@ -204,7 +194,6 @@ export const pilot = {
 };
 
 export const faq = {
-  label: '',
   title: 'Short answers.',
   items: [
     {

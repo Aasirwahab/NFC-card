@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Hero } from '@/components/insignar/hero';
 import { FilmVideo } from '@/components/insignar/film-video';
 import { CardStage } from '@/components/insignar/card-stage';
-import { Reveal } from '@/components/insignar/reveal';
 import { Exploded } from '@/components/insignar/exploded';
 import { FiveDots } from '@/components/insignar/five-dots';
 import { PilotForm } from '@/components/insignar/pilot-form';
@@ -63,54 +62,42 @@ export default function InsignarPage() {
       <Hero />
 
       <section className="sec" id="page">
-        <Reveal className="wrap two">
+        <div className="wrap two">
           <div>
-            <p className="fig" data-rv>
-              {page.label}
-            </p>
-            <h2 data-rv style={{ marginTop: 12 }}>
-              {page.title}
-            </h2>
-            <p className="lead" data-rv>
-              {page.lead}
-            </p>
+            <h2>{page.title}</h2>
+            <p className="lead">{page.lead}</p>
             <div className="trust">
               {page.trust.map((t) => (
-                <div key={t.h} data-rv>
+                <div key={t.h}>
                   <b>{t.h}</b>
                   <span>{t.p}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div data-rv>
-            <ProspectPage />
-          </div>
-        </Reveal>
+          <ProspectPage />
+        </div>
       </section>
 
       <section className="sec dark" id="film" aria-labelledby="film-h">
         <div className="wrap">
-          <p className="fig">{film.label}</p>
-          <h2 id="film-h" style={{ marginTop: 12 }}>
-            {film.title}
-          </h2>
+          <h2 id="film-h">{film.title}</h2>
           <FilmVideo />
         </div>
       </section>
 
       <section className="sec" id="how">
         <div className="wrap">
-          <div className="three">
-            {steps.items.map((s) => (
-              <div key={s.title} data-rv>
-                <p className="fig">{steps.fig()}</p>
+          <ol className="three">
+            {steps.items.map((s, i) => (
+              <li key={s.title}>
+                <span className="num">{i + 1}</span>
                 <h3>{s.title}</h3>
                 <p className="lead2">{s.lead}</p>
                 {s.body && <p className="b">{s.body}</p>}
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
@@ -119,28 +106,27 @@ export default function InsignarPage() {
       <section className="sec" style={{ borderTop: '1px solid var(--line)' }}>
         <div className="wrap iso-wrap">
           <div>
-            <p className="fig">{exploded.label}</p>
-            <h2 style={{ marginTop: 12 }}>{exploded.title}</h2>
+            <h2>{exploded.title}</h2>
             {exploded.body && <p className="lead">{exploded.body}</p>}
-            <p className="fig" style={{ marginTop: 18 }}>
-              {exploded.fig}
-            </p>
           </div>
-          <Exploded />
+          <div>
+            <Exploded />
+            {/* phones: the drawing is too small for its own labels, so they sit below it */}
+            <ol className="iso-key" aria-hidden="true">
+              {exploded.layers.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+            </ol>
+          </div>
         </div>
       </section>
 
       <section className="sec dark" id="five">
         <div className="wrap">
-          <p className="fig" data-rv>
-            {five.label}
-          </p>
           <div className="five-grid">
             <div>
-              <h2 data-rv>{five.title}</h2>
-              <p className="note" data-rv>
-                {five.note}
-              </p>
+              <h2>{five.title}</h2>
+              <p className="note">{five.note}</p>
             </div>
             <FiveDots />
           </div>
@@ -151,40 +137,24 @@ export default function InsignarPage() {
       <section className="sec" id="pilot">
         <div className="wrap pilot-grid">
           <div>
-            <p className="fig" data-rv>
-              {pilot.label}
-            </p>
-            <h2 data-rv style={{ marginTop: 12 }}>
-              {pilot.title}
-            </h2>
-            {pilot.outline && (
-              <p className="lead" data-rv>
-                {pilot.outline}
-              </p>
-            )}
-            <p data-rv>{pilot.trust}</p>
-            <ul className="offer" data-rv>
+            <h2>{pilot.title}</h2>
+            {pilot.outline && <p className="lead">{pilot.outline}</p>}
+            <p className="lead">{pilot.trust}</p>
+            <ul className="offer">
               {pilot.offer.map((o) => (
                 <li key={o}>{o}</li>
               ))}
             </ul>
           </div>
-          <div data-rv>
-            <PilotForm />
-          </div>
+          <PilotForm />
         </div>
       </section>
 
       <section className="sec faq" style={{ borderTop: '1px solid var(--line)', paddingTop: 56 }}>
         <div className="wrap">
-          <p className="fig" data-rv>
-            {faq.label}
-          </p>
-          <h2 data-rv style={{ margin: '12px 0 28px' }}>
-            {faq.title}
-          </h2>
+          <h2 style={{ marginBottom: 28 }}>{faq.title}</h2>
           {faq.items.map((f) => (
-            <details key={f.q} data-rv>
+            <details key={f.q}>
               <summary>{f.q}</summary>
               <p>{f.a}</p>
             </details>

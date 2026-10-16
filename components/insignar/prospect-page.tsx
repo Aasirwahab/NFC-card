@@ -1,36 +1,39 @@
 import { page } from '@/app/(landing)/insignar/copy';
 
-/** The prospect's page: five parts, in order. Always shows a way out and the written-with-AI label. */
+/**
+ * The prospect's page, shown as an example: five parts, in order. Always shows a way out.
+ * `inert`: it is a picture of the page, so its buttons are not clickable or focusable here.
+ */
 export function ProspectPage() {
   return (
-    <article className="pg" aria-label={page.figs}>
+    <article className="pg" aria-label={page.figs} inert>
       <header>
         <p className="fig">{page.header}</p>
-        <span className="tag ex">EXAMPLE</span>
+        <span className="tag ex">{page.example}</span>
       </header>
       <section>
-        <p className="tag">01 · {page.one.h}</p>
+        <p className="tag">{page.one.h}</p>
         <q>{page.one.q}</q>
         <p className="srcs">{page.one.by}</p>
       </section>
       <section>
-        <p className="tag">02 · {page.two.h}</p>
+        <p className="tag">{page.two.h}</p>
         <p className="rng">{page.two.range}</p>
-        <p className="srcs">{page.two.sources.join(' · ')}</p>
+        <p className="srcs">{page.two.sources.join(' ')}</p>
         <p className="srcs">✓ {page.two.confirmed}</p>
       </section>
       <section>
-        <p className="tag">03 · {page.three.h}</p>
+        <p className="tag">{page.three.h}</p>
         <p className="quote" style={{ fontSize: 20 }}>
           {page.three.q}
         </p>
       </section>
       <section>
-        <p className="tag">04 · {page.four.h}</p>
+        <p className="tag">{page.four.h}</p>
         <p>{page.four.p}</p>
       </section>
       <section>
-        <p className="tag">05 · {page.five.h}</p>
+        <p className="tag">{page.five.h}</p>
         <ol>
           {page.five.steps.map((s) => (
             <li key={s}>{s}</li>

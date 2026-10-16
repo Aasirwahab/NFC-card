@@ -7,7 +7,7 @@ export function ManagerView() {
       <p className="fig">{m.label}</p>
       <div className="stats">
         {m.stats.map((s) => (
-          <div key={s.l} data-rv>
+          <div key={s.l}>
             <b>{s.v}</b>
             <span>{s.l}</span>
           </div>
@@ -18,9 +18,7 @@ export function ManagerView() {
           <li key={a}>{a}</li>
         ))}
       </ul>
-      <p className="note">
-        {m.note} <span className="tag ex">{m.example}</span>
-      </p>
+      <p className="note">{m.note}</p>
     </div>
   );
 }

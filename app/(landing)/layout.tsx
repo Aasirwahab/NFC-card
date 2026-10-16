@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand';
+import { SmoothScroll } from '@/components/insignar/smooth-scroll';
 import { footer, nav } from './insignar/copy';
 import './insignar/insignar.css';
 
@@ -7,6 +8,7 @@ import './insignar/insignar.css';
 export default function LandingLayout({ children }: LayoutProps<'/'>) {
   return (
     <>
+      <SmoothScroll />
       <header className="ins ins-top">
         <div className="wrap">
           <Link href="/" aria-label={nav.home}>
