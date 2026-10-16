@@ -32,7 +32,19 @@ const PROTECTED_PREFIXES = ['/dashboard', '/events', '/sessions', '/cards', '/se
 /** Routes a signed-in rep should not linger on. */
 const AUTH_PREFIXES = ['/sign-in', '/sign-up'];
 
+/**
+ * Public marketing pages never read the session, so they skip the auth round trip
+ * (it cost signed-in visitors ~0.3–0.5 s on every load of a static page).
+ */
+const PUBLIC_PAGES = ['/insignar', '/facts', '/vs', '/privacy', '/how-it-works', '/legacy'];
+
+const isPublicPage = (pathname: string) =>
+  pathname === '/' ||
+  PUBLIC_PAGES.some((page) => pathname === page || pathname.startsWith(`${page}/`));
+
 export async function proxy(request: NextRequest) {
+  if (isPublicPage(request.nextUrl.pathname)) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -101,9 +113,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except static assets and image optimisation. `/c/:code` IS
-     * included: it needs the refreshed session to tell a rep from a prospect.
+     * Everything except static assets, media and image optimisation. `/c/:code`
+     * IS included: it needs the refreshed session to tell a rep from a prospect.
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4|webm|vtt|txt|xml)$).*)',
   ],
 };
