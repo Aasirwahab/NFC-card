@@ -186,9 +186,9 @@ export const five = {
 export const pilot = {
   label: '',
   title: 'Your next ten introductions, done properly.',
-  offer: ['Ten numbered cards', 'Four weeks'],
+  offer: ['Ten numbered cards per rep', 'Four weeks', 'A written scorecard at the end'],
   outline: '',
-  trust: 'You record. INSIGNAR prepares. You review before anything is shared.',
+  trust: 'You record. INSIGNAR prepares the page. You choose who gets the card.',
   form: {
     name: 'Your name',
     email: 'Work email',
