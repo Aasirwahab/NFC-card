@@ -59,7 +59,14 @@ export function FilmVideo() {
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onVolumeChange={(event) => setSound(!event.currentTarget.muted)}
-        />
+        >
+          <track
+            kind="captions"
+            src="/insignar/film/insignar-v11.en.vtt"
+            srcLang="en"
+            label="English"
+          />
+        </video>
       </div>
       <div className="film-bar">
         <button className="btn" type="button" onClick={togglePlayback}>
