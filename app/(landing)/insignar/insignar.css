@@ -92,12 +92,23 @@ html.lenis body {
   align-items: center;
   gap: 20px;
 }
+/* outlined pill, the quiet partner to the filled pilot button */
 .ins-top .signin {
-  padding-block: 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   font-size: 15px;
   color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ins-top .signin:hover {
+    border-color: var(--ink);
+  }
 }
 .ins-top .btn {
   min-height: 40px;
@@ -137,8 +148,8 @@ html.lenis body {
   align-items: center;
   justify-content: center;
   min-height: 48px;
-  padding: 0 24px;
-  border-radius: 3px;
+  padding: 0 26px;
+  border-radius: 999px;
   font: 500 16px var(--f-body);
   background: var(--verm-ink);
   color: #fff;
@@ -276,7 +287,7 @@ html.lenis body {
   padding: 10px 14px;
   background: var(--canvas);
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 12px;
   box-shadow: 0 8px 24px rgba(18, 18, 17, 0.14);
 }
 .ins .hchip-in q {
@@ -297,7 +308,7 @@ html.lenis body {
   background: var(--verm-block);
   position: relative;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 20px;
 }
 /* Inner layer: the only thing that scales on scroll. */
 .ins .block-in {
@@ -408,7 +419,7 @@ html.lenis body {
   margin-top: 30px;
   position: relative;
   aspect-ratio: 16 / 9;
-  border-radius: 6px;
+  border-radius: 16px;
   overflow: hidden;
   background: #0d0d0c;
   container-type: inline-size;
@@ -618,7 +629,7 @@ html.lenis body {
   display: grid;
   place-items: center;
   background: var(--panel);
-  border-radius: 6px;
+  border-radius: 20px;
   overflow: hidden;
   height: min(64svh, 560px);
   width: 100%;
@@ -942,7 +953,7 @@ html.lenis body {
   margin-top: 36px;
   background: #1d1c1a;
   border: 1px solid #2b2a28;
-  border-radius: 6px;
+  border-radius: 16px;
   padding: 24px;
 }
 .ins .stats {
@@ -1026,7 +1037,7 @@ html.lenis body {
   gap: 14px;
   background: #f8f7f3;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 18px;
   padding: 22px;
 }
 .ins .pf label {
@@ -1040,8 +1051,8 @@ html.lenis body {
   min-height: 48px;
   border: 1px solid var(--ink);
   background: transparent;
-  border-radius: 3px;
-  padding: 0 14px;
+  border-radius: 12px;
+  padding: 0 16px;
   font: inherit;
   font-size: 16px;
   color: var(--ink);
@@ -1408,7 +1419,13 @@ html.lenis body {
     gap: 12px;
   }
   .ins-top .btn {
-    padding: 0 12px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+  /* no room for two pills next to the wordmark: Sign in drops to plain text */
+  .ins-top .signin {
+    padding: 0 2px;
+    border-color: transparent;
     font-size: 14px;
   }
 }
