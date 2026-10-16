@@ -1,4 +1,4 @@
-import { page } from '@/app/(marketing)/insignar/copy';
+import { page } from '@/app/(landing)/insignar/copy';
 
 /** The prospect's page: five parts, in order. Always shows a way out and the written-with-AI label. */
 export function ProspectPage() {

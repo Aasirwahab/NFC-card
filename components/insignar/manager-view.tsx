@@ -1,4 +1,4 @@
-import { five } from '@/app/(marketing)/insignar/copy';
+import { five } from '@/app/(landing)/insignar/copy';
 
 export function ManagerView() {
   const m = five.manager;

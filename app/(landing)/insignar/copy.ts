@@ -226,8 +226,16 @@ export const faq = {
   ],
 };
 
+export const nav = {
+  home: 'INSIGNAR home',
+  signIn: 'Sign in',
+  pilot: 'Request a pilot',
+};
+
 export const footer = {
   line: 'INSIGNAR. Make every introduction count.',
   privacy: 'Privacy',
   readFilm: 'Read the film',
+  facts: 'Facts',
+  compare: 'vs digital business cards',
 };

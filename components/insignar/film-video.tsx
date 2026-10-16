@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { film } from '@/app/(marketing)/insignar/copy';
+import { film } from '@/app/(landing)/insignar/copy';
 
 export function FilmVideo() {
   const box = useRef<HTMLDivElement>(null);

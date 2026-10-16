@@ -3,7 +3,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { apiSend } from '@/lib/http/client';
-import { pilot } from '@/app/(marketing)/insignar/copy';
+import { pilot } from '@/app/(landing)/insignar/copy';
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
 

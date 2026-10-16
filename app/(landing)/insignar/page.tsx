@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Hero } from '@/components/insignar/hero';
 import { FilmVideo } from '@/components/insignar/film-video';
 import { CardStage } from '@/components/insignar/card-stage';
@@ -9,7 +8,7 @@ import { FiveDots } from '@/components/insignar/five-dots';
 import { PilotForm } from '@/components/insignar/pilot-form';
 import { ProspectPage } from '@/components/insignar/prospect-page';
 import { ManagerView } from '@/components/insignar/manager-view';
-import { exploded, faq, film, five, footer, meta, page, pilot, steps } from './copy';
+import { exploded, faq, film, five, meta, page, pilot, steps } from './copy';
 import './insignar.css';
 
 export const metadata: Metadata = {
@@ -192,14 +191,6 @@ export default function InsignarPage() {
           ))}
         </div>
       </section>
-
-      <footer className="foot">
-        <div className="wrap">
-          <span>{footer.line}</span>
-          <Link href="/insignar/transcript">{footer.readFilm}</Link>
-          <Link href="/privacy">{footer.privacy}</Link>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { gsap, MQ, useGSAP } from '@/lib/motion/gsap';
-import { exploded } from '@/app/(marketing)/insignar/copy';
+import { exploded } from '@/app/(landing)/insignar/copy';
 
 const BASE = [40, 120, 200, 290];
 const ISO = 'matrix(.866 .5 -.866 .5 0 0)';

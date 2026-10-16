@@ -6,7 +6,7 @@ import { useRef } from 'react';
 import { gsap, MQ, SplitText, useGSAP } from '@/lib/motion/gsap';
 import { sfx } from '@/lib/motion/sfx';
 import { tokens } from '@/lib/motion/tokens';
-import { hero } from '@/app/(marketing)/insignar/copy';
+import { hero } from '@/app/(landing)/insignar/copy';
 
 const GAP = 16;
 const RING = 96;

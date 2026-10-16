@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { gsap, MQ, useGSAP } from '@/lib/motion/gsap';
-import { card } from '@/app/(marketing)/insignar/copy';
+import { card } from '@/app/(landing)/insignar/copy';
 
 /* eslint-disable @next/next/no-img-element */
 /** Signature moment 2: one pinned 100svh stage, four steps (name, back, tap point, QR). */
