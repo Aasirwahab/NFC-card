@@ -104,6 +104,9 @@ export const page = {
   figs: 'Example page for Daniel at Northwind',
   header: 'For Daniel, Northwind',
   example: 'Example',
+  initial: 'D',
+  time: '07:58',
+  url: 'Private page for Daniel',
   one: {
     h: 'Your problem',
     q: '“Tickets double after every release.”',
