@@ -17,6 +17,7 @@ export const hero = {
     'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. Only the person you give the card to sees it.',
   primary: 'Request a founding pilot',
   secondary: 'Watch the film',
+  assure: 'Founding pilot for UK teams: four weeks, ten numbered cards per rep.',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
   fig: 'Card A·07. Handed over at 19:42, tapped at 07:58 the next morning.',

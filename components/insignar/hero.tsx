@@ -5,15 +5,15 @@
 import { useRef } from 'react';
 import { gsap, MQ, SplitText, useGSAP } from '@/lib/motion/gsap';
 import { sfx } from '@/lib/motion/sfx';
-import { tokens } from '@/lib/motion/tokens';
 import { hero } from '@/app/(landing)/insignar/copy';
 
-const GAP = 16;
-const RING = 96;
-const MAX_D = 480;
+const RING = 46;
 
-/** Dot-matrix ripple around the NFC point: rings every 96 px, vermilion dots fade with distance. p is 0..1. */
-function drawDots(cv: HTMLCanvasElement, origin: HTMLElement, p: number) {
+/**
+ * The tap: hairline rings radiating from the card's NFC point across the colour panel,
+ * fading with distance. p is 0..1; the leading ring is brighter while it travels.
+ */
+function drawRings(cv: HTMLCanvasElement, origin: HTMLElement, p: number) {
   const ctx = cv.getContext('2d');
   if (!ctx) return;
   const box = cv.getBoundingClientRect();
@@ -29,19 +29,22 @@ function drawDots(cv: HTMLCanvasElement, origin: HTMLElement, p: number) {
   const o = origin.getBoundingClientRect();
   const cx = o.left - box.left;
   const cy = o.top - box.top;
-  const front = p * (MAX_D + 60);
-  for (let x = 8; x < box.width; x += GAP) {
-    for (let y = 8; y < box.height; y += GAP) {
-      const d = Math.hypot(x - cx, y - cy);
-      if (d > MAX_D || d > front) continue;
-      const hot = (d % RING) / RING < 0.12;
-      const a = Math.max(0, 1 - d / MAX_D) * (hot ? 0.6 : 0.16);
-      ctx.globalAlpha = a;
-      ctx.fillStyle = hot ? tokens.color.vermBlock : tokens.color.ink;
-      ctx.beginPath();
-      ctx.arc(x, y, hot ? 3.2 : 1.6, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  // reach the farthest corner of the panel
+  const max = Math.max(
+    Math.hypot(cx, cy),
+    Math.hypot(box.width - cx, cy),
+    Math.hypot(cx, box.height - cy),
+    Math.hypot(box.width - cx, box.height - cy),
+  );
+  const front = p * max;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.25;
+  for (let r = RING; r <= front; r += RING) {
+    const lead = p < 1 && front - r < RING;
+    ctx.globalAlpha = (1 - r / max) ** 1.1 * (lead ? 0.6 : 0.36);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
@@ -61,7 +64,7 @@ export function Hero() {
       if (!el || !canvas || !origin || !title) return;
       const ins = el.closest<HTMLElement>('.ins');
       const ripple = { p: 1 };
-      const draw = () => drawDots(canvas, origin, ripple.p);
+      const draw = () => drawRings(canvas, origin, ripple.p);
       const ro = new ResizeObserver(draw);
       ro.observe(canvas);
       const mm = gsap.matchMedia();
@@ -159,7 +162,6 @@ export function Hero() {
 
   return (
     <section ref={root} className="hero">
-      <canvas ref={cv} aria-hidden="true" />
       <div className="wrap hero-grid">
         <div>
           <h1 ref={h1}>{hero.headline}</h1>
@@ -174,18 +176,21 @@ export function Hero() {
               {hero.secondary}
             </a>
           </div>
+          <p className="assure fi">{hero.assure}</p>
         </div>
         <div className="block-wrap">
           <div className="block" aria-hidden="true">
             <div className="block-in">
+              <canvas ref={cv} />
               <div className="hero-cards">
                 <div className="hc back">
                   <img src="/insignar/card-back.svg" alt="" width={910} height={610} />
+                  {/* the NFC point printed on the card back: where the rings start */}
+                  <span ref={nfc} className="nfc" />
                 </div>
                 <div className="hc front">
                   <img src="/insignar/card-front.svg" alt="" width={910} height={610} />
                 </div>
-                <span ref={nfc} className="nfc" />
               </div>
             </div>
             <div className="block-tone" />
