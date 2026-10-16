@@ -49,7 +49,6 @@ export function FilmVideo() {
         <video
           ref={video}
           className="film-video"
-          src="/insignar/film/insignar-v11-16x9.mp4"
           poster="/insignar/film/poster-16x9.jpg"
           aria-label={film.title}
           muted
@@ -60,6 +59,13 @@ export function FilmVideo() {
           onPause={() => setPlaying(false)}
           onVolumeChange={(event) => setSound(!event.currentTarget.muted)}
         >
+          {/* Phones get the 720p cut (1.2 MB instead of 5.7 MB). */}
+          <source
+            src="/insignar/film/insignar-v11-16x9-720.mp4"
+            type="video/mp4"
+            media="(max-width: 820px)"
+          />
+          <source src="/insignar/film/insignar-v11-16x9.mp4" type="video/mp4" />
           <track
             kind="captions"
             src="/insignar/film/insignar-v11.en.vtt"

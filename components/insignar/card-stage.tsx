@@ -114,8 +114,9 @@ export function CardStage() {
             .fromTo(shadow, { x: 10 }, { x: -10 }, 0);
           cleanup.push(() => idle.kill());
         } else {
-          const rx = gsap.quickTo(tilt, 'rotateX', { duration: 0.5, ease: 'power3.out' });
-          const ry = gsap.quickTo(tilt, 'rotateY', { duration: 0.5, ease: 'power3.out' });
+          // quickTo needs GSAP's internal transform names; the rotateX/Y aliases can't be reset
+          const rx = gsap.quickTo(tilt, 'rotationX', { duration: 0.5, ease: 'power3.out' });
+          const ry = gsap.quickTo(tilt, 'rotationY', { duration: 0.5, ease: 'power3.out' });
           const sx = gsap.quickTo(sheens, 'xPercent', { duration: 0.5, ease: 'power3.out' });
           const sy = gsap.quickTo(sheens, 'yPercent', { duration: 0.5, ease: 'power3.out' });
           const so = gsap.quickTo(sheens, 'opacity', { duration: 0.4, ease: 'power2.out' });
