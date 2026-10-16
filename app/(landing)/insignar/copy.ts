@@ -107,6 +107,7 @@ export const page = {
   initial: 'D',
   time: '07:58',
   url: 'Private page for Daniel',
+  hint: 'Scroll the phone to read the whole page.',
   one: {
     h: 'Your problem',
     q: '“Tickets double after every release.”',

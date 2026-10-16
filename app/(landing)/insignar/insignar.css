@@ -899,26 +899,37 @@ html.lenis body {
   fill: currentColor;
 }
 /* the browser viewport under the address bar: the page scrolls here, the bars stay put */
-/* reduced motion (or no JS): the visitor scrolls the phone; with motion it is scroll-driven */
+/* scrolls like a real phone; at its end the wheel carries on down the landing */
 .ins .phone-view {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
   scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
 }
 .ins .phone-view::-webkit-scrollbar {
   display: none;
 }
-.ins .phone-view.driven {
-  overflow: hidden;
+.ins .phone-view:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+  border-radius: 12px;
 }
-.ins .phone-view.driven .phone-scroll {
-  will-change: transform;
+.ins .phone-hint {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* drawn, not live: the example's buttons do not react */
+.ins .pg .btn,
+.ins .pg .linkish {
+  pointer-events: none;
 }
 .ins .pg {
-  padding: 10px 20px 26px;
+  padding: 10px 20px 44px;
 }
 .ins .pg > header {
   display: flex;
@@ -1050,6 +1061,7 @@ html.lenis body {
 .ins .pg .linkish {
   display: block;
   margin: 10px auto 0;
+  text-align: center;
   background: none;
   border: 0;
   padding: 6px 0;
