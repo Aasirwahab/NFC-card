@@ -6,7 +6,8 @@ import { page } from '@/app/(landing)/insignar/copy';
 
 /**
  * The prospect's page, shown on a phone: five parts, in order, always with a way out.
- * As the section scrolls by, the page scrolls inside the phone so the whole of it is seen.
+ * The phone is always phone-sized. With motion on, the page scrolls inside it as the section
+ * scrolls by; with reduced motion the visitor scrolls the phone themselves.
  * `inert`: it is a picture of the page, so its buttons are not clickable or focusable here.
  */
 export function ProspectPage() {
@@ -22,7 +23,7 @@ export function ProspectPage() {
       if (!shell || !view || !content) return;
       const mm = gsap.matchMedia();
       mm.add(MQ.ok, () => {
-        shell.classList.add('clip');
+        view.classList.add('driven');
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: shell,
@@ -40,7 +41,7 @@ export function ProspectPage() {
         return () => {
           tl.scrollTrigger?.kill();
           tl.kill();
-          shell.classList.remove('clip');
+          view.classList.remove('driven');
         };
       });
       return () => mm.revert();
@@ -50,7 +51,7 @@ export function ProspectPage() {
 
   return (
     <div className="phone" aria-label={page.figs} role="img">
-      <div className="phone-screen" ref={screen} inert>
+      <div className="phone-screen" ref={screen}>
         <div className="phone-bar" aria-hidden="true">
           <span>{page.time}</span>
           <span className="island" />
@@ -76,7 +77,7 @@ export function ProspectPage() {
         </div>
         <div className="phone-view" ref={viewport}>
           <div className="phone-scroll" ref={scroller}>
-            <article className="pg">
+            <article className="pg" inert>
               <header>
                 <span className="who" aria-hidden="true">
                   {page.initial}

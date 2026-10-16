@@ -849,17 +849,15 @@ html.lenis body {
     0 30px 60px -24px rgba(18, 18, 17, 0.45),
     0 12px 24px -12px rgba(18, 18, 17, 0.2);
 }
+/* always a real phone's proportions, whatever the motion setting */
 .ins .phone-screen {
   position: relative;
-  border-radius: 39px;
-  background: #f8f7f3;
-  overflow: hidden;
-}
-/* scroll-driven: a real phone's proportions, the page moves inside it */
-.ins .phone-screen.clip {
   aspect-ratio: 9 / 18.5;
   display: flex;
   flex-direction: column;
+  border-radius: 39px;
+  background: #f8f7f3;
+  overflow: hidden;
 }
 .ins .phone-bar {
   position: relative;
@@ -901,13 +899,22 @@ html.lenis body {
   fill: currentColor;
 }
 /* the browser viewport under the address bar: the page scrolls here, the bars stay put */
-.ins .phone-screen.clip .phone-view {
+/* reduced motion (or no JS): the visitor scrolls the phone; with motion it is scroll-driven */
+.ins .phone-view {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.ins .phone-view::-webkit-scrollbar {
+  display: none;
+}
+.ins .phone-view.driven {
   overflow: hidden;
 }
-.ins .phone-screen.clip .phone-scroll {
+.ins .phone-view.driven .phone-scroll {
   will-change: transform;
 }
 .ins .pg {
