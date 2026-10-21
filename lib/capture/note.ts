@@ -111,16 +111,14 @@ export async function extractNote(input: {
   line: string;
   niches: NoteNiche[];
 }): Promise<NoteFill> {
-  try {
-    const { output } = await generateText({
-      model: input.model,
-      instructions: noteInstructions(input.niches),
-      prompt: `<line>\n${input.line.replace(/<\/?line[^>]*>/gi, ' ')}\n</line>`,
-      output: Output.object({ schema: outputSchema }),
-      abortSignal: AbortSignal.timeout(20_000),
-    });
-    return cleanFill(output, input.niches, input.line);
-  } catch {
-    return EMPTY_FILL;
-  }
+  // A provider failure throws, so the caller can tell "the AI is down" apart from
+  // "the line had nothing to fill" (an empty fill from cleanFill).
+  const { output } = await generateText({
+    model: input.model,
+    instructions: noteInstructions(input.niches),
+    prompt: `<line>\n${input.line.replace(/<\/?line[^>]*>/gi, ' ')}\n</line>`,
+    output: Output.object({ schema: outputSchema }),
+    abortSignal: AbortSignal.timeout(20_000),
+  });
+  return cleanFill(output, input.niches, input.line);
 }

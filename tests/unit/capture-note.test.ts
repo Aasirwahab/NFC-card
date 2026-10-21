@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFill, noteInstructions } from '@/lib/capture/note';
+import { MockLanguageModelV4 } from 'ai/test';
+import { cleanFill, extractNote, noteInstructions } from '@/lib/capture/note';
 
 const niches = [
   {
@@ -116,5 +117,18 @@ describe('cleanCard', () => {
     expect(fields.email).toBeNull();
     expect(fields.phone).toBeNull();
     expect(fields.website).toBeNull();
+  });
+});
+
+describe('extractNote failures', () => {
+  it('rejects when the provider fails, so the caller can tell it from an empty line', async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        throw new Error('API key expired');
+      },
+    });
+    await expect(
+      extractNote({ model, line: 'Tom at Northwind, slow releases', niches: [] }),
+    ).rejects.toThrow();
   });
 });
