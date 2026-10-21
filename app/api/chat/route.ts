@@ -147,6 +147,8 @@ export async function POST(request: Request) {
     .select('role, content')
     .eq('session_id', session.id)
     .order('created_at', { ascending: false })
+    // A question and its reply share one timestamp; the id keeps them in order.
+    .order('id', { ascending: false })
     .limit(HISTORY_TURNS * 2);
 
   const messages: ModelMessage[] = [
