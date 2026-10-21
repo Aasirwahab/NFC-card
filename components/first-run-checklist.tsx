@@ -38,18 +38,26 @@ const STEPS: { key: keyof SetupProgress; label: string; hint: string; href: stri
 export function FirstRunChecklist({ progress }: { progress: SetupProgress }) {
   const done = STEPS.filter((s) => progress[s.key]).length;
   if (done === STEPS.length) return null;
+  const folded = done >= 3;
+  const Container = folded ? 'details' : 'section';
 
   return (
-    <section
+    <Container
       className="border-line bg-surface shadow-card mt-4 rounded-xl border p-4"
       aria-label="Get ready"
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-ink font-semibold tracking-tight">Get ready</h2>
-        <span className="text-ink-3 font-mono text-[11px]">
-          {done} of {STEPS.length}
-        </span>
-      </div>
+      {folded ? (
+        <summary className="font-display text-ink cursor-pointer font-semibold tracking-tight">
+          Get ready · {done} of {STEPS.length}
+        </summary>
+      ) : (
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-ink font-semibold tracking-tight">Get ready</h2>
+          <span className="text-ink-3 font-mono text-[11px]">
+            {done} of {STEPS.length}
+          </span>
+        </div>
+      )}
       <ul className="mt-3 flex flex-col gap-3">
         {STEPS.map((step) => {
           const ok = progress[step.key];
@@ -80,6 +88,6 @@ export function FirstRunChecklist({ progress }: { progress: SetupProgress }) {
           );
         })}
       </ul>
-    </section>
+    </Container>
   );
 }

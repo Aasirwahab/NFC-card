@@ -3,6 +3,7 @@ import { BackLink } from '@/components/back-link';
 import { getEvent, getSessionForRep, listEvents } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
 import { env } from '@/lib/env';
+import { modelFor } from '@/lib/ai/models';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
 
@@ -51,6 +52,7 @@ export default async function EditSessionPage({
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
           scanEnabled={Boolean(env.MODEL_VISION)}
+          aiEnabled={modelFor('chat').id !== 'mock'}
           justRegistered={registered === '1'}
         />
       </div>

@@ -14,6 +14,7 @@ import { LookupPicker } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
+import { serializeCaptureDraft } from '@/lib/capture/draft';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
@@ -41,6 +42,7 @@ export function DetailsForm({
   events,
   lookupEnabled,
   scanEnabled,
+  aiEnabled,
   justRegistered,
 }: {
   session: Session;
@@ -53,6 +55,7 @@ export function DetailsForm({
   lookupEnabled: boolean;
   /** True when a card-reading model is configured. */
   scanEnabled: boolean;
+  aiEnabled: boolean;
   justRegistered: boolean;
 }) {
   const router = useRouter();
@@ -67,6 +70,7 @@ export function DetailsForm({
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
+  const [line, setLine] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +126,7 @@ export function DetailsForm({
         if (Array.isArray(d.problems))
           setProblems(d.problems.filter((p): p is string => typeof p === 'string'));
         if (typeof d.customProblems === 'string') setCustomProblems(d.customProblems);
+        if (typeof d.line === 'string') setLine(d.line);
         setRestored(true);
       });
     } catch {
@@ -131,13 +136,12 @@ export function DetailsForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    if (session.details_completed_at) return;
+    if (session.details_completed_at || saved) return;
     const timer = setTimeout(() => {
       try {
         window.localStorage.setItem(
           draftKey,
-          JSON.stringify({
-            savedAt: Date.now(),
+          serializeCaptureDraft({
             name,
             company,
             website,
@@ -147,6 +151,7 @@ export function DetailsForm({
             niche,
             problems,
             customProblems,
+            line,
           }),
         );
       } catch {
@@ -157,6 +162,7 @@ export function DetailsForm({
   }, [
     draftKey,
     session.details_completed_at,
+    saved,
     name,
     company,
     website,
@@ -166,6 +172,7 @@ export function DetailsForm({
     niche,
     problems,
     customProblems,
+    line,
   ]);
   const clearDraft = () => {
     try {
@@ -353,7 +360,15 @@ export function DetailsForm({
         </button>
       ) : null}
 
+      {!aiEnabled ? (
+        <p className="text-ink-3 mt-4 text-sm" role="status">
+          AI help is off right now. Type the details; nothing is lost.
+        </p>
+      ) : null}
+
       <QuickNote
+        line={line}
+        setLine={setLine}
         niches={niches}
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
@@ -415,6 +430,38 @@ export function DetailsForm({
             spellCheck={false}
           />
         </Field>
+
+        {niches.length > 0 ? (
+          <fieldset>
+            <legend className="text-ink-2 text-sm font-medium">Their area</legend>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              {niches.map((n) => {
+                const selected = n.name === niche;
+                return (
+                  <button
+                    key={n.name}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      if (selected) return;
+                      setNiche(n.name);
+                      // Problems belong to a niche, so switching niche clears any
+                      // selections that no longer have a home.
+                      setProblems([]);
+                    }}
+                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                      selected
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : 'border-line bg-surface text-ink-2'
+                    }`}
+                  >
+                    {n.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
 
         {quickSelect.length > 0 ? (
           <fieldset>
@@ -523,38 +570,6 @@ export function DetailsForm({
                 />
               ) : null}
             </Field>
-
-            {niches.length > 0 ? (
-              <fieldset>
-                <legend className="text-ink-2 text-sm font-medium">Niche</legend>
-                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                  {niches.map((n) => {
-                    const selected = n.name === niche;
-                    return (
-                      <button
-                        key={n.name}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => {
-                          if (selected) return;
-                          setNiche(n.name);
-                          // Problems belong to a niche, so switching niche clears any
-                          // selections that no longer have a home.
-                          setProblems([]);
-                        }}
-                        className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
-                          selected
-                            ? 'border-accent bg-accent-soft text-accent'
-                            : 'border-line bg-surface text-ink-2'
-                        }`}
-                      >
-                        {n.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ) : null}
 
             <Field
               label="To remember them by"
@@ -786,11 +801,15 @@ function EventPicker({
  * phone's own keyboard microphone does the dictating, so no audio ever reaches us.
  */
 function QuickNote({
+  line,
+  setLine,
   niches,
   scanEnabled,
   onScan,
   onFill,
 }: {
+  line: string;
+  setLine: (line: string) => void;
   niches: { name: string; problems: string[] }[];
   scanEnabled: boolean;
   onScan: (card: CardFields) => void;
@@ -798,7 +817,6 @@ function QuickNote({
 }) {
   const camera = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
-  const [line, setLine] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
