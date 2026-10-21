@@ -926,8 +926,9 @@ describe('approve_pitch (review before it goes live)', () => {
       ).rows[0]!.details_revision;
 
     // Nothing finished yet: approval is refused even with the right revision.
+    // (Each approval below also names the finished status the rep saw.)
     await expect(
-      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+      db.query(`select * from public.approve_pitch($1, $2, true, $3, 'completed')`, [
         sessionId,
         fx.userId,
         await revision(),
@@ -943,21 +944,30 @@ describe('approve_pitch (review before it goes live)', () => {
     ]);
 
     await expect(
-      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+      db.query(`select * from public.approve_pitch($1, $2, true, $3, 'completed')`, [
         sessionId,
         crypto.randomUUID(),
         await revision(),
       ]),
     ).rejects.toThrow(/session_not_found/);
     await expect(
-      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+      db.query(`select * from public.approve_pitch($1, $2, true, $3, 'completed')`, [
         sessionId,
         fx.userId,
         (await revision()) - 1,
       ]),
     ).rejects.toThrow(/pitch_changed/);
 
-    await db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+    // Approving what was shown while it was still being written is refused.
+    await expect(
+      db.query(`select * from public.approve_pitch($1, $2, true, $3, 'failed')`, [
+        sessionId,
+        fx.userId,
+        await revision(),
+      ]),
+    ).rejects.toThrow(/pitch_changed/);
+
+    await db.query(`select * from public.approve_pitch($1, $2, true, $3, 'completed')`, [
       sessionId,
       fx.userId,
       await revision(),

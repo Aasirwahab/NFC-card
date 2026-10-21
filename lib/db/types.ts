@@ -1054,6 +1054,7 @@ export type Database = {
           p_user_id: string;
           p_approved: boolean;
           p_seen_revision?: number | null;
+          p_seen_status?: string | null;
         };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };

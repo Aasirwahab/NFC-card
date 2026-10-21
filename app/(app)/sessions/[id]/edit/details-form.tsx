@@ -138,6 +138,8 @@ export function DetailsForm({
   useEffect(() => {
     if (session.details_completed_at || saved) return;
     const timer = setTimeout(() => {
+      // Signing out or deleting the lead: never write the draft back.
+      if ((window as { insignarClosing?: boolean }).insignarClosing) return;
       try {
         window.localStorage.setItem(
           draftKey,
@@ -299,6 +301,7 @@ export function DetailsForm({
     }
 
     try {
+      (window as { insignarClosing?: boolean }).insignarClosing = true;
       await apiSend(`/api/sessions/${session.id}`, 'DELETE');
       try {
         window.localStorage.removeItem(draftKey);

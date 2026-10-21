@@ -16,6 +16,8 @@ const bodySchema = z.object({
   approved: z.boolean(),
   /** details_revision of the pitch the rep was shown. */
   seenRevision: z.number().int().nonnegative().optional(),
+  /** The finished state the rep was shown: the AI pitch, or the template after failure. */
+  seenStatus: z.enum(['completed', 'failed']).optional(),
 });
 
 export const POST = withRep(async (rep, request, context: Context) => {
@@ -28,6 +30,7 @@ export const POST = withRep(async (rep, request, context: Context) => {
     p_user_id: rep.userId,
     p_approved: parsed.data.approved,
     p_seen_revision: parsed.data.seenRevision ?? null,
+    p_seen_status: parsed.data.seenStatus ?? null,
   });
   if (error) {
     if ((error.message ?? '').includes('pitch_changed')) return fail('pitch_changed', 409);

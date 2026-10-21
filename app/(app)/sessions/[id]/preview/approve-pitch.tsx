@@ -13,11 +13,14 @@ export function ApprovePitch({
   sessionId,
   approved,
   seenRevision,
+  seenStatus,
 }: {
   sessionId: string;
   approved: boolean;
   /** The details revision of the pitch on screen; a newer run must be read first. */
   seenRevision: number;
+  /** 'completed' (the AI pitch) or 'failed' (the template): what the rep is approving. */
+  seenStatus: 'completed' | 'failed';
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -30,6 +33,7 @@ export function ApprovePitch({
       await apiSend(`/api/sessions/${sessionId}/pitch/approve`, 'POST', {
         approved: next,
         seenRevision,
+        seenStatus,
       });
       router.refresh();
     } catch (e) {

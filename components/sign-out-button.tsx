@@ -9,6 +9,8 @@ export function SignOutButton({ action }: { action: () => Promise<void> }) {
     <form
       action={action}
       onSubmit={() => {
+        // Tells an open capture form to stop saving drafts before the page goes.
+        (window as { insignarClosing?: boolean }).insignarClosing = true;
         try {
           for (const key of Object.keys(window.localStorage)) {
             if (key.startsWith('insignar:draft:')) window.localStorage.removeItem(key);
