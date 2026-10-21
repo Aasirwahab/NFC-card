@@ -139,6 +139,12 @@ describe('checkReply (§18.2)', () => {
     expect(checkReply('As an AI, I cannot say.', context).ok).toBe(false);
   });
 
+  it('lets the assistant say honestly that it is an AI assistant', () => {
+    expect(checkReply('I’m Zaid’s AI assistant. TMA does plant hire automation.', context).ok).toBe(
+      true,
+    );
+  });
+
   it('allows a price that IS in the pricing', () => {
     const priced = chatContext(
       {

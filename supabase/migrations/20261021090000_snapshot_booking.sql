@@ -3,7 +3,8 @@
 -- The generated pitch must not invite a booking the page cannot offer. With the
 -- link in the snapshot, the brief can ask for a booking only when the prospect
 -- page will show a booking button (lib/enrich/brief.ts, lib/domain/pitch.ts).
--- Same function as 20261010090000_pitch_voice.sql plus 'booking_url' on rep.
+-- Same function as 20261010090000_pitch_voice.sql plus 'booking_url' and
+-- 'linkedin_url' on rep, so the closing line names a channel the page really has.
 
 create or replace function public.enrichment_snapshot(p_session_id uuid)
 returns jsonb
@@ -32,7 +33,8 @@ as $fn$
                                       'pitch_tone', p.pitch_tone,
                                       'pitch_hook', p.pitch_hook,
                                       'pitch_avoid', p.pitch_avoid,
-                                      'booking_url', p.booking_url)
+                                      'booking_url', p.booking_url,
+                                      'linkedin_url', p.linkedin_url)
               from public.profiles p where p.id = s.user_id),
     'business', (select jsonb_build_object(
                           'company_name', b.company_name,

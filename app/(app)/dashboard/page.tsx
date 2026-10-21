@@ -66,11 +66,17 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
         </p>
       </div>
 
-      <p className={styles.headline}>
-        {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'} <br />
-        need{needsDetails.length === 1 ? 's' : ''} you.
-      </p>
-      <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
+      {needsDetails.length > 0 ? (
+        <>
+          <p className={styles.headline}>
+            {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'} <br />
+            need{needsDetails.length === 1 ? 's' : ''} you.
+          </p>
+          <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
+        </>
+      ) : (
+        <p className={styles.headline}>All caught up.</p>
+      )}
 
       <p className="text-ink-2 mt-4 text-sm">Start a capture: tap your card, or type its code.</p>
       <CardCodeLookup className={styles.cardLookup} />

@@ -41,14 +41,20 @@ describe('primaryProblem', () => {
 
 describe('callToAction (§16)', () => {
   it('names the problem rather than saying "Book a demo"', () => {
-    expect(callToAction(base)).toBe('A 15-minute conversation about idle machine tracking');
+    expect(callToAction(base)).toBe('Save my details to talk about idle machine tracking');
     expect(callToAction(base)).not.toMatch(/demo/i);
   });
 
   it('preserves an acronym at the start of the problem', () => {
     expect(
       callToAction({ problems: ['IMO 2030 reporting'], customProblems: null, repName: 'Zaid' }),
-    ).toBe('A 15-minute conversation about IMO 2030 reporting');
+    ).toBe('Save my details to talk about IMO 2030 reporting');
+  });
+
+  it('names LinkedIn as the next step when there is no calendar but a profile', () => {
+    expect(callToAction({ ...base, hasLinkedin: true })).toBe(
+      'Connect on LinkedIn to talk about idle machine tracking',
+    );
   });
 
   it('invites a booking only when the page has a booking button', () => {
@@ -62,7 +68,7 @@ describe('callToAction (§16)', () => {
 
   it('falls back to the rep’s name when no problem was captured', () => {
     expect(callToAction({ problems: [], customProblems: null, repName: 'Zaid' })).toBe(
-      'A 15-minute conversation with Zaid',
+      'Save my details to talk it through',
     );
   });
 

@@ -64,10 +64,17 @@ export function callToAction(input: {
   repName: string;
   /** True only when the page shows a booking button; otherwise no booking is invited. */
   hasBooking?: boolean;
+  /** Without a booking button, the page's next step: LinkedIn if the rep has it, else saving their details. */
+  hasLinkedin?: boolean;
 }): string {
   const problem = primaryProblem(input);
-  const ask = input.hasBooking ? 'Book 15 minutes' : 'A 15-minute conversation';
-  if (!problem) return `${ask} with ${input.repName}`;
+  const ask = input.hasBooking
+    ? 'Book 15 minutes'
+    : input.hasLinkedin
+      ? 'Connect on LinkedIn'
+      : 'Save my details';
+  if (!problem)
+    return input.hasBooking ? `${ask} with ${input.repName}` : `${ask} to talk it through`;
 
   // Keep it to one line on a phone. A long free-text problem gets trimmed at a
   // word boundary rather than mid-word.
@@ -75,7 +82,7 @@ export function callToAction(input: {
   const trimmed =
     subject.length <= 48 ? subject : `${subject.slice(0, 48).replace(/\s+\S*$/, '')}…`;
 
-  return input.hasBooking ? `${ask} on ${trimmed}` : `${ask} about ${trimmed}`;
+  return input.hasBooking ? `${ask} on ${trimmed}` : `${ask} to talk about ${trimmed}`;
 }
 
 /**

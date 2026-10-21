@@ -403,7 +403,8 @@ export function DetailsForm({
           if (fill.problems.length > 0) {
             setProblems((current) => [...new Set([...current, ...fill.problems])]);
           }
-          if (fill.extra) setCustomProblems(fillIfEmpty(fill.extra));
+          // Leftovers are often small talk; they stay private, never on the prospect's page.
+          if (fill.extra) setMemorable((current) => (current.trim() ? current : fill.extra!));
         }}
       />
 

@@ -136,6 +136,7 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
       customProblems: session.custom_problems,
       repName: repFirstName,
       hasBooking: Boolean(parseBookingUrl(snapshot.rep?.booking_url)),
+      hasLinkedin: Boolean(snapshot.rep?.linkedin_url?.trim()),
     }),
   };
 }

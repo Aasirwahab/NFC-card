@@ -4,13 +4,7 @@ import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
-import {
-  midSentence,
-  primaryProblem,
-  publicEventName,
-  relevantServices,
-  templatePitch,
-} from '@/lib/domain/pitch';
+import { publicEventName, relevantServices, templatePitch } from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
@@ -70,10 +64,9 @@ export function ProspectView({
   const prospectFirst = session.prospect_name?.trim() ? firstName(session.prospect_name) : null;
   const topics = session.problems.filter((problem) => problem.trim());
   const customTopic = session.custom_problems?.trim();
-  const lead = primaryProblem({
-    problems: session.problems,
-    customProblems: session.custom_problems,
-  });
+  // Only the rep's chosen topics are shown: free text they typed may be rough
+  // or private, so it informs the pitch but never appears verbatim here.
+  const lead = topics[0] ?? null;
   const services = relevantServices(business?.services ?? [], [...topics, customTopic ?? '']);
 
   return (
@@ -94,7 +87,7 @@ export function ProspectView({
           <h2 className={styles.headline}>From our conversation</h2>
         ) : null}
 
-        {topics.length > 0 || customTopic ? (
+        {topics.length > 0 ? (
           <section className={styles.issuePanel} aria-labelledby="discussed-issue">
             <h2 id="discussed-issue" className={styles.sectionLabel}>
               The issue we discussed
@@ -104,7 +97,6 @@ export function ProspectView({
                 {topic}
               </p>
             ))}
-            {customTopic ? <p className={styles.issueTopic}>{customTopic}</p> : null}
             {session.prospect_company ? (
               <p className={styles.issueCompany}>{session.prospect_company}</p>
             ) : null}
@@ -133,14 +125,18 @@ export function ProspectView({
           label={
             lead
               ? bookingLink
-                ? `Pick a time to talk about ${midSentence(lead)}.`
-                : `Keep ${firstName(rep.fullName)}’s details to talk about ${midSentence(lead)}.`
+                ? `Pick a time to talk about “${lead}”.`
+                : linkedin
+                  ? `Connect with ${firstName(rep.fullName)} about “${lead}”.`
+                  : `Keep ${firstName(rep.fullName)}’s details to talk about “${lead}”.`
               : 'Pick up where we left off.'
           }
           note={
             bookingLink
               ? `${firstName(rep.fullName)} will come prepared.`
-              : 'Save the contact, then message or call when it suits you.'
+              : linkedin
+                ? `Connect on LinkedIn, or save ${firstName(rep.fullName)}’s contact for later.`
+                : `Save the contact so you have ${firstName(rep.fullName)}’s details when you’re ready.`
           }
         >
           {bookingLink ? (
@@ -151,18 +147,29 @@ export function ProspectView({
               link={bookingLink}
               preview={preview}
             />
-          ) : (
-            <StickyAction enabled={!preview}>
-              <SaveContact code={code} repName={firstName(rep.fullName)} primary />
-            </StickyAction>
-          )}
-          {linkedin ? (
+          ) : linkedin ? (
+            // No calendar: LinkedIn is the next step, saving the contact the fallback.
             <LinkedInConnect
               code={code}
               href={linkedin}
               repName={firstName(rep.fullName)}
               preview={Boolean(preview)}
             />
+          ) : (
+            <StickyAction enabled={!preview}>
+              <SaveContact code={code} repName={firstName(rep.fullName)} primary />
+            </StickyAction>
+          )}
+          {bookingLink && linkedin ? (
+            <LinkedInConnect
+              code={code}
+              href={linkedin}
+              repName={firstName(rep.fullName)}
+              preview={Boolean(preview)}
+            />
+          ) : null}
+          {!bookingLink && linkedin ? (
+            <SaveContact code={code} repName={firstName(rep.fullName)} />
           ) : null}
         </CallToActionBlock>
 
@@ -176,13 +183,7 @@ export function ProspectView({
           <ChatWidget
             code={code}
             repFirstName={firstName(rep.fullName)}
-            opening={openingLine(
-              firstName(rep.fullName),
-              primaryProblem({
-                problems: session.problems,
-                customProblems: session.custom_problems,
-              }),
-            )}
+            opening={openingLine(firstName(rep.fullName), lead)}
             enabled={env.CHAT_ENABLED}
             preview={preview}
           />

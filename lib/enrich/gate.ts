@@ -142,7 +142,7 @@ const BOOKING_PROMISE =
   /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\bbelow\b/i;
 
 const CALL_TO_ACTION =
-  /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation)\b/i;
+  /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation|connect|linkedin|save my details|my details)\b/i;
 
 /**
  * Frequent first names, for spotting a stranger's name in the pitch. Names that
@@ -186,12 +186,19 @@ export function claimFailures(
   text: string,
   context: string,
   pricing: string | null,
+  /** The chat introduces itself as an AI assistant, so saying so there is honest, not a tell. */
+  allowAiMention = false,
 ): GateFailure[] {
   const failures: GateFailure[] = [];
   const fail = (check: GateCheck, detail: string) => failures.push({ check, detail });
 
+  // In the chat, "I'm Sam's AI assistant" is the honest self-description it is told to give;
+  // "as an AI, I cannot…" and the rest stay tells.
+  const scanned = allowAiMention
+    ? text.replace(/\bi(?:['’]m| am) (?:[\p{L}’']+ )?ai assistant\b/giu, '')
+    : text;
   for (const [pattern, label] of TELLS) {
-    if (pattern.test(text)) fail('placeholder_or_tell', label);
+    if (pattern.test(scanned)) fail('placeholder_or_tell', label);
   }
 
   // §14.4 and §4: no competitor framing, and never announce the research.

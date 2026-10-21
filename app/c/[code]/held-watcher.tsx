@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet } from '@/lib/http/client';
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 10_000;
 const GIVE_UP_MS = 20 * 60_000;
 
 /**

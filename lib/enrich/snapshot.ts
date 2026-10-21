@@ -42,6 +42,7 @@ export const snapshotSchema = z.object({
       pitch_avoid: text.optional().catch(null),
       /** Whether the prospect page will show a booking button (older snapshots: unknown). */
       booking_url: text.optional().catch(null),
+      linkedin_url: text.optional().catch(null),
     })
     .nullable()
     .catch(null),
