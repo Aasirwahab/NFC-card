@@ -1,4 +1,5 @@
 import { parseBookingUrl } from '@/lib/booking/link';
+import { linkedinHref } from '@/lib/domain/linkedin';
 import { callToAction, primaryProblem, publicEventName } from '@/lib/domain/pitch';
 import type { Research } from './research';
 import type { Snapshot } from './snapshot';
@@ -133,10 +134,11 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
     eventName: publicEventName(snapshot.event?.name),
     cta: callToAction({
       problems: session.problems,
-      customProblems: session.custom_problems,
+      customProblems: null, // the closing line names a chosen topic, never typed text
       repName: repFirstName,
       hasBooking: Boolean(parseBookingUrl(snapshot.rep?.booking_url)),
-      hasLinkedin: Boolean(snapshot.rep?.linkedin_url?.trim()),
+      // Same check as the page, so the pitch never names a LinkedIn button that is not there.
+      hasLinkedin: Boolean(linkedinHref(snapshot.rep?.linkedin_url ?? null)),
     }),
   };
 }

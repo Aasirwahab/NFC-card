@@ -7,6 +7,7 @@ import { isStaffEmail } from '@/lib/auth/staff-check';
 import { requireRep } from '@/lib/db/server';
 import { env } from '@/lib/env';
 import { signOutAction } from '../(auth)/actions';
+import { SignOutButton } from '@/components/sign-out-button';
 
 /**
  * The authenticated rep app.
@@ -39,14 +40,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
               Operator console
             </Link>
           ) : null}
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 text-[13px] underline underline-offset-2"
-            >
-              Sign out
-            </button>
-          </form>
+          <SignOutButton action={signOutAction} />
         </div>
       </header>
 

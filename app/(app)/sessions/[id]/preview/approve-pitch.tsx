@@ -12,12 +12,12 @@ import { ApiError, apiSend } from '@/lib/http/client';
 export function ApprovePitch({
   sessionId,
   approved,
-  seenCompletedAt,
+  seenRevision,
 }: {
   sessionId: string;
   approved: boolean;
-  /** When the pitch on screen was written; a newer one must be read first. */
-  seenCompletedAt: string | null;
+  /** The details revision of the pitch on screen; a newer run must be read first. */
+  seenRevision: number;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -29,7 +29,7 @@ export function ApprovePitch({
     try {
       await apiSend(`/api/sessions/${sessionId}/pitch/approve`, 'POST', {
         approved: next,
-        seenCompletedAt,
+        seenRevision,
       });
       router.refresh();
     } catch (e) {

@@ -14,8 +14,8 @@ type Context = { params: Promise<{ id: string }> };
 
 const bodySchema = z.object({
   approved: z.boolean(),
-  /** enrichment_completed_at of the pitch the rep was shown. */
-  seenCompletedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  /** details_revision of the pitch the rep was shown. */
+  seenRevision: z.number().int().nonnegative().optional(),
 });
 
 export const POST = withRep(async (rep, request, context: Context) => {
@@ -27,7 +27,7 @@ export const POST = withRep(async (rep, request, context: Context) => {
     p_session_id: id,
     p_user_id: rep.userId,
     p_approved: parsed.data.approved,
-    p_seen_completed_at: parsed.data.seenCompletedAt ?? null,
+    p_seen_revision: parsed.data.seenRevision ?? null,
   });
   if (error) {
     if ((error.message ?? '').includes('pitch_changed')) return fail('pitch_changed', 409);

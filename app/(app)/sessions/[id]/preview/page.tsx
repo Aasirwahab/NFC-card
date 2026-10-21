@@ -86,7 +86,7 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
         <ApprovePitch
           sessionId={session.id}
           approved={!heldForReview(true, session)}
-          seenCompletedAt={session.enrichment_completed_at}
+          seenRevision={session.details_revision}
         />
       ) : null}
 

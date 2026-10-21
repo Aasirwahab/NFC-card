@@ -300,6 +300,11 @@ export function DetailsForm({
 
     try {
       await apiSend(`/api/sessions/${session.id}`, 'DELETE');
+      try {
+        window.localStorage.removeItem(draftKey);
+      } catch {
+        /* storage unavailable: nothing to clear */
+      }
       router.push('/dashboard');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not delete the lead.');

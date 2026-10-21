@@ -190,7 +190,7 @@ const FUNCTIONS = `    {
           p_session_id: string;
           p_user_id: string;
           p_approved: boolean;
-          p_seen_completed_at?: string | null;
+          p_seen_revision?: number | null;
         };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };

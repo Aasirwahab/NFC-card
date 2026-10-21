@@ -5,27 +5,30 @@
 -- approves the pitch or writes their own (lib/domain/render-state.ts). The rep
 -- chooses per account in Setup; nothing about it is decided by a model.
 --   * profiles.review_before_live : the rep's choice.
---   * sessions.pitch_approved_at  : when the rep approved the current pitch. It only
---     counts for a finished pitch written before it; any newer run needs approving
---     again (heldForReview in lib/domain/render-state.ts).
+--   * sessions.pitch_approved_at       : when the rep approved.
+--   * sessions.pitch_approved_revision : the details_revision approved. Any re-run
+--     bumps details_revision, so a newer pitch, or a re-run that fails into the
+--     template, needs approving again (heldForReview in lib/domain/render-state.ts).
 
 alter table public.profiles
   add column review_before_live boolean not null default false;
 
 alter table public.sessions
-  add column pitch_approved_at timestamptz;
+  add column pitch_approved_at       timestamptz,
+  add column pitch_approved_revision integer;
 
 -- ------------------------------------------------------------ approve_pitch
 
 -- Approves the session's current pitch, or withdraws the approval when
 -- p_approved is false. Scoped by user_id, like every rep write (§22.6).
--- p_seen_completed_at is the enrichment_completed_at of the pitch the rep was
--- shown: if a newer pitch has landed since, nothing is approved ('pitch_changed').
+-- Only a finished pitch (generated, or the template after failure) can be
+-- approved, and only the one the rep was shown: p_seen_revision is the
+-- details_revision on screen. Anything else is 'pitch_changed'.
 create function public.approve_pitch(
-  p_session_id         uuid,
-  p_user_id            uuid,
-  p_approved           boolean,
-  p_seen_completed_at  timestamptz default null
+  p_session_id     uuid,
+  p_user_id        uuid,
+  p_approved       boolean,
+  p_seen_revision  integer default null
 ) returns public.sessions
 language plpgsql
 security definer
@@ -35,11 +38,13 @@ declare
   v_session public.sessions;
 begin
   update public.sessions s
-     set pitch_approved_at = case when p_approved then now() else null end
+     set pitch_approved_at       = case when p_approved then now() else null end,
+         pitch_approved_revision = case when p_approved then s.details_revision else null end
    where s.id = p_session_id
      and s.user_id = p_user_id
      and s.status = 'active'
-     and (not p_approved or s.enrichment_completed_at is not distinct from p_seen_completed_at)
+     and (not p_approved or (s.enrichment_status in ('completed', 'failed')
+                             and s.details_revision = p_seen_revision))
   returning * into v_session;
 
   if not found then
@@ -60,4 +65,4 @@ end $fn$;
 
 -- Default privileges already withhold execute from anon and authenticated
 -- (20260921105702); only the service role, which the routes use, gets it.
-grant execute on function public.approve_pitch(uuid, uuid, boolean, timestamptz) to service_role;
+grant execute on function public.approve_pitch(uuid, uuid, boolean, integer) to service_role;

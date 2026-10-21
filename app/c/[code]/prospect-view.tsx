@@ -48,7 +48,7 @@ export function ProspectView({
     prospectName: session.prospect_name,
     prospectCompany: session.prospect_company,
     problems: session.problems,
-    customProblems: session.custom_problems,
+    customProblems: null, // the template is public: only the rep's chosen topics, never typed text
     repName: firstName(rep.fullName),
     businessName: business?.companyName ?? null,
     services: business?.services ?? [],

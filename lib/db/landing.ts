@@ -45,8 +45,8 @@ const PROSPECT_SESSION_COLUMNS = [
   'enrichment_status',
   'generated_pitch',
   'rep_pitch',
-  'pitch_approved_at',
-  'enrichment_completed_at',
+  'details_revision',
+  'pitch_approved_revision',
   'first_viewed_at',
   'chat_response_count',
 ].join(', ');
@@ -64,8 +64,8 @@ export type ProspectSession = Pick<
   | 'enrichment_status'
   | 'generated_pitch'
   | 'rep_pitch'
-  | 'pitch_approved_at'
-  | 'enrichment_completed_at'
+  | 'details_revision'
+  | 'pitch_approved_revision'
   | 'first_viewed_at'
   | 'chat_response_count'
 >;
@@ -459,7 +459,7 @@ export function shownPitch(resolved: ProspectResolved): string {
     prospectName: session.prospect_name,
     prospectCompany: session.prospect_company,
     problems: session.problems,
-    customProblems: session.custom_problems,
+    customProblems: null, // the template is public: only the rep's chosen topics, never typed text
     repName: repFirstName,
     businessName: business?.companyName ?? null,
     services: business?.services ?? [],

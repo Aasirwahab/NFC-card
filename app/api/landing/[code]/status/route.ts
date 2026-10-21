@@ -75,7 +75,7 @@ export async function GET(_request: Request, context: { params: Promise<{ code: 
 
   const { data: session } = await db
     .from('sessions')
-    .select('enrichment_status, rep_pitch, pitch_approved_at, enrichment_completed_at, user_id')
+    .select('enrichment_status, rep_pitch, details_revision, pitch_approved_revision, user_id')
     .eq('card_id', card.id)
     .eq('status', 'active')
     .maybeSingle();

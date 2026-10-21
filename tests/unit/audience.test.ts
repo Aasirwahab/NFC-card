@@ -240,45 +240,27 @@ describe('review before it goes live (optional, per rep)', () => {
     expect(viewForSession(done, false)).toEqual({ state: 'completed', pitch: 'A pitch.' });
   });
 
-  it('holds again while a re-run is in progress, even after an earlier approval', () => {
+  it('holds only for reps who chose it, until they approve the finished run they saw', () => {
+    const run = { enrichment_status: 'completed', details_revision: 3 };
+    expect(heldForReview(false, { ...run, pitch_approved_revision: null })).toBe(false);
+    expect(heldForReview(true, { ...run, pitch_approved_revision: null })).toBe(true);
+    expect(heldForReview(true, { ...run, pitch_approved_revision: 3 })).toBe(false);
+  });
+
+  it('holds again for any newer run: in progress, finished, or failed into the template', () => {
+    for (const enrichment_status of ['queued', 'processing', 'completed', 'failed']) {
+      expect(
+        heldForReview(true, { enrichment_status, details_revision: 4, pitch_approved_revision: 3 }),
+      ).toBe(true);
+    }
+  });
+
+  it('never counts an approval given before the run finished', () => {
     expect(
       heldForReview(true, {
         enrichment_status: 'processing',
-        pitch_approved_at: '2026-10-21T10:05:00Z',
-        enrichment_completed_at: '2026-10-21T10:00:00Z',
-      }),
-    ).toBe(true);
-  });
-
-  it('holds only for reps who chose it, until they approve the pitch they saw', () => {
-    const completed = '2026-10-21T10:00:00Z';
-    expect(
-      heldForReview(false, {
-        enrichment_status: 'completed',
-        pitch_approved_at: null,
-        enrichment_completed_at: completed,
-      }),
-    ).toBe(false);
-    expect(
-      heldForReview(true, {
-        enrichment_status: 'completed',
-        pitch_approved_at: null,
-        enrichment_completed_at: completed,
-      }),
-    ).toBe(true);
-    expect(
-      heldForReview(true, {
-        enrichment_status: 'completed',
-        pitch_approved_at: '2026-10-21T10:05:00Z',
-        enrichment_completed_at: completed,
-      }),
-    ).toBe(false);
-    // A newer pitch needs approving again.
-    expect(
-      heldForReview(true, {
-        enrichment_status: 'completed',
-        pitch_approved_at: '2026-10-21T09:00:00Z',
-        enrichment_completed_at: completed,
+        details_revision: 3,
+        pitch_approved_revision: 3,
       }),
     ).toBe(true);
   });

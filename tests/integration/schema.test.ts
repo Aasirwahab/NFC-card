@@ -906,7 +906,7 @@ describe('complete_enrichment (§12.3)', () => {
 });
 
 describe('approve_pitch (review before it goes live)', () => {
-  it('lets only the owner approve, records it, and can withdraw it', async () => {
+  it('approves only a finished run the rep saw, records it, and can withdraw it', async () => {
     const fx = await seedFixture(db);
     const sessionId = crypto.randomUUID();
     await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
@@ -917,32 +917,63 @@ describe('approve_pitch (review before it goes live)', () => {
       'Zaid',
       null,
     ]);
+    const revision = async () =>
+      (
+        await db.query<{ details_revision: number }>(
+          `select details_revision from public.sessions where id = $1`,
+          [sessionId],
+        )
+      ).rows[0]!.details_revision;
 
+    // Nothing finished yet: approval is refused even with the right revision.
     await expect(
-      db.query(`select * from public.approve_pitch($1, $2, true)`, [
+      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
         sessionId,
-        crypto.randomUUID(),
+        fx.userId,
+        await revision(),
       ]),
-    ).rejects.toThrow(/session_not_found/);
-
-    // Approving a pitch other than the one on file is refused.
-    await expect(
-      db.query(`select * from public.approve_pitch($1, $2, true, now())`, [sessionId, fx.userId]),
     ).rejects.toThrow(/pitch_changed/);
 
-    await db.query(`select * from public.approve_pitch($1, $2, true)`, [sessionId, fx.userId]);
-    let { rows } = await db.query<{ pitch_approved_at: string | null }>(
-      `select pitch_approved_at from public.sessions where id = $1`,
+    await db.query(`select public.complete_enrichment($1, $2::jsonb, $3, $4, null, $5)`, [
+      sessionId,
+      JSON.stringify({ facts: [] }),
+      'A pitch.',
+      'model-a',
+      'pitch-v1',
+    ]);
+
+    await expect(
+      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+        sessionId,
+        crypto.randomUUID(),
+        await revision(),
+      ]),
+    ).rejects.toThrow(/session_not_found/);
+    await expect(
+      db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+        sessionId,
+        fx.userId,
+        (await revision()) - 1,
+      ]),
+    ).rejects.toThrow(/pitch_changed/);
+
+    await db.query(`select * from public.approve_pitch($1, $2, true, $3)`, [
+      sessionId,
+      fx.userId,
+      await revision(),
+    ]);
+    let { rows } = await db.query<{ pitch_approved_revision: number | null }>(
+      `select pitch_approved_revision from public.sessions where id = $1`,
       [sessionId],
     );
-    expect(rows[0]!.pitch_approved_at).not.toBeNull();
+    expect(rows[0]!.pitch_approved_revision).toBe(await revision());
 
     await db.query(`select * from public.approve_pitch($1, $2, false)`, [sessionId, fx.userId]);
-    ({ rows } = await db.query<{ pitch_approved_at: string | null }>(
-      `select pitch_approved_at from public.sessions where id = $1`,
+    ({ rows } = await db.query<{ pitch_approved_revision: number | null }>(
+      `select pitch_approved_revision from public.sessions where id = $1`,
       [sessionId],
     ));
-    expect(rows[0]!.pitch_approved_at).toBeNull();
+    expect(rows[0]!.pitch_approved_revision).toBeNull();
 
     const events = await db.query<{ type: string }>(
       `select type from public.session_events where session_id = $1 and type like 'pitch_%' order by id`,

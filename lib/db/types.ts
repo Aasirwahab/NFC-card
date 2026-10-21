@@ -776,6 +776,7 @@ export type Database = {
           rep_pitch: string | null;
           rep_pitch_edited_at: string | null;
           pitch_approved_at: string | null;
+          pitch_approved_revision: number | null;
           generated_pitch_prompt: string | null;
           first_view_source: string | null;
           prospect_website: string | null;
@@ -818,6 +819,7 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           pitch_approved_at?: string | null;
+          pitch_approved_revision?: number | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
@@ -860,6 +862,7 @@ export type Database = {
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
           pitch_approved_at?: string | null;
+          pitch_approved_revision?: number | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
@@ -1050,7 +1053,7 @@ export type Database = {
           p_session_id: string;
           p_user_id: string;
           p_approved: boolean;
-          p_seen_completed_at?: string | null;
+          p_seen_revision?: number | null;
         };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };

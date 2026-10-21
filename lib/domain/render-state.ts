@@ -28,18 +28,15 @@ export function heldForReview(
   reviewBeforeLive: boolean,
   session: {
     enrichment_status: string;
-    pitch_approved_at: string | null;
-    enrichment_completed_at: string | null;
+    details_revision: number;
+    pitch_approved_revision: number | null;
   },
 ): boolean {
   if (!reviewBeforeLive) return false;
-  const approved = session.pitch_approved_at;
-  if (!approved) return true;
-  if (session.enrichment_status !== 'completed' && session.enrichment_status !== 'failed') {
-    return true;
-  }
-  const completed = session.enrichment_completed_at;
-  return Boolean(completed && Date.parse(completed) > Date.parse(approved));
+  const finished =
+    session.enrichment_status === 'completed' || session.enrichment_status === 'failed';
+  // Every re-run bumps details_revision, so an approval only covers the run it saw.
+  return !(finished && session.pitch_approved_revision === session.details_revision);
 }
 
 export function viewForSession(
