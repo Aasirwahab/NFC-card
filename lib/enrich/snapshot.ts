@@ -40,6 +40,8 @@ export const snapshotSchema = z.object({
       pitch_tone: z.enum(['warm', 'direct', 'formal']).catch('warm'),
       pitch_hook: text.optional().catch(null),
       pitch_avoid: text.optional().catch(null),
+      /** Whether the prospect page will show a booking button (older snapshots: unknown). */
+      booking_url: text.optional().catch(null),
     })
     .nullable()
     .catch(null),

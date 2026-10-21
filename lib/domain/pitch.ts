@@ -62,9 +62,12 @@ export function callToAction(input: {
   problems: string[];
   customProblems: string | null;
   repName: string;
+  /** True only when the page shows a booking button; otherwise no booking is invited. */
+  hasBooking?: boolean;
 }): string {
   const problem = primaryProblem(input);
-  if (!problem) return `A 15-minute conversation with ${input.repName}`;
+  const ask = input.hasBooking ? 'Book 15 minutes' : 'A 15-minute conversation';
+  if (!problem) return `${ask} with ${input.repName}`;
 
   // Keep it to one line on a phone. A long free-text problem gets trimmed at a
   // word boundary rather than mid-word.
@@ -72,7 +75,7 @@ export function callToAction(input: {
   const trimmed =
     subject.length <= 48 ? subject : `${subject.slice(0, 48).replace(/\s+\S*$/, '')}…`;
 
-  return `A 15-minute conversation about ${trimmed}`;
+  return input.hasBooking ? `${ask} on ${trimmed}` : `${ask} about ${trimmed}`;
 }
 
 /**

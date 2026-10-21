@@ -50,6 +50,15 @@ describe('callToAction (§16)', () => {
     ).toBe('A 15-minute conversation about IMO 2030 reporting');
   });
 
+  it('invites a booking only when the page has a booking button', () => {
+    expect(callToAction({ ...base, hasBooking: true })).toBe(
+      'Book 15 minutes on idle machine tracking',
+    );
+    expect(
+      callToAction({ problems: [], customProblems: null, repName: 'Zaid', hasBooking: true }),
+    ).toBe('Book 15 minutes with Zaid');
+  });
+
   it('falls back to the rep’s name when no problem was captured', () => {
     expect(callToAction({ problems: [], customProblems: null, repName: 'Zaid' })).toBe(
       'A 15-minute conversation with Zaid',
