@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireRep } from '@/lib/db/server';
 import { blank, profileSchema } from '@/lib/schemas/profile';
+import { checkBookingLink } from '@/lib/booking/check';
 import { serviceClient } from '@/lib/db/service';
 
 /**
@@ -86,6 +87,14 @@ export async function saveProfileAction(
 
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  // A broken calendar on a prospect's page costs the meeting: refuse a link that
+  // does not exist. A timeout or network error does not block saving.
+  if (parsed.data.booking_url && (await checkBookingLink(parsed.data.booking_url)) === 'missing') {
+    return {
+      error: 'That booking link does not open a calendar. Copy it again from Cal.com, then save.',
+    };
+  }
 
   const { error } = await serviceClient()
     .from('profiles')
