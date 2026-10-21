@@ -10,6 +10,7 @@ import {
   chatContext,
   chatInstructions,
   checkReply,
+  isHandOffReply,
   smallTalkReply,
 } from '@/lib/chat/assistant';
 import { getRep } from '@/lib/db/server';
@@ -200,6 +201,17 @@ export async function POST(request: Request) {
     console.error(
       JSON.stringify({ event: 'chat_log_failed', sessionId: session.id, error: logError.message }),
     );
+  }
+
+  if (isHandOffReply(checked.text)) {
+    const { error } = await db.from('chat_unanswered').insert({
+      session_id: session.id,
+      user_id: session.user_id,
+      question: parsed.data.message.trim().slice(0, MAX_QUESTION_CHARS),
+    });
+    if (error) {
+      console.error(JSON.stringify({ event: 'chat_unanswered_failed', sessionId: session.id }));
+    }
   }
 
   return json({ reply: checked.text, remaining: Math.max(0, CHAT_CAP - used) });

@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 18 tables by scripts/gen-types.ts.
+ * Generated from 19 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -252,6 +252,48 @@ export type Database = {
             columns: ['session_id'];
             isOneToOne: false;
             referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      chat_unanswered: {
+        Row: {
+          id: number;
+          session_id: string;
+          user_id: string;
+          question: string;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          session_id: string;
+          user_id: string;
+          question: string;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          session_id?: string;
+          user_id?: string;
+          question?: string;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'chat_unanswered_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'chat_unanswered_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -1035,6 +1077,16 @@ export type Database = {
       };
       record_chat_turn: {
         Args: { p_session_id: string; p_question: string; p_answer: string };
+        Returns: undefined;
+      };
+      answer_chat_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
         Returns: undefined;
       };
       record_booking: {

@@ -5,6 +5,8 @@ import {
   chatContext,
   chatInstructions,
   checkReply,
+  handOffReply,
+  isHandOffReply,
   openingLine,
   smallTalkReply,
   type ChatContext,
@@ -44,6 +46,25 @@ const snapshot = {
 const context: ChatContext = chatContext(snapshot, ['BuildRite runs seven depots.']);
 
 describe('chatContext', () => {
+  it('keeps knowledge in order up to 20,000 characters, excluding pricing', () => {
+    const expanded = chatContext(
+      {
+        ...snapshot,
+        knowledge: [
+          { topic: 'about', content: 'a'.repeat(5_000) },
+          { topic: 'pricing', content: 'From £299.' },
+          { topic: 'services', content: 'b'.repeat(20_000) },
+        ],
+      },
+      [],
+    );
+    expect(expanded.knowledge).toBe(
+      `about: ${'a'.repeat(5_000)}\n\nservices: ${'b'.repeat(14_981)}`,
+    );
+    expect(expanded.knowledge).toHaveLength(20_000);
+    expect(expanded.pricing).toBe('From £299.');
+  });
+
   it('never carries the private note — not even for tone', () => {
     const all = JSON.stringify(context) + chatInstructions(context);
     expect(all).not.toMatch(/arsenal|kids/i);
@@ -52,6 +73,28 @@ describe('chatContext', () => {
   it('carries what the business wrote down and the problem they raised', () => {
     expect(context.problem).toBe('Idle machine tracking');
     expect(chatInstructions(context)).toContain('Setup takes two weeks.');
+  });
+});
+
+describe('isHandOffReply', () => {
+  it.each([
+    'I do not want to guess. Zaid can answer on a short call.',
+    "I don't want to guess about that.",
+    'I don’t want to guess.',
+    'I DO NOT want to guess.',
+    handOffReply('Zaid'),
+    handOffReply('Sam').replaceAll('’', "'"),
+  ])('detects the prompt and fallback hand-offs: %s', (reply) => {
+    expect(isHandOffReply(reply)).toBe(true);
+  });
+
+  it.each([
+    'Setup takes two weeks. Book a call with Zaid.',
+    'Guess what? We offer onboarding.',
+    'We do not guess prices; see the pricing above.',
+    '',
+  ])('does not classify ordinary answers as hand-offs: %s', (reply) => {
+    expect(isHandOffReply(reply)).toBe(false);
   });
 });
 
