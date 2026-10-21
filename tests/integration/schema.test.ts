@@ -135,6 +135,7 @@ describe('migrations', () => {
       'claim_jobs',
       'complete_enrichment',
       'set_rep_pitch',
+      'approve_pitch',
       'rate_pitch',
       'claim_chat_response',
       'release_chat_response',
@@ -899,6 +900,48 @@ describe('complete_enrichment (§12.3)', () => {
       [sessionId],
     );
     expect(events.rows[0]!.n).toBe(1);
+  });
+});
+
+describe('approve_pitch (review before it goes live)', () => {
+  it('lets only the owner approve, records it, and can withdraw it', async () => {
+    const fx = await seedFixture(db);
+    const sessionId = crypto.randomUUID();
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, $6)`, [
+      sessionId,
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+      null,
+    ]);
+
+    await expect(
+      db.query(`select * from public.approve_pitch($1, $2, true)`, [
+        sessionId,
+        crypto.randomUUID(),
+      ]),
+    ).rejects.toThrow(/session_not_found/);
+
+    await db.query(`select * from public.approve_pitch($1, $2, true)`, [sessionId, fx.userId]);
+    let { rows } = await db.query<{ pitch_approved_at: string | null }>(
+      `select pitch_approved_at from public.sessions where id = $1`,
+      [sessionId],
+    );
+    expect(rows[0]!.pitch_approved_at).not.toBeNull();
+
+    await db.query(`select * from public.approve_pitch($1, $2, false)`, [sessionId, fx.userId]);
+    ({ rows } = await db.query<{ pitch_approved_at: string | null }>(
+      `select pitch_approved_at from public.sessions where id = $1`,
+      [sessionId],
+    ));
+    expect(rows[0]!.pitch_approved_at).toBeNull();
+
+    const events = await db.query<{ type: string }>(
+      `select type from public.session_events where session_id = $1 and type like 'pitch_%' order by id`,
+      [sessionId],
+    );
+    expect(events.rows.map((r) => r.type)).toEqual(['pitch_approved', 'pitch_unapproved']);
   });
 });
 

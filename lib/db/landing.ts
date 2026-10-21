@@ -1,6 +1,6 @@
 import 'server-only';
 import { decideAudience } from '@/lib/domain/audience';
-import { viewForSession, type ProspectView } from '@/lib/domain/render-state';
+import { heldForReview, viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
 import { publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { serviceClient } from './service';
@@ -44,6 +44,8 @@ const PROSPECT_SESSION_COLUMNS = [
   'enrichment_status',
   'generated_pitch',
   'rep_pitch',
+  'pitch_approved_at',
+  'enrichment_completed_at',
   'first_viewed_at',
   'chat_response_count',
 ].join(', ');
@@ -61,6 +63,8 @@ export type ProspectSession = Pick<
   | 'enrichment_status'
   | 'generated_pitch'
   | 'rep_pitch'
+  | 'pitch_approved_at'
+  | 'enrichment_completed_at'
   | 'first_viewed_at'
   | 'chat_response_count'
 >;
@@ -91,6 +95,8 @@ export type RepProfile = {
   bookingUrl: string | null;
   /** The rep's own LinkedIn profile, from Setup. */
   linkedinUrl: string | null;
+  /** The rep reviews each pitch before a prospect sees it (Setup). */
+  reviewBeforeLive: boolean;
 };
 
 export type BusinessProfile = {
@@ -250,6 +256,8 @@ export type ProspectResolved = Extract<Resolved, { audience: 'prospect' }>;
 async function prospectView(
   code: string,
   session: ProspectSession,
+  /** The rep's own preview always shows the pitch, so they can approve it. */
+  forRep = false,
 ): Promise<ProspectResolved | { audience: 'unavailable' }> {
   const db = serviceClient();
 
@@ -267,7 +275,7 @@ async function prospectView(
     audience: 'prospect',
     code,
     session,
-    view: viewForSession(session),
+    view: viewForSession(session, !forRep && heldForReview(face.rep.reviewBeforeLive, session)),
     ...face,
     eventName: publicEventName(event?.name),
     playbook,
@@ -306,7 +314,7 @@ async function repFace(
   const [{ data: profile }, { data: business }] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, title, photo_url, booking_url, linkedin_url')
+      .select('full_name, title, photo_url, booking_url, linkedin_url, review_before_live')
       .eq('id', userId)
       .maybeSingle(),
     db
@@ -325,6 +333,7 @@ async function repFace(
       photoUrl: profile.photo_url,
       bookingUrl: profile.booking_url,
       linkedinUrl: profile.linkedin_url,
+      reviewBeforeLive: profile.review_before_live,
     },
     business: business
       ? {
@@ -370,7 +379,7 @@ export async function previewForRep(
 
   if (!card) return null;
 
-  const resolved = await prospectView(card.code, session);
+  const resolved = await prospectView(card.code, session, true);
   return resolved.audience === 'prospect' ? resolved : null;
 }
 

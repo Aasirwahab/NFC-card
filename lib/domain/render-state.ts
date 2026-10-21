@@ -18,15 +18,39 @@ export type ProspectView =
   | { state: 'failed' }
   | { state: 'pending' };
 
-export function viewForSession(session: {
-  enrichment_status: string;
-  generated_pitch: string | null;
-  /** The rep's own edit (§14.5). When set, it IS the pitch, whatever the status. */
-  rep_pitch?: string | null;
-}): ProspectView {
+/**
+ * Whether a rep who reviews before publishing still owes an approval for the
+ * pitch on file. An approval counts only for the pitch it saw: a newer run of the
+ * pipeline (later enrichment_completed_at) needs approving again. PURE.
+ */
+export function heldForReview(
+  reviewBeforeLive: boolean,
+  session: { pitch_approved_at: string | null; enrichment_completed_at: string | null },
+): boolean {
+  if (!reviewBeforeLive) return false;
+  const approved = session.pitch_approved_at;
+  if (!approved) return true;
+  const completed = session.enrichment_completed_at;
+  return Boolean(completed && Date.parse(completed) > Date.parse(approved));
+}
+
+export function viewForSession(
+  session: {
+    enrichment_status: string;
+    generated_pitch: string | null;
+    /** The rep's own edit (§14.5). When set, it IS the pitch, whatever the status. */
+    rep_pitch?: string | null;
+  },
+  /** The rep asked to review pitches and has not approved this one yet. */
+  held = false,
+): ProspectView {
   // The rep has read and rewritten this pitch themselves. Nothing the pipeline
   // does afterwards — a retry, a failure, a fresh pitch — replaces their words.
   if (session.rep_pitch?.trim()) return { state: 'completed', pitch: session.rep_pitch };
+
+  // Held for review: the warm page, never the generated or template pitch, until
+  // the rep approves it or writes their own.
+  if (held) return { state: 'pending' };
 
   switch (session.enrichment_status) {
     case 'completed':

@@ -187,7 +187,12 @@ const TONES: { value: 'warm' | 'direct' | 'formal'; label: string; hint: string 
 export function PitchVoiceForm({
   profile,
 }: {
-  profile: { pitch_tone: string; pitch_hook: string | null; pitch_avoid: string | null } | null;
+  profile: {
+    pitch_tone: string;
+    pitch_hook: string | null;
+    pitch_avoid: string | null;
+    review_before_live?: boolean;
+  } | null;
 }) {
   const [state, action] = useActionState(savePitchVoiceAction, {});
   const [tone, setTone] = useState(profile?.pitch_tone ?? 'warm');
@@ -250,6 +255,24 @@ export function PitchVoiceForm({
             placeholder="cheap, jargon, synergy"
           />
         </Field>
+
+        <label className="flex min-h-11 items-start gap-3">
+          <input
+            type="checkbox"
+            name="review_before_live"
+            defaultChecked={profile?.review_before_live ?? false}
+            className="mt-1 h-5 w-5"
+          />
+          <span>
+            <span className="text-ink text-sm font-medium">
+              Review each page before it goes live
+            </span>
+            <span className="text-ink-3 block text-[13px]">
+              Off: the page goes live as soon as it is written. On: your prospect sees a short
+              holding page until you approve it in the preview, or write your own.
+            </span>
+          </span>
+        </label>
 
         <Status state={state} />
         <SaveButton label="Save voice" />
