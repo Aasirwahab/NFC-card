@@ -34,31 +34,25 @@ const STEPS: { key: keyof SetupProgress; label: string; hint: string; href: stri
   },
 ];
 
-/** Shown on Today until each step is done. Every step links to where it is done. */
+/**
+ * One line on Today until setup is done: progress and the next step, linked. The
+ * full list opens on demand, so it never pushes capture down the screen.
+ */
 export function FirstRunChecklist({ progress }: { progress: SetupProgress }) {
   const done = STEPS.filter((s) => progress[s.key]).length;
   if (done === STEPS.length) return null;
-  const folded = done >= 3;
-  const Container = folded ? 'details' : 'section';
+  const next = STEPS.find((s) => !progress[s.key])!;
 
   return (
-    <Container
-      className="border-line bg-surface shadow-card mt-4 rounded-xl border p-4"
-      aria-label="Get ready"
-    >
-      {folded ? (
-        <summary className="font-display text-ink cursor-pointer font-semibold tracking-tight">
-          Get ready · {done} of {STEPS.length}
-        </summary>
-      ) : (
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-ink font-semibold tracking-tight">Get ready</h2>
-          <span className="text-ink-3 font-mono text-[11px]">
-            {done} of {STEPS.length}
-          </span>
-        </div>
-      )}
-      <ul className="mt-3 flex flex-col gap-3">
+    <details className="border-line mt-3 rounded-lg border px-3 py-2" aria-label="Get ready">
+      <summary className="text-ink-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+        <span className="text-ink font-medium">
+          Setup {done} of {STEPS.length}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span className="min-w-0 truncate">Next: {next.label.toLowerCase()}</span>
+      </summary>
+      <ul className="mt-2 flex flex-col gap-3 pb-1">
         {STEPS.map((step) => {
           const ok = progress[step.key];
           return (
@@ -88,6 +82,6 @@ export function FirstRunChecklist({ progress }: { progress: SetupProgress }) {
           );
         })}
       </ul>
-    </Container>
+    </details>
   );
 }
