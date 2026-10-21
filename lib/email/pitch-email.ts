@@ -15,6 +15,8 @@ export type PitchEmailInput = {
   pitch: string;
   /** The prospect's own page, so they can book or ask from it later. */
   pageUrl: string;
+  /** Whether the page has a booking button; without one, no booking is offered. */
+  hasBooking?: boolean;
 };
 
 function escapeHtml(value: string): string {
@@ -40,7 +42,7 @@ export function pitchEmail(input: PitchEmailInput): Email {
     first ? `Hi ${first},` : 'Hi,',
     '',
     ...paragraphs.flatMap((p) => [p, '']),
-    `Your page, to book a time or ask a question: ${input.pageUrl}`,
+    `Your page, to ${input.hasBooking ? 'book a time' : 'save my details'} or ask a question: ${input.pageUrl}`,
     '',
     signature,
   ].join('\n');
@@ -48,7 +50,7 @@ export function pitchEmail(input: PitchEmailInput): Email {
   const html = [
     `<p>${escapeHtml(first ? `Hi ${first},` : 'Hi,')}</p>`,
     ...paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`),
-    `<p><a href="${escapeHtml(input.pageUrl)}">Book a time or ask a question</a></p>`,
+    `<p><a href="${escapeHtml(input.pageUrl)}">${input.hasBooking ? 'Book a time' : 'Save my details'} or ask a question</a></p>`,
     `<p style="color:#6f685f">${escapeHtml(signature)}</p>`,
   ].join('\n');
 

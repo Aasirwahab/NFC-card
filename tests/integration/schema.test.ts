@@ -923,6 +923,11 @@ describe('approve_pitch (review before it goes live)', () => {
       ]),
     ).rejects.toThrow(/session_not_found/);
 
+    // Approving a pitch other than the one on file is refused.
+    await expect(
+      db.query(`select * from public.approve_pitch($1, $2, true, now())`, [sessionId, fx.userId]),
+    ).rejects.toThrow(/pitch_changed/);
+
     await db.query(`select * from public.approve_pitch($1, $2, true)`, [sessionId, fx.userId]);
     let { rows } = await db.query<{ pitch_approved_at: string | null }>(
       `select pitch_approved_at from public.sessions where id = $1`,

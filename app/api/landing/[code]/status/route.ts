@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { serviceClient } from '@/lib/db/service';
+import { heldForReview } from '@/lib/domain/render-state';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 
 /**
@@ -21,7 +22,7 @@ import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-lim
 export const dynamic = 'force-dynamic';
 
 /** Statuses are never leaked as-is; they are mapped to what the client needs. */
-type PublicStatus = 'pending' | 'working' | 'completed' | 'failed';
+type PublicStatus = 'pending' | 'working' | 'completed' | 'failed' | 'held';
 
 function publicStatus(enrichmentStatus: string): PublicStatus {
   switch (enrichmentStatus) {
@@ -74,15 +75,23 @@ export async function GET(_request: Request, context: { params: Promise<{ code: 
 
   const { data: session } = await db
     .from('sessions')
-    .select('enrichment_status')
+    .select('enrichment_status, rep_pitch, pitch_approved_at, enrichment_completed_at, user_id')
     .eq('card_id', card.id)
     .eq('status', 'active')
     .maybeSingle();
 
   if (!session) return miss();
 
+  const { data: owner } = await db
+    .from('profiles')
+    .select('review_before_live')
+    .eq('id', session.user_id)
+    .maybeSingle();
+  const held =
+    !session.rep_pitch?.trim() && heldForReview(owner?.review_before_live ?? false, session);
+
   return NextResponse.json(
-    { status: publicStatus(session.enrichment_status) },
+    { status: held ? 'held' : publicStatus(session.enrichment_status) },
     { headers: { 'cache-control': 'no-store' } },
   );
 }

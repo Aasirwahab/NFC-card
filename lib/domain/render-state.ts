@@ -19,17 +19,25 @@ export type ProspectView =
   | { state: 'pending' };
 
 /**
- * Whether a rep who reviews before publishing still owes an approval for the
- * pitch on file. An approval counts only for the pitch it saw: a newer run of the
- * pipeline (later enrichment_completed_at) needs approving again. PURE.
+ * Whether a rep who reviews before publishing still owes an approval. Only a
+ * finished pitch (written or template) that existed when the rep approved is
+ * released: while a new run is queued or processing, or once a newer one has
+ * landed, the prospect sees the holding page again. PURE.
  */
 export function heldForReview(
   reviewBeforeLive: boolean,
-  session: { pitch_approved_at: string | null; enrichment_completed_at: string | null },
+  session: {
+    enrichment_status: string;
+    pitch_approved_at: string | null;
+    enrichment_completed_at: string | null;
+  },
 ): boolean {
   if (!reviewBeforeLive) return false;
   const approved = session.pitch_approved_at;
   if (!approved) return true;
+  if (session.enrichment_status !== 'completed' && session.enrichment_status !== 'failed') {
+    return true;
+  }
   const completed = session.enrichment_completed_at;
   return Boolean(completed && Date.parse(completed) > Date.parse(approved));
 }

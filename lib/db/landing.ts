@@ -148,6 +148,8 @@ export type Resolved =
       code: string;
       session: ProspectSession;
       view: ProspectView;
+      /** Held for the rep's review: nothing of the pitch may leave (page, email). */
+      held: boolean;
       rep: RepProfile;
       business: BusinessProfile | null;
       eventName: string | null;
@@ -271,11 +273,15 @@ async function prospectView(
   // render something broken, treat it as a miss.
   if (!face) return { audience: 'unavailable' };
 
+  const held =
+    !forRep && !session.rep_pitch?.trim() && heldForReview(face.rep.reviewBeforeLive, session);
+
   return {
     audience: 'prospect',
     code,
     session,
-    view: viewForSession(session, !forRep && heldForReview(face.rep.reviewBeforeLive, session)),
+    held,
+    view: viewForSession(session, held),
     ...face,
     eventName: publicEventName(event?.name),
     playbook,

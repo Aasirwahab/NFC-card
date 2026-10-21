@@ -240,16 +240,35 @@ describe('review before it goes live (optional, per rep)', () => {
     expect(viewForSession(done, false)).toEqual({ state: 'completed', pitch: 'A pitch.' });
   });
 
+  it('holds again while a re-run is in progress, even after an earlier approval', () => {
+    expect(
+      heldForReview(true, {
+        enrichment_status: 'processing',
+        pitch_approved_at: '2026-10-21T10:05:00Z',
+        enrichment_completed_at: '2026-10-21T10:00:00Z',
+      }),
+    ).toBe(true);
+  });
+
   it('holds only for reps who chose it, until they approve the pitch they saw', () => {
     const completed = '2026-10-21T10:00:00Z';
     expect(
-      heldForReview(false, { pitch_approved_at: null, enrichment_completed_at: completed }),
+      heldForReview(false, {
+        enrichment_status: 'completed',
+        pitch_approved_at: null,
+        enrichment_completed_at: completed,
+      }),
     ).toBe(false);
     expect(
-      heldForReview(true, { pitch_approved_at: null, enrichment_completed_at: completed }),
+      heldForReview(true, {
+        enrichment_status: 'completed',
+        pitch_approved_at: null,
+        enrichment_completed_at: completed,
+      }),
     ).toBe(true);
     expect(
       heldForReview(true, {
+        enrichment_status: 'completed',
         pitch_approved_at: '2026-10-21T10:05:00Z',
         enrichment_completed_at: completed,
       }),
@@ -257,6 +276,7 @@ describe('review before it goes live (optional, per rep)', () => {
     // A newer pitch needs approving again.
     expect(
       heldForReview(true, {
+        enrichment_status: 'completed',
         pitch_approved_at: '2026-10-21T09:00:00Z',
         enrichment_completed_at: completed,
       }),

@@ -83,7 +83,11 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
       {guessedSite || noSite ? <WebsiteCheck sessionId={session.id} domain={guessedSite} /> : null}
 
       {resolved.rep.reviewBeforeLive && !session.rep_pitch ? (
-        <ApprovePitch sessionId={session.id} approved={!heldForReview(true, session)} />
+        <ApprovePitch
+          sessionId={session.id}
+          approved={!heldForReview(true, session)}
+          seenCompletedAt={session.enrichment_completed_at}
+        />
       ) : null}
 
       <PitchTools

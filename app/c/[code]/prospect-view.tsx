@@ -16,6 +16,7 @@ import { linkedinHref } from '@/lib/domain/linkedin';
 import { LinkedInConnect } from './linkedin-connect';
 import { RemoveDetails } from './remove-details';
 import { Crafting } from './crafting';
+import { HeldWatcher } from './held-watcher';
 
 /**
  * The prospect landing page (spec §16). THIS IS THE PRODUCT — everything else
@@ -41,7 +42,7 @@ export function ProspectView({
   /** The rep's own preview (§14.5): the page as-is, but nothing that spends the prospect's questions. */
   preview?: boolean;
 }) {
-  const { session, rep, business, eventName, view, code, playbook } = resolved;
+  const { session, rep, business, eventName, view, code, playbook, held } = resolved;
 
   const pitchInput = {
     prospectName: session.prospect_name,
@@ -71,6 +72,7 @@ export function ProspectView({
       </Header>
 
       <main className="flex-1">
+        {held && !preview ? <HeldWatcher code={code} /> : null}
         <h1 className={prospectFirst ? styles.preparedFor : styles.headline}>
           {prospectFirst ? `Prepared for ${prospectFirst}` : 'Picking up our conversation.'}
         </h1>
