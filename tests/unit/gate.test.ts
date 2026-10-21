@@ -292,3 +292,14 @@ describe("the rep's pitch voice", () => {
     expect(instructions).toMatch(/never_say/);
   });
 });
+
+describe('no booking promise without a booking button', () => {
+  it('rejects booking wording when the brief has no booking CTA', () => {
+    const noLink = brief({ cta: 'A 15-minute conversation about idle machine tracking' });
+    const body = GOOD.replace('book 15 minutes below and', 'have a short conversation and');
+    expect(qualityGate(body, noLink).failures.map((f) => f.check)).not.toContain(
+      'promises_booking',
+    );
+    expect(qualityGate(GOOD, noLink).failures.map((f) => f.check)).toContain('promises_booking');
+  });
+});

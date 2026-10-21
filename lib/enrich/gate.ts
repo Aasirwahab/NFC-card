@@ -31,6 +31,7 @@ export type GateCheck =
   | 'unsupported_claim'
   | 'length'
   | 'no_call_to_action'
+  | 'promises_booking'
   | 'wrong_name'
   | 'avoided_phrase';
 
@@ -135,6 +136,10 @@ const PERCENT = /\b\d{1,3}(?:\.\d+)?\s?%/g;
 /** Claims a business must be able to back up. Allowed only if the brief says so. */
 const CLAIMS =
   /\b(?:guarantee[sd]?|certified|accredited|award[- ]winning|iso ?\d{4,5}|market[- ]leading|industry[- ]leading|number one|best[- ]in[- ]class|world[- ]class)\b/gi;
+
+/** Wording that sends the reader to a calendar or something on the page. */
+const BOOKING_PROMISE =
+  /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\bbelow\b/i;
 
 const CALL_TO_ACTION =
   /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation)\b/i;
@@ -276,6 +281,10 @@ export function qualityGate(body: string, brief: Brief): GateResult {
   }
   if (!CALL_TO_ACTION.test(trimmed)) {
     fail('no_call_to_action', 'does not invite them to a short conversation');
+  }
+  // No booking button on the page: nothing may send them looking for one.
+  if (!brief.cta.startsWith('Book') && BOOKING_PROMISE.test(trimmed)) {
+    fail('promises_booking', 'invites a booking, but the page has no booking button');
   }
 
   // 6. Names the right person — the one mistake a prospect always notices.
