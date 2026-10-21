@@ -17,7 +17,7 @@ import type { NoteFill } from '@/lib/capture/note';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
-import { apiSend, apiUpload } from '@/lib/http/client';
+import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
 
 /**
@@ -815,14 +815,20 @@ function QuickNote({
           : null,
       ].filter(Boolean);
       onFill(fill);
+      if (parts.length > 0) {
+        setMessage(`Filled in ${parts.join(', ')}. Check it below, then save.`);
+        setLine('');
+      } else {
+        // Keep the line: it is the rep's only record of the conversation so far.
+        setMessage('Nothing to fill in from that line. Your note is kept.');
+      }
+    } catch (error) {
+      const code = error instanceof ApiError ? error.message : '';
       setMessage(
-        parts.length > 0
-          ? `Filled in ${parts.join(', ')}. Check it below, then save.`
-          : 'Nothing to fill in from that line.',
+        code === 'model_not_configured' || code === 'ai_unavailable'
+          ? 'The AI isn’t available right now. Type the details below. Your note is kept.'
+          : 'Could not read that. Fill the form below. Your note is kept.',
       );
-      setLine('');
-    } catch {
-      setMessage('Could not read that. Fill the form below instead.');
     } finally {
       setBusy(false);
     }

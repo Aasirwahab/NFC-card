@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { fail, json, readJson, withRep } from '@/lib/api';
 import { modelFor } from '@/lib/ai/models';
 import { extractNote } from '@/lib/capture/note';
-import { pitchUsesMock } from '@/lib/ai/models';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
@@ -26,15 +25,29 @@ const bodySchema = z.object({
 export const POST = withRep(async (rep, request) => {
   const parsed = bodySchema.safeParse(await readJson(request));
   if (!parsed.success) return fail('invalid_request', 400);
-  if (pitchUsesMock()) return fail('model_not_configured', 501);
+  // The line goes to the chat model, so that is the one that must be real.
+  const chat = modelFor('chat');
+  if (chat.id === 'mock') return fail('model_not_configured', 501);
 
   const limit = await checkRateLimit('lookup', rep.userId);
   if (!limit.allowed) return fail('rate_limited', 429);
 
-  const fill = await extractNote({
-    model: modelFor('chat').model,
-    line: parsed.data.line,
-    niches: parsed.data.niches,
-  });
-  return json(fill);
+  try {
+    const fill = await extractNote({
+      model: chat.model,
+      line: parsed.data.line,
+      niches: parsed.data.niches,
+    });
+    return json(fill);
+  } catch (error) {
+    // Name and type only: the line holds prospect details and must not be logged.
+    console.error(
+      JSON.stringify({
+        event: 'note_extraction_failed',
+        model: chat.id,
+        error: error instanceof Error ? error.name : 'unknown',
+      }),
+    );
+    return fail('ai_unavailable', 503);
+  }
 });
