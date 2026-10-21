@@ -36,19 +36,40 @@ async function asRep<T>(userId: string, run: () => Promise<T>): Promise<T> {
 }
 
 describe('chat_unanswered', () => {
+  it("never copies the visitor's own words into shared knowledge", async () => {
+    const row = await question();
+    await db.query(
+      `update public.chat_unanswered set question = 'Can Acme Ltd get 40% off our £2m contract?' where id = $1`,
+      [row.id],
+    );
+    await db.query(
+      `select public.answer_chat_question($1, $2, 'Do you offer discounts?', 'Ask Zaid.')`,
+      [row.id, row.userId],
+    );
+    const { rows } = await db.query<{ content: string }>(
+      `select content from public.knowledge_base where user_id = $1`,
+      [row.userId],
+    );
+    expect(rows[0]!.content).toBe('Do you offer discounts?\nAsk Zaid.');
+    expect(rows[0]!.content).not.toContain('Acme');
+    await expect(
+      db.query(`select public.answer_chat_question($1, $2, '  ', 'x')`, [row.id, row.userId]),
+    ).rejects.toThrow();
+  });
+
   it('saves a price answer under pricing so the chat guardrail can use it', async () => {
     const row = await question();
-    await db.query(`select public.answer_chat_question($1, $2, 'From £500.', 'pricing')`, [
-      row.id,
-      row.userId,
-    ]);
+    await db.query(
+      `select public.answer_chat_question($1, $2, 'What does it cost?', 'From £500.', 'pricing')`,
+      [row.id, row.userId],
+    );
     expect(
       (
         await db.query(`select topic, content from public.knowledge_base where user_id = $1`, [
           row.userId,
         ])
       ).rows,
-    ).toEqual([{ topic: 'pricing', content: 'How long?\nFrom £500.' }]);
+    ).toEqual([{ topic: 'pricing', content: 'What does it cost?\nFrom £500.' }]);
   });
 
   it('appends an answer to manual FAQ knowledge and resolves atomically, without duplicates on retry', async () => {
@@ -57,10 +78,10 @@ describe('chat_unanswered', () => {
       `insert into public.knowledge_base(user_id, topic, content) values ($1, 'faq', 'Existing answer.')`,
       [row.userId],
     );
-    await db.query(`select public.answer_chat_question($1, $2, '  Two weeks.  ')`, [
-      row.id,
-      row.userId,
-    ]);
+    await db.query(
+      `select public.answer_chat_question($1, $2, 'How long does it take?', '  Two weeks.  ')`,
+      [row.id, row.userId],
+    );
     expect(
       (
         await db.query(
@@ -68,7 +89,7 @@ describe('chat_unanswered', () => {
           [row.userId],
         )
       ).rows,
-    ).toEqual([{ content: 'Existing answer.\n\nHow long?\nTwo weeks.' }]);
+    ).toEqual([{ content: 'Existing answer.\n\nHow long does it take?\nTwo weeks.' }]);
     expect(
       (
         await db.query(
@@ -78,7 +99,10 @@ describe('chat_unanswered', () => {
       ).rows,
     ).toEqual([{ id: row.id }]);
     await expect(
-      db.query(`select public.answer_chat_question($1, $2, 'Again')`, [row.id, row.userId]),
+      db.query(`select public.answer_chat_question($1, $2, 'How long does it take?', 'Again')`, [
+        row.id,
+        row.userId,
+      ]),
     ).rejects.toThrow(/question_not_found/);
   });
 
@@ -86,22 +110,22 @@ describe('chat_unanswered', () => {
     const row = await question();
     const stranger = await seedFixture(db, { cards: 0 });
     await expect(
-      db.query(`select public.answer_chat_question($1, $2, 'Two weeks.')`, [
-        row.id,
-        stranger.userId,
-      ]),
+      db.query(
+        `select public.answer_chat_question($1, $2, 'How long does it take?', 'Two weeks.')`,
+        [row.id, stranger.userId],
+      ),
     ).rejects.toThrow(/question_not_found/);
-    await db.query(`select public.answer_chat_question($1, $2, 'Two weeks.')`, [
-      row.id,
-      row.userId,
-    ]);
+    await db.query(
+      `select public.answer_chat_question($1, $2, 'How long does it take?', 'Two weeks.')`,
+      [row.id, row.userId],
+    );
     expect(
       (
         await db.query(`select topic, content from public.knowledge_base where user_id = $1`, [
           row.userId,
         ])
       ).rows,
-    ).toEqual([{ topic: 'faq', content: 'How long?\nTwo weeks.' }]);
+    ).toEqual([{ topic: 'faq', content: 'How long does it take?\nTwo weeks.' }]);
   });
 
   it('keeps a question open and knowledge unchanged when an answer is blank or exceeds the topic limit', async () => {
@@ -112,7 +136,11 @@ describe('chat_unanswered', () => {
     );
     for (const answer of ['  ', 'Two weeks.']) {
       await expect(
-        db.query(`select public.answer_chat_question($1, $2, $3)`, [row.id, row.userId, answer]),
+        db.query(`select public.answer_chat_question($1, $2, 'How long does it take?', $3)`, [
+          row.id,
+          row.userId,
+          answer,
+        ]),
       ).rejects.toThrow(/invalid_answer|knowledge_too_long/);
     }
     expect(

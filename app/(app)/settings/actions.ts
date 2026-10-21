@@ -118,8 +118,14 @@ const knowledgeSchema = z
     topic: z.enum(['services', 'pricing', 'faq', 'about', 'niche', 'timeline', 'proof']),
     content: z.string().trim().max(20_000),
     unanswered_id: unansweredId.optional(),
+    /** The rep's general rewording of a prospect's question; the original never leaves chat_unanswered. */
+    public_question: z.string().trim().max(300).optional(),
   })
-  .refine((value) => !value.unanswered_id || value.content.length > 0, 'Enter an answer.');
+  .refine((value) => !value.unanswered_id || value.content.length > 0, 'Enter an answer.')
+  .refine(
+    (value) => !value.unanswered_id || Boolean(value.public_question),
+    'Rewrite the question in general terms.',
+  );
 
 export async function saveKnowledgeAction(
   _previous: SettingsState,
@@ -137,6 +143,7 @@ export async function saveKnowledgeAction(
     const { error } = await db.rpc('answer_chat_question', {
       p_id: parsed.data.unanswered_id,
       p_user_id: rep.userId,
+      p_public_question: parsed.data.public_question!,
       p_answer: content,
       p_topic: topic,
     });

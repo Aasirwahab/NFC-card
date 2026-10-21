@@ -425,6 +425,19 @@ function UnansweredQuestion({ question }: { question: { id: number; question: st
         <form action={answerAction} className="flex flex-col gap-3">
           <input type="hidden" name="unanswered_id" value={question.id} />
           <Field
+            label="Question, as other prospects may see it"
+            htmlFor={`answer-question-${question.id}`}
+            hint="Rewrite it in general terms, without names, companies or numbers."
+          >
+            <Input
+              id={`answer-question-${question.id}`}
+              name="public_question"
+              required
+              maxLength={300}
+              placeholder="How long does setup take?"
+            />
+          </Field>
+          <Field
             label="Save under"
             htmlFor={`answer-topic-${question.id}`}
             hint="Choose Pricing for answers that include prices."

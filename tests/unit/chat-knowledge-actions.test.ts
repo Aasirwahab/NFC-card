@@ -19,6 +19,7 @@ function answer(fields: Record<string, string> = {}) {
     topic: 'faq',
     content: '  Two weeks.  ',
     unanswered_id: '42',
+    public_question: 'How long does it take?',
     ...fields,
   }))
     form.set(key, value);
@@ -42,6 +43,7 @@ describe('answering from the knowledge save action', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('answer_chat_question', {
       p_id: 42,
       p_user_id: 'rep-id',
+      p_public_question: 'How long does it take?',
       p_answer: 'Two weeks.',
       p_topic: 'faq',
     });
@@ -50,6 +52,7 @@ describe('answering from the knowledge save action', () => {
 
   const invalidAnswers: Record<string, string>[] = [
     { content: '  ' },
+    { public_question: '  ' },
     { content: 'x'.repeat(20_001) },
     { unanswered_id: '-1' },
     { unanswered_id: '1.5' },

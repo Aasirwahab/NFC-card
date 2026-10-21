@@ -32,18 +32,30 @@ grant usage, select on sequence public.chat_unanswered_id_seq to service_role;
 
 -- Save through Setup's knowledge action. Appending the answer and resolving the
 -- question succeed together; a retry cannot append the same answer twice.
-create function public.answer_chat_question(p_id bigint, p_user_id uuid, p_answer text, p_topic text default 'faq')
+-- The visitor's own words never leave chat_unanswered: they may name their company
+-- or numbers. The rep rewrites the question in general terms (p_public_question),
+-- and only that and the answer reach the knowledge every prospect's chat reads.
+create function public.answer_chat_question(
+  p_id              bigint,
+  p_user_id         uuid,
+  p_public_question text,
+  p_answer          text,
+  p_topic           text default 'faq'
+)
 returns void
 language plpgsql
 set search_path = public, pg_temp
 as $fn$
 declare
-  v_question text;
   v_knowledge_id uuid;
   v_content text;
 begin
   if p_answer is null or btrim(p_answer) = '' then
     raise exception 'invalid_answer';
+  end if;
+  if p_public_question is null or btrim(p_public_question) = ''
+     or char_length(p_public_question) > 300 then
+    raise exception 'invalid_question';
   end if;
   if p_topic is null or p_topic not in ('services', 'pricing', 'faq', 'about', 'niche', 'timeline', 'proof') then
     raise exception 'invalid_topic';
@@ -52,7 +64,7 @@ begin
   -- Serialize answers even when the rep's first entry for this topic does not exist.
   perform pg_advisory_xact_lock(hashtextextended(p_user_id::text || ':' || p_topic, 0));
 
-  select question into v_question from public.chat_unanswered
+  perform 1 from public.chat_unanswered
    where id = p_id and user_id = p_user_id and resolved_at is null
    for update;
   if not found then raise exception 'question_not_found'; end if;
@@ -61,7 +73,7 @@ begin
    where user_id = p_user_id and topic = p_topic and source = 'manual'
    order by created_at limit 1 for update;
 
-  v_content := concat_ws(E'\n\n', nullif(btrim(v_content), ''), v_question || E'\n' || btrim(p_answer));
+  v_content := concat_ws(E'\n\n', nullif(btrim(v_content), ''), btrim(p_public_question) || E'\n' || btrim(p_answer));
   if char_length(v_content) > 20000 then raise exception 'knowledge_too_long'; end if;
 
   if v_knowledge_id is null then
@@ -74,5 +86,5 @@ begin
   update public.chat_unanswered set resolved_at = now() where id = p_id;
 end $fn$;
 
-revoke all on function public.answer_chat_question(bigint, uuid, text, text) from public, anon, authenticated;
-grant execute on function public.answer_chat_question(bigint, uuid, text, text) to service_role;
+revoke all on function public.answer_chat_question(bigint, uuid, text, text, text) from public, anon, authenticated;
+grant execute on function public.answer_chat_question(bigint, uuid, text, text, text) to service_role;

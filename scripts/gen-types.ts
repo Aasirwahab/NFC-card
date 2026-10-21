@@ -206,7 +206,13 @@ const FUNCTIONS = `    {
         Returns: undefined;
       };
       answer_chat_question: {
-        Args: { p_id: number; p_user_id: string; p_answer: string; p_topic?: string };
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
         Returns: undefined;
       };
       record_booking: {
