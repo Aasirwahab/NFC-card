@@ -1004,7 +1004,12 @@ export type Database = {
         Returns: string;
       };
       approve_pitch: {
-        Args: { p_session_id: string; p_user_id: string; p_approved: boolean };
+        Args: {
+          p_session_id: string;
+          p_user_id: string;
+          p_approved: boolean;
+          p_seen_completed_at?: string | null;
+        };
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       set_rep_pitch: {
