@@ -26,6 +26,11 @@ const pitchVoiceSchema = z.object({
   pitch_tone: z.enum(['warm', 'direct', 'formal']).default('warm'),
   pitch_hook: blank(140),
   pitch_avoid: blank(200),
+  // A checkbox posts 'on' when ticked and nothing when not.
+  review_before_live: z
+    .literal('on')
+    .optional()
+    .transform((v) => v === 'on'),
 });
 
 /** The rep's standing pitch voice: tone, one sentence of their own, and words to avoid. */

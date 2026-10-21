@@ -612,6 +612,7 @@ export type Database = {
           pitch_tone: string;
           pitch_hook: string | null;
           pitch_avoid: string | null;
+          review_before_live: boolean;
         };
         Insert: {
           id: string;
@@ -631,6 +632,7 @@ export type Database = {
           pitch_tone?: string;
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
+          review_before_live?: boolean;
         };
         Update: {
           id?: string;
@@ -650,6 +652,7 @@ export type Database = {
           pitch_tone?: string;
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
+          review_before_live?: boolean;
         };
         Relationships: [
           {
@@ -730,6 +733,7 @@ export type Database = {
           details_revision: number;
           rep_pitch: string | null;
           rep_pitch_edited_at: string | null;
+          pitch_approved_at: string | null;
           generated_pitch_prompt: string | null;
           first_view_source: string | null;
           prospect_website: string | null;
@@ -771,6 +775,7 @@ export type Database = {
           details_revision?: number;
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
+          pitch_approved_at?: string | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
@@ -812,6 +817,7 @@ export type Database = {
           details_revision?: number;
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
+          pitch_approved_at?: string | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
@@ -996,6 +1002,15 @@ export type Database = {
           p_prompt?: string | null;
         };
         Returns: string;
+      };
+      approve_pitch: {
+        Args: {
+          p_session_id: string;
+          p_user_id: string;
+          p_approved: boolean;
+          p_seen_completed_at?: string | null;
+        };
+        Returns: Database['public']['Tables']['sessions']['Row'];
       };
       set_rep_pitch: {
         Args: { p_session_id: string; p_user_id: string; p_text: string | null };

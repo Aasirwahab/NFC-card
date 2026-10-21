@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decideAudience, shouldRecordTap, viewSource, type Audience } from '@/lib/domain/audience';
 import { isNonHumanAgent } from '@/lib/domain/bots';
-import { viewForSession } from '@/lib/domain/render-state';
+import { heldForReview, viewForSession } from '@/lib/domain/render-state';
 
 const REP = '11111111-1111-4111-8111-111111111111';
 const OTHER_REP = '22222222-2222-4222-8222-222222222222';
@@ -225,5 +225,61 @@ describe('viewSource (pilot: NFC vs QR)', () => {
     expect(viewSource('')).toBe('nfc');
     expect(viewSource('QR')).toBe('nfc');
     expect(viewSource('qr<script>')).toBe('nfc');
+  });
+});
+
+describe('review before it goes live (optional, per rep)', () => {
+  const done = { enrichment_status: 'completed', generated_pitch: 'A pitch.' };
+
+  it('shows the warm page while held, and the rep’s own words always win', () => {
+    expect(viewForSession(done, true)).toEqual({ state: 'pending' });
+    expect(viewForSession({ ...done, rep_pitch: 'Mine.' }, true)).toEqual({
+      state: 'completed',
+      pitch: 'Mine.',
+    });
+    expect(viewForSession(done, false)).toEqual({ state: 'completed', pitch: 'A pitch.' });
+  });
+
+  it('holds again while a re-run is in progress, even after an earlier approval', () => {
+    expect(
+      heldForReview(true, {
+        enrichment_status: 'processing',
+        pitch_approved_at: '2026-10-21T10:05:00Z',
+        enrichment_completed_at: '2026-10-21T10:00:00Z',
+      }),
+    ).toBe(true);
+  });
+
+  it('holds only for reps who chose it, until they approve the pitch they saw', () => {
+    const completed = '2026-10-21T10:00:00Z';
+    expect(
+      heldForReview(false, {
+        enrichment_status: 'completed',
+        pitch_approved_at: null,
+        enrichment_completed_at: completed,
+      }),
+    ).toBe(false);
+    expect(
+      heldForReview(true, {
+        enrichment_status: 'completed',
+        pitch_approved_at: null,
+        enrichment_completed_at: completed,
+      }),
+    ).toBe(true);
+    expect(
+      heldForReview(true, {
+        enrichment_status: 'completed',
+        pitch_approved_at: '2026-10-21T10:05:00Z',
+        enrichment_completed_at: completed,
+      }),
+    ).toBe(false);
+    // A newer pitch needs approving again.
+    expect(
+      heldForReview(true, {
+        enrichment_status: 'completed',
+        pitch_approved_at: '2026-10-21T09:00:00Z',
+        enrichment_completed_at: completed,
+      }),
+    ).toBe(true);
   });
 });

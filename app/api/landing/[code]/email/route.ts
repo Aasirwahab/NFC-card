@@ -7,6 +7,7 @@ import { serviceClient } from '@/lib/db/service';
 import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { emailConfigured, sendEmail } from '@/lib/email/mailer';
+import { parseBookingUrl } from '@/lib/booking/link';
 import { pitchEmail } from '@/lib/email/pitch-email';
 import { profileUrl } from '@/lib/lookup/linkedin';
 import { env } from '@/lib/env';
@@ -67,6 +68,8 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
   if (resolved.audience !== 'prospect') return miss();
 
   const { session } = resolved;
+  // The rep has not approved this page yet: nothing of it may be emailed.
+  if (resolved.held) return fail('not_ready', 409);
 
   // The rep's own tap or preview would save the rep's address as the prospect's.
   const [rep, cookieStore] = await Promise.all([getRep(), cookies()]);
@@ -99,6 +102,7 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
     businessName: resolved.business?.companyName ?? null,
     pitch: shownPitch(resolved),
     pageUrl: new URL(`/c/${code}`, env.NEXT_PUBLIC_APP_URL).toString(),
+    hasBooking: Boolean(parseBookingUrl(resolved.rep.bookingUrl)),
   });
 
   try {
