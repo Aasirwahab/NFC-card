@@ -144,7 +144,7 @@ export function ChatWidget({
               maxLength={500}
               disabled={exhausted}
               placeholder={
-                exhausted ? `Book a time to ask ${repFirstName} directly` : 'Ask a question…'
+                exhausted ? `Get in touch to ask ${repFirstName} directly` : 'Ask a question…'
               }
               aria-label="Your question"
               className="border-line bg-surface text-ink placeholder:text-ink-3/70 focus:border-accent h-11 flex-1 rounded-full border px-4 text-base focus:outline-none disabled:opacity-60"
@@ -188,12 +188,12 @@ function explain(error: unknown, repFirstName: string): string {
 function explainCode(code: string, repFirstName: string): string {
   switch (code) {
     case 'chat_disabled':
-      return `Questions are best answered by ${repFirstName} directly — book 15 minutes below.`;
+      return `Questions are best answered by ${repFirstName} directly — get in touch using the options on this page.`;
     case 'rate_limited':
       return 'Give it a moment and try again.';
     case 'owner_preview':
       return 'This is your own card, so the assistant is off here.';
     default:
-      return `I can’t answer right now. ${repFirstName} can — book 15 minutes below.`;
+      return `I can’t answer right now. ${repFirstName} can — get in touch using the options on this page.`;
   }
 }

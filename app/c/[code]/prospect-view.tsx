@@ -52,6 +52,7 @@ export function ProspectView({
     businessName: business?.companyName ?? null,
     services: business?.services ?? [],
     eventName,
+    hasBooking: Boolean(parseBookingUrl(rep.bookingUrl)),
   };
 
   const fallbackPitch = templatePitch(pitchInput);

@@ -3,6 +3,7 @@ import { decideAudience } from '@/lib/domain/audience';
 import { viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
 import { publicEventName, templatePitch } from '@/lib/domain/pitch';
+import { parseBookingUrl } from '@/lib/booking/link';
 import { serviceClient } from './service';
 import type { Row } from './types';
 
@@ -448,5 +449,6 @@ export function shownPitch(resolved: ProspectResolved): string {
     businessName: business?.companyName ?? null,
     services: business?.services ?? [],
     eventName,
+    hasBooking: Boolean(parseBookingUrl(rep.bookingUrl)),
   });
 }

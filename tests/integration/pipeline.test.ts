@@ -516,6 +516,9 @@ describe('the quality gate in the loop (§14.2)', () => {
     const { snapshotSchema } = await import('@/lib/enrich/snapshot');
     const brief = composeBrief(snapshotSchema.parse(snapshot), s.research!);
     expect(qualityGate(s.generated_pitch!, brief).failures).toEqual([]);
+    // No booking link on this rep: the snapshot says so and the brief invites no booking.
+    expect((snapshot as { rep: Record<string, unknown> }).rep).toHaveProperty('booking_url', null);
+    expect(brief.cta).not.toMatch(/^Book/);
   });
 });
 

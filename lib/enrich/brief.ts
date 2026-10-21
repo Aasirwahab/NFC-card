@@ -1,3 +1,4 @@
+import { parseBookingUrl } from '@/lib/booking/link';
 import { callToAction, primaryProblem, publicEventName } from '@/lib/domain/pitch';
 import type { Research } from './research';
 import type { Snapshot } from './snapshot';
@@ -134,6 +135,7 @@ export function composeBrief(snapshot: Snapshot, research: Research): Brief {
       problems: session.problems,
       customProblems: session.custom_problems,
       repName: repFirstName,
+      hasBooking: Boolean(parseBookingUrl(snapshot.rep?.booking_url)),
     }),
   };
 }

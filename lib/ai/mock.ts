@@ -124,7 +124,7 @@ export function mockPitchModel(): MockLanguageModelV4 {
         services.length > 0
           ? `${doer} on ${services.map(lowerFirst).join(' and ')}, and the honest answer to whether we can help takes about fifteen minutes to give properly.`
           : 'The honest answer to whether we can help takes about fifteen minutes to give properly.',
-        `If it would be useful, book 15 minutes below and I will come with specifics rather than a brochure.\n— ${rep}`,
+        `If it would be useful, a short 15-minute conversation is the quickest way, and I will come with specifics rather than a brochure.\n— ${rep}`,
       ];
 
       return reply(paragraphs.join('\n\n'));
@@ -164,8 +164,8 @@ export function mockChatModel(): MockLanguageModelV4 {
 
       return reply(
         first
-          ? `Good question. ${first.replace(/[.!?]?$/, '.')} For the detail on your setup, ${rep} can give you a straight answer — book 15 minutes below.`
-          : `That’s one ${rep} can answer properly — book 15 minutes below.`,
+          ? `Good question. ${first.replace(/[.!?]?$/, '.')} For the detail on your setup, ${rep} can give you a straight answer — get in touch using the options on this page.`
+          : `That’s one ${rep} can answer properly — get in touch using the options on this page.`,
       );
     },
   });
