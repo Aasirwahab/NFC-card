@@ -4,6 +4,7 @@ import {
   greeting,
   primaryProblem,
   templatePitch,
+  relevantServices,
   wordCount,
   type PitchInput,
 } from '@/lib/domain/pitch';
@@ -200,5 +201,24 @@ describe('template pitch without a stated problem (pitch-v2 tone)', () => {
   it('names the raised problem when there is one', () => {
     const text = templatePitch({ ...base, problems: ['Deals stall waiting on funding'] });
     expect(text).toContain('deals stall waiting on funding');
+  });
+});
+
+describe('relevantServices', () => {
+  it('keeps services that share a word with the problem and drops unrelated ones', () => {
+    expect(
+      relevantServices(
+        [
+          'Plant hire automation',
+          'Maritime compliance reporting',
+          'Idle machine tracking dashboards',
+        ],
+        ['Idle machine tracking'],
+      ),
+    ).toEqual(['Idle machine tracking dashboards']);
+  });
+
+  it('shows nothing rather than an unrelated list', () => {
+    expect(relevantServices(['Maritime compliance'], ['Slow software releases'])).toEqual([]);
   });
 });

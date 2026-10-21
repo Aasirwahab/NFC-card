@@ -48,7 +48,7 @@ export function primaryProblem(input: {
 }
 
 /** Lower-cases a problem for use mid-sentence, unless it starts with an acronym. */
-function midSentence(problem: string): string {
+export function midSentence(problem: string): string {
   const firstWord = problem.split(/\s+/)[0] ?? '';
   const isAcronym = firstWord.length > 1 && firstWord === firstWord.toUpperCase();
   return isAcronym ? problem : problem.charAt(0).toLowerCase() + problem.slice(1);
@@ -149,6 +149,25 @@ export function templatePitch(input: PitchInput): string {
   );
 
   return sentences.join(' ');
+}
+
+/**
+ * The services worth showing next to this prospect's problem: those sharing a
+ * meaningful word with it. None in common means none shown, never an unrelated list.
+ */
+export function relevantServices(services: string[], topics: string[]): string[] {
+  const words = (text: string) =>
+    new Set(
+      text
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((w) => w.length > 3),
+    );
+  const topicWords = words(topics.join(' '));
+  return services
+    .map((s) => s.trim())
+    .filter((s) => s && [...words(s)].some((w) => topicWords.has(w)))
+    .slice(0, 3);
 }
 
 /** "a, b and c" — the Oxford-comma-free British form the rest of the copy uses. */

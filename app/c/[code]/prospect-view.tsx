@@ -4,7 +4,13 @@ import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
-import { primaryProblem, publicEventName, templatePitch } from '@/lib/domain/pitch';
+import {
+  midSentence,
+  primaryProblem,
+  publicEventName,
+  relevantServices,
+  templatePitch,
+} from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
@@ -63,6 +69,11 @@ export function ProspectView({
   const prospectFirst = session.prospect_name?.trim() ? firstName(session.prospect_name) : null;
   const topics = session.problems.filter((problem) => problem.trim());
   const customTopic = session.custom_problems?.trim();
+  const lead = primaryProblem({
+    problems: session.problems,
+    customProblems: session.custom_problems,
+  });
+  const services = relevantServices(business?.services ?? [], [...topics, customTopic ?? '']);
 
   return (
     // pb-28 keeps the footer links clear of the floating chat button.
@@ -75,9 +86,13 @@ export function ProspectView({
         <h1 className={prospectFirst ? styles.preparedFor : styles.headline}>
           {prospectFirst ? `Prepared for ${prospectFirst}` : 'Picking up our conversation.'}
         </h1>
-        {publicEvent ? <h2 className={styles.headline}>After {publicEvent}</h2> : null}
+        {publicEvent ? (
+          <h2 className={styles.headline}>From our conversation at {publicEvent}</h2>
+        ) : prospectFirst ? (
+          <h2 className={styles.headline}>From our conversation</h2>
+        ) : null}
 
-        {topics.length > 0 || customTopic || business?.tagline ? (
+        {topics.length > 0 || customTopic ? (
           <section className={styles.issuePanel} aria-labelledby="discussed-issue">
             <h2 id="discussed-issue" className={styles.sectionLabel}>
               The issue we discussed
@@ -88,9 +103,6 @@ export function ProspectView({
               </p>
             ))}
             {customTopic ? <p className={styles.issueTopic}>{customTopic}</p> : null}
-            {topics.length === 0 && !customTopic && business?.tagline ? (
-              <p className={styles.issueTopic}>{business.tagline}</p>
-            ) : null}
             {session.prospect_company ? (
               <p className={styles.issueCompany}>{session.prospect_company}</p>
             ) : null}
@@ -110,13 +122,25 @@ export function ProspectView({
               eventName={publicEvent}
               business={business}
               repName={firstName(rep.fullName)}
+              hasBooking={Boolean(bookingLink)}
             />
           )}
         </section>
 
-        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
-
-        <CallToActionBlock label="Pick up where we left off." repName={firstName(rep.fullName)}>
+        <CallToActionBlock
+          label={
+            lead
+              ? bookingLink
+                ? `Pick a time to talk about ${midSentence(lead)}.`
+                : `Keep ${firstName(rep.fullName)}’s details to talk about ${midSentence(lead)}.`
+              : 'Pick up where we left off.'
+          }
+          note={
+            bookingLink
+              ? `${firstName(rep.fullName)} will come prepared.`
+              : 'Save the contact, then message or call when it suits you.'
+          }
+        >
           {bookingLink ? (
             <Booking
               code={code}
@@ -140,8 +164,10 @@ export function ProspectView({
           ) : null}
         </CallToActionBlock>
 
-        {business && business.services.length > 0 && view.state !== 'crafting' ? (
-          <SolutionPoints services={business.services} companyName={business.companyName} />
+        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
+
+        {business && services.length > 0 && view.state !== 'crafting' ? (
+          <SolutionPoints services={services} companyName={business.companyName} />
         ) : null}
 
         <div className={styles.chatRegion}>
@@ -310,18 +336,21 @@ function PendingBody({
   eventName,
   business,
   repName,
+  hasBooking,
 }: {
   eventName: string | null;
   business: ProspectResolved['business'];
   repName: string;
+  hasBooking: boolean;
 }) {
   return (
     <div className={styles.pitch}>
       <p>{eventName ? `Great to meet you at ${eventName}.` : 'Great to meet you the other day.'}</p>
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
-        If you want to pick up where we left off, grab a slot below and {repName} will come
-        prepared.
+        {hasBooking
+          ? `If you want to pick up where we left off, grab a slot below and ${repName} will come prepared.`
+          : `If you want to pick up where we left off, save ${repName}’s contact below and get in touch.`}
       </p>
     </div>
   );
@@ -361,11 +390,11 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
  */
 function CallToActionBlock({
   label,
-  repName,
+  note,
   children,
 }: {
   label: string;
-  repName: string;
+  note: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -373,7 +402,7 @@ function CallToActionBlock({
       <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
         {label}
       </p>
-      <p className="text-ink-2 mt-1.5 text-sm">{repName} will come prepared.</p>
+      <p className="text-ink-2 mt-1.5 text-sm">{note}</p>
       {children}
     </section>
   );
