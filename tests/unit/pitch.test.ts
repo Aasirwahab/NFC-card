@@ -40,19 +40,19 @@ describe('primaryProblem', () => {
 
 describe('callToAction (§16)', () => {
   it('names the problem rather than saying "Book a demo"', () => {
-    expect(callToAction(base)).toBe('Book 15 minutes on idle machine tracking');
+    expect(callToAction(base)).toBe('A 15-minute conversation about idle machine tracking');
     expect(callToAction(base)).not.toMatch(/demo/i);
   });
 
   it('preserves an acronym at the start of the problem', () => {
     expect(
       callToAction({ problems: ['IMO 2030 reporting'], customProblems: null, repName: 'Zaid' }),
-    ).toBe('Book 15 minutes on IMO 2030 reporting');
+    ).toBe('A 15-minute conversation about IMO 2030 reporting');
   });
 
   it('falls back to the rep’s name when no problem was captured', () => {
     expect(callToAction({ problems: [], customProblems: null, repName: 'Zaid' })).toBe(
-      'Book 15 minutes with Zaid',
+      'A 15-minute conversation with Zaid',
     );
   });
 
@@ -82,6 +82,13 @@ describe('greeting', () => {
 });
 
 describe('templatePitch (§16, the `failed` state)', () => {
+  it('promises a booking only when the page has a booking button', () => {
+    expect(templatePitch(base)).toContain('pick a time below');
+    const noLink = templatePitch({ ...base, hasBooking: false });
+    expect(noLink).not.toMatch(/pick a time|book/i);
+    expect(noLink).toContain('save my details below');
+  });
+
   it('references the problem the prospect actually stated', () => {
     // A generic pitch is the failure mode the product exists to avoid.
     expect(templatePitch(base)).toContain('idle machine tracking');

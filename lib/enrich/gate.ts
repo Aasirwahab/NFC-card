@@ -137,7 +137,7 @@ const CLAIMS =
   /\b(?:guarantee[sd]?|certified|accredited|award[- ]winning|iso ?\d{4,5}|market[- ]leading|industry[- ]leading|number one|best[- ]in[- ]class|world[- ]class)\b/gi;
 
 const CALL_TO_ACTION =
-  /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call)\b/i;
+  /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation)\b/i;
 
 /**
  * Frequent first names, for spotting a stranger's name in the pitch. Names that
@@ -275,7 +275,7 @@ export function qualityGate(body: string, brief: Brief): GateResult {
     fail('length', `${count} words; must be ${MIN_WORDS}-${MAX_WORDS}`);
   }
   if (!CALL_TO_ACTION.test(trimmed)) {
-    fail('no_call_to_action', 'does not invite them to book a time');
+    fail('no_call_to_action', 'does not invite them to a short conversation');
   }
 
   // 6. Names the right person — the one mistake a prospect always notices.

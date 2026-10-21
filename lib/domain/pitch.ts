@@ -26,6 +26,8 @@ export type PitchInput = {
   /** From the business profile. Used to say what is actually on offer. */
   services: string[];
   eventName: string | null;
+  /** Whether the page shows a booking button. Without one, the pitch must not promise it. */
+  hasBooking?: boolean;
 };
 
 /** The problem to lead with: the first selected one, else the free text. */
@@ -53,7 +55,7 @@ function midSentence(problem: string): string {
 }
 
 /**
- * Problem-specific CTA text (§16, §5). "Book 15 minutes on maritime compliance
+ * Problem-specific CTA text (§16, §5). "A 15-minute conversation about maritime compliance
  * automation", never "Book a demo".
  */
 export function callToAction(input: {
@@ -62,7 +64,7 @@ export function callToAction(input: {
   repName: string;
 }): string {
   const problem = primaryProblem(input);
-  if (!problem) return `Book 15 minutes with ${input.repName}`;
+  if (!problem) return `A 15-minute conversation with ${input.repName}`;
 
   // Keep it to one line on a phone. A long free-text problem gets trimmed at a
   // word boundary rather than mid-word.
@@ -70,7 +72,7 @@ export function callToAction(input: {
   const trimmed =
     subject.length <= 48 ? subject : `${subject.slice(0, 48).replace(/\s+\S*$/, '')}…`;
 
-  return `Book 15 minutes on ${trimmed}`;
+  return `A 15-minute conversation about ${trimmed}`;
 }
 
 /**
@@ -138,7 +140,9 @@ export function templatePitch(input: PitchInput): string {
   );
 
   sentences.push(
-    `If it is useful, pick a time below. If not, there is nothing you need to do — ${input.repName}.`,
+    input.hasBooking === false
+      ? `If it is useful, save my details below and get in touch. If not, there is nothing you need to do — ${input.repName}.`
+      : `If it is useful, pick a time below. If not, there is nothing you need to do — ${input.repName}.`,
   );
 
   return sentences.join(' ');
