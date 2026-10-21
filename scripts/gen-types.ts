@@ -205,6 +205,10 @@ const FUNCTIONS = `    {
         Args: { p_session_id: string; p_question: string; p_answer: string };
         Returns: undefined;
       };
+      answer_chat_question: {
+        Args: { p_id: number; p_user_id: string; p_answer: string; p_topic?: string };
+        Returns: undefined;
+      };
       record_booking: {
         Args: {
           p_uid: string;

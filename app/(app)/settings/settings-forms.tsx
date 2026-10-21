@@ -9,6 +9,7 @@ import { PhotoUpload } from './photo-upload';
 import {
   saveBusinessAction,
   deletePlaybookAction,
+  dismissUnansweredAction,
   saveKnowledgeAction,
   savePlaybookAction,
   saveProfileAction,
@@ -318,6 +319,8 @@ const TOPICS = [
   { value: 'services', label: 'Services', hint: 'What you sell, in your own words.' },
   { value: 'pricing', label: 'Pricing', hint: 'Only what you are happy for a chatbot to repeat.' },
   { value: 'faq', label: 'Common questions', hint: 'The five things everyone asks.' },
+  { value: 'timeline', label: 'Timeline', hint: 'How long setup and delivery usually take.' },
+  { value: 'proof', label: 'Proof or examples', hint: 'Real examples and results you can share.' },
   { value: 'about', label: 'About', hint: 'Who you are and who you work with.' },
   {
     value: 'niche',
@@ -363,13 +366,105 @@ function KnowledgeTopic({
     <form action={action} className="border-line-soft border-t pt-4 first:border-t-0 first:pt-0">
       <input type="hidden" name="topic" value={topic} />
       <Field label={label} hint={hint} htmlFor={`kb-${topic}`}>
-        <Textarea id={`kb-${topic}`} name="content" rows={4} defaultValue={value} />
+        <Textarea
+          key={value}
+          id={`kb-${topic}`}
+          name="content"
+          rows={4}
+          maxLength={20_000}
+          defaultValue={value}
+        />
       </Field>
       <div className="mt-2 flex items-center gap-3">
         <SaveButton />
         <Status state={state} />
       </div>
     </form>
+  );
+}
+
+export function UnansweredQuestions({
+  questions,
+  loadError,
+}: {
+  questions: { id: number; question: string }[];
+  loadError: boolean;
+}) {
+  return (
+    <Panel
+      title="Questions prospects asked that the assistant could not answer"
+      hint="Add an answer to your knowledge base so the assistant can help next time. Showing up to 20 open questions, newest first."
+    >
+      {loadError ? (
+        <p role="alert" className="text-crit text-sm">
+          Could not load questions. Try refreshing.
+        </p>
+      ) : questions.length === 0 ? (
+        <p className="text-ink-3 text-sm">No unanswered questions yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {questions.map((question) => (
+            <UnansweredQuestion key={question.id} question={question} />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+function UnansweredQuestion({ question }: { question: { id: number; question: string } }) {
+  const [answerState, answerAction] = useActionState(saveKnowledgeAction, {});
+  const [dismissState, dismissAction] = useActionState(dismissUnansweredAction, {});
+  return (
+    <li className="border-line-soft border-t pt-4 first:border-t-0 first:pt-0">
+      <p className="text-ink text-sm font-medium [overflow-wrap:anywhere]">{question.question}</p>
+      <details className="mt-2">
+        <summary className="text-accent min-h-11 cursor-pointer py-3 text-sm font-medium">
+          Add an answer
+        </summary>
+        <form action={answerAction} className="flex flex-col gap-3">
+          <input type="hidden" name="unanswered_id" value={question.id} />
+          <Field
+            label="Save under"
+            htmlFor={`answer-topic-${question.id}`}
+            hint="Choose Pricing for answers that include prices."
+          >
+            <select
+              id={`answer-topic-${question.id}`}
+              name="topic"
+              defaultValue="faq"
+              className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-12 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
+            >
+              {TOPICS.map((topic) => (
+                <option key={topic.value} value={topic.value}>
+                  {topic.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Your answer"
+            htmlFor={`answer-${question.id}`}
+            hint="Saved with the question in your knowledge base."
+          >
+            <Textarea
+              id={`answer-${question.id}`}
+              name="content"
+              rows={3}
+              maxLength={20_000}
+              required
+            />
+          </Field>
+          <Status state={answerState} />
+          <SaveButton label="Save answer" />
+        </form>
+      </details>
+      <form action={dismissAction} className="mt-2 flex flex-wrap items-center gap-3">
+        <input type="hidden" name="unanswered_id" value={question.id} />
+        <SaveButton label="Dismiss" />
+        <Status state={dismissState} />
+      </form>
+    </li>
   );
 }
 

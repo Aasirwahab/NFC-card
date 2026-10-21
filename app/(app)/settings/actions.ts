@@ -111,10 +111,15 @@ export async function saveBusinessAction(
   return { saved: true };
 }
 
-const knowledgeSchema = z.object({
-  topic: z.enum(['services', 'pricing', 'faq', 'about', 'niche']),
-  content: z.string().trim().max(20_000),
-});
+const unansweredId = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+
+const knowledgeSchema = z
+  .object({
+    topic: z.enum(['services', 'pricing', 'faq', 'about', 'niche', 'timeline', 'proof']),
+    content: z.string().trim().max(20_000),
+    unanswered_id: unansweredId.optional(),
+  })
+  .refine((value) => !value.unanswered_id || value.content.length > 0, 'Enter an answer.');
 
 export async function saveKnowledgeAction(
   _previous: SettingsState,
@@ -127,6 +132,24 @@ export async function saveKnowledgeAction(
 
   const db = serviceClient();
   const { topic, content } = parsed.data;
+
+  if (parsed.data.unanswered_id) {
+    const { error } = await db.rpc('answer_chat_question', {
+      p_id: parsed.data.unanswered_id,
+      p_user_id: rep.userId,
+      p_answer: content,
+      p_topic: topic,
+    });
+    if (error) {
+      return {
+        error: error.message.includes('knowledge_too_long')
+          ? 'That topic is full. Shorten it in your knowledge base, then try again.'
+          : 'Could not save that answer. The question may already be resolved.',
+      };
+    }
+    revalidatePath('/settings');
+    return { saved: true };
+  }
 
   // One entry per topic in v1. The table allows several per topic for the
   // import fast-follow, so this replaces rather than accumulating.
@@ -143,6 +166,27 @@ export async function saveKnowledgeAction(
     : await db.from('knowledge_base').insert({ user_id: rep.userId, topic, content });
 
   if (error) return { error: 'Could not save that.' };
+
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
+export async function dismissUnansweredAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  const id = unansweredId.safeParse(formData.get('unanswered_id'));
+  if (!id.success) return { error: 'Invalid question.' };
+
+  const { data, error } = await serviceClient()
+    .from('chat_unanswered')
+    .update({ resolved_at: new Date().toISOString() })
+    .eq('id', id.data)
+    .eq('user_id', rep.userId)
+    .is('resolved_at', null)
+    .select('id');
+  if (error || !data?.length) return { error: 'Could not dismiss that question. Try refreshing.' };
 
   revalidatePath('/settings');
   return { saved: true };

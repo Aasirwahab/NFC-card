@@ -21,7 +21,7 @@ export const CHAT_CAP = 5;
 
 export const MAX_QUESTION_CHARS = 500;
 const MAX_ANSWER_CHARS = 1200;
-const KNOWLEDGE_CAP = 4_000;
+const KNOWLEDGE_CAP = 20_000;
 
 export type ChatContext = {
   repFirstName: string;
@@ -81,6 +81,11 @@ export function openingLine(repFirstName: string, problem: string | null): strin
 /** What the assistant says when it will not answer: honest, and pointing at the rep. */
 export function handOffReply(repFirstName: string): string {
   return `I don’t want to give you a wrong answer on that. It’s one ${repFirstName} can answer properly — book a time below and ask them directly.`;
+}
+
+/** Match the prompt's refusal and the guardrail fallback without another model call. */
+export function isHandOffReply(reply: string): boolean {
+  return /\b(?:do not|don['’]t)\s+want\s+to\s+(?:guess\b|give you a wrong answer\b)/i.test(reply);
 }
 
 /** The static answer once the five responses are used (§18.1). */

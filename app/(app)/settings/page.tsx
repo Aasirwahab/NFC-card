@@ -8,12 +8,14 @@ import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
 import { parseNiches } from '@/lib/db/rep';
 import { pitchUsesMock } from '@/lib/ai/models';
+import { commonQuestions } from '@/lib/chat/knowledge';
 import {
   BusinessForm,
   KnowledgeForm,
   PitchVoiceForm,
   PlaybookForm,
   ProfileForm,
+  UnansweredQuestions,
 } from './settings-forms';
 
 export const metadata = { title: 'Setup' };
@@ -22,20 +24,27 @@ export const dynamic = 'force-dynamic';
 export default async function SettingsPage() {
   const rep = await requireRep();
 
-  const [profile, business, knowledge, playbook, events] = await Promise.all([
+  const [profile, business, knowledge, playbook, events, unanswered] = await Promise.all([
     getProfile(rep.userId),
     getBusinessProfile(rep.userId),
     serviceClient()
       .from('knowledge_base')
-      .select('topic, content')
-      .eq('user_id', rep.userId)
-      .eq('source', 'manual'),
+      .select('topic, content, source')
+      .eq('user_id', rep.userId),
     serviceClient()
       .from('playbook_entries')
       .select('id, problem, why, checks, resource_url')
       .eq('user_id', rep.userId)
       .order('created_at'),
     serviceClient().from('events').select('niches').eq('user_id', rep.userId),
+    serviceClient()
+      .from('chat_unanswered')
+      .select('id, question')
+      .eq('user_id', rep.userId)
+      .is('resolved_at', null)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(20),
   ]);
 
   const publicFields = publicProfileCheck(profile, business);
@@ -48,7 +57,11 @@ export default async function SettingsPage() {
     ),
   ].filter((p) => !have.has(p.trim().toLowerCase()));
 
-  const entries = Object.fromEntries((knowledge.data ?? []).map((row) => [row.topic, row.content]));
+  const entries = Object.fromEntries(
+    (knowledge.data ?? [])
+      .filter((row) => row.source === 'manual')
+      .map((row) => [row.topic, row.content]),
+  );
 
   return (
     <div className={`${styles.surface} ${styles.repSurface} flex flex-col gap-5`}>
@@ -94,6 +107,38 @@ export default async function SettingsPage() {
         entries={playbook.data ?? []}
         suggestions={suggestions}
         draftEnabled={!pitchUsesMock()}
+      />
+      <section className={styles.profileCheck} aria-labelledby="common-questions-heading">
+        <h2 id="common-questions-heading" className={styles.sectionLabel}>
+          Common questions
+        </h2>
+        <p className="text-ink-3 mt-2 text-sm">Add the basics your prospects need before a call.</p>
+        <ul className="mt-4">
+          {commonQuestions(knowledge.data ?? []).map((question) => (
+            <li key={question.topic} className={styles.profileCheckRow}>
+              <span
+                className={question.covered ? styles.profilePresent : styles.profileMissing}
+                aria-hidden="true"
+              >
+                {question.covered ? <Check className="h-4 w-4" /> : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{question.label}</p>
+                <p className="text-ink-3 text-sm">{question.covered ? 'Added' : 'Missing'}</p>
+              </div>
+              <Link
+                href={`#kb-${question.topic}`}
+                aria-label={`${question.covered ? 'Edit' : 'Add'} ${question.label}`}
+              >
+                {question.covered ? 'Edit' : 'Add'}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <UnansweredQuestions
+        questions={unanswered.data ?? []}
+        loadError={Boolean(unanswered.error)}
       />
       <KnowledgeForm entries={entries} />
     </div>
