@@ -36,7 +36,7 @@ export const steps = {
       body: '',
     },
     {
-      title: 'You hand it over. They book.',
+      title: 'You hand it over. They follow up.',
       lead: 'Nothing reaches them until they tap your card',
       body: '',
     },
