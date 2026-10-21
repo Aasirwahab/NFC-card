@@ -92,7 +92,7 @@ export function ProspectView({
           <h2 className={styles.headline}>From our conversation</h2>
         ) : null}
 
-        {topics.length > 0 || customTopic || business?.tagline ? (
+        {topics.length > 0 || customTopic ? (
           <section className={styles.issuePanel} aria-labelledby="discussed-issue">
             <h2 id="discussed-issue" className={styles.sectionLabel}>
               The issue we discussed
@@ -103,9 +103,6 @@ export function ProspectView({
               </p>
             ))}
             {customTopic ? <p className={styles.issueTopic}>{customTopic}</p> : null}
-            {topics.length === 0 && !customTopic && business?.tagline ? (
-              <p className={styles.issueTopic}>{business.tagline}</p>
-            ) : null}
             {session.prospect_company ? (
               <p className={styles.issueCompany}>{session.prospect_company}</p>
             ) : null}
@@ -125,6 +122,7 @@ export function ProspectView({
               eventName={publicEvent}
               business={business}
               repName={firstName(rep.fullName)}
+              hasBooking={Boolean(bookingLink)}
             />
           )}
         </section>
@@ -338,18 +336,21 @@ function PendingBody({
   eventName,
   business,
   repName,
+  hasBooking,
 }: {
   eventName: string | null;
   business: ProspectResolved['business'];
   repName: string;
+  hasBooking: boolean;
 }) {
   return (
     <div className={styles.pitch}>
       <p>{eventName ? `Great to meet you at ${eventName}.` : 'Great to meet you the other day.'}</p>
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
-        If you want to pick up where we left off, grab a slot below and {repName} will come
-        prepared.
+        {hasBooking
+          ? `If you want to pick up where we left off, grab a slot below and ${repName} will come prepared.`
+          : `If you want to pick up where we left off, save ${repName}’s contact below and get in touch.`}
       </p>
     </div>
   );
