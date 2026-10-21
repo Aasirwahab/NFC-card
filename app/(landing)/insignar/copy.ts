@@ -36,8 +36,8 @@ export const steps = {
       body: '',
     },
     {
-      title: 'You approve. They book.',
-      lead: 'Nothing reaches them until you say so',
+      title: 'You hand it over. They book.',
+      lead: 'Nothing reaches them until they tap your card',
       body: '',
     },
   ],
@@ -215,7 +215,7 @@ export const faq = {
     },
     {
       q: 'Will it feel creepy?',
-      a: 'It only uses what they told you. You approve every word. They can delete it in one tap.',
+      a: 'It only uses what they told you, and you can edit the page any time. They can delete it in one tap.',
     },
   ],
 };
