@@ -67,11 +67,13 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       </div>
 
       <p className={styles.headline}>
-        {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'}
-        <br />
+        {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'} <br />
         need{needsDetails.length === 1 ? 's' : ''} you.
       </p>
       <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
+
+      <p className="text-ink-2 mt-4 text-sm">Start a capture: tap your card, or type its code.</p>
+      <CardCodeLookup className={styles.cardLookup} />
 
       {!progress.booking ? (
         <aside className={styles.bookingWarning}>
@@ -82,8 +84,6 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       <FirstRunChecklist progress={progress} />
 
       {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
-
-      <CardCodeLookup className={styles.cardLookup} />
 
       {sessions.length === 0 ? (
         <EmptyState />
@@ -96,8 +96,8 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           />
 
           <Group
-            title="No way to reach them"
-            hint="No LinkedIn and no email. If they never tap, there is nothing to follow up with — worth remembering a face."
+            title="Add a way to reach them"
+            hint="Open the lead and add LinkedIn or email so you can follow up."
             sessions={noChannel}
             tone="warn"
           />
