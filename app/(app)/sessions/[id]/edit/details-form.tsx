@@ -135,6 +135,10 @@ export function DetailsForm({
     // Once, on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // A new capture screen starts saving drafts again (a deleted lead set the flag).
+  useEffect(() => {
+    (window as { insignarClosing?: boolean }).insignarClosing = false;
+  }, [session.id]);
   useEffect(() => {
     if (session.details_completed_at || saved) return;
     const timer = setTimeout(() => {
@@ -310,6 +314,7 @@ export function DetailsForm({
       }
       router.push('/dashboard');
     } catch (caught) {
+      (window as { insignarClosing?: boolean }).insignarClosing = false;
       setError(caught instanceof Error ? caught.message : 'Could not delete the lead.');
     }
   }
