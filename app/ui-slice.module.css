@@ -796,10 +796,6 @@
   background: var(--color-ground);
 }
 
-.prospectPage:has(.stickyAction[data-docked='true']) .chatRegion > button {
-  bottom: calc(var(--book-bar-height) + 16px);
-}
-
 .prospectPage .chatRegion > [role='dialog'] {
   top: calc(var(--visual-viewport-top, 0px) + max(16px, env(safe-area-inset-top, 0px)));
   bottom: auto;
@@ -930,7 +926,47 @@
   }
 }
 
-/* Reserve the existing floating launcher's own height as well as the Book clearance. */
-.prospectPage:has(.chatRegion > button) > footer {
-  padding-bottom: calc(3.5rem + 16px);
+/* The note's opening: a quiet dated line, her name and topic, her company. */
+.metaLine {
+  margin-top: 28px;
+  color: var(--color-ink-3);
+  font-size: 14px;
+}
+.metaLine + .headline {
+  margin-top: 8px;
+}
+.companyLine {
+  margin-top: 10px;
+  color: var(--color-ink-2);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+/* Alternatives to the one main action: present, never competing. */
+.quietActions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+}
+.quietActions:empty {
+  display: none;
+}
+/* LinkedIn as an alternative reads as a link, not a second button. */
+.quietActions > a {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink-2);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prospectPage .chatRegion {
+  margin-top: 28px;
 }

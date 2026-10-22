@@ -170,10 +170,15 @@ export function ChatWidget({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="bg-accent shadow-lifted fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-20 flex h-14 items-center gap-2 rounded-full pr-5 pl-4 text-[15px] font-medium text-white"
+          className="border-line text-ink-2 flex min-h-12 w-full items-center justify-between gap-2 border-t py-3 text-left text-[15px]"
         >
-          <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          Ask a question
+          <span className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            Questions first?
+          </span>
+          <span className="text-ink font-semibold">
+            Ask {repFirstName}&rsquo;s assistant &rarr;
+          </span>
         </button>
       ) : null}
     </>

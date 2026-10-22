@@ -4,7 +4,7 @@ import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { openingLine } from '@/lib/chat/assistant';
-import { publicEventName, relevantServices, templatePitch } from '@/lib/domain/pitch';
+import { midSentence, publicEventName, relevantServices, templatePitch } from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
 import { env } from '@/lib/env';
 import { Booking } from './booking';
@@ -70,41 +70,37 @@ export function ProspectView({
   const services = relevantServices(business?.services ?? [], [...topics, customTopic ?? '']);
 
   return (
-    // pb-28 keeps the footer links clear of the floating chat button.
+    // A private note from one person: recognition first, one action, nothing that competes with it.
     <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
-      <Header rep={rep} business={business}>
-        {bookingLink ? <SaveContact code={code} repName={firstName(rep.fullName)} compact /> : null}
-      </Header>
+      <Header rep={rep} business={business} />
 
       <main className="flex-1">
         {held && !preview ? <HeldWatcher code={code} /> : null}
-        <h1 className={prospectFirst ? styles.preparedFor : styles.headline}>
-          {prospectFirst ? `Prepared for ${prospectFirst}` : 'Picking up our conversation.'}
+        <p className={styles.metaLine}>
+          {publicEvent ? `After ${publicEvent}` : 'From our conversation'}
+        </p>
+        <h1 className={styles.headline}>
+          {prospectFirst && lead
+            ? `${prospectFirst}, about ${midSentence(lead)}`
+            : prospectFirst
+              ? `${prospectFirst}, following up on our conversation`
+              : 'Following up on our conversation'}
         </h1>
-        {publicEvent ? (
-          <h2 className={styles.headline}>From our conversation at {publicEvent}</h2>
-        ) : prospectFirst ? (
-          <h2 className={styles.headline}>From our conversation</h2>
+        {session.prospect_company || topics.length > 1 ? (
+          <p className={styles.companyLine}>
+            {[
+              session.prospect_company,
+              topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
         ) : null}
 
-        {topics.length > 0 ? (
-          <section className={styles.issuePanel} aria-labelledby="discussed-issue">
-            <h2 id="discussed-issue" className={styles.sectionLabel}>
-              The issue we discussed
-            </h2>
-            {topics.map((topic, index) => (
-              <p key={index} className={styles.issueTopic}>
-                {topic}
-              </p>
-            ))}
-            {session.prospect_company ? (
-              <p className={styles.issueCompany}>{session.prospect_company}</p>
-            ) : null}
-          </section>
-        ) : null}
-
-        <section className={styles.pitchSection}>
-          <h2 className={styles.sectionLabel}>{firstName(rep.fullName)}&rsquo;s read on it</h2>
+        <section
+          className={styles.pitchSection}
+          aria-label={`A note from ${firstName(rep.fullName)}`}
+        >
           {view.state === 'completed' ? (
             <Pitch text={view.pitch} />
           ) : view.state === 'crafting' ? (
@@ -123,20 +119,16 @@ export function ProspectView({
 
         <CallToActionBlock
           label={
-            lead
-              ? bookingLink
-                ? `Pick a time to talk about “${lead}”.`
-                : linkedin
-                  ? `Connect with ${firstName(rep.fullName)} about “${lead}”.`
-                  : `Keep ${firstName(rep.fullName)}’s details to talk about “${lead}”.`
-              : 'Pick up where we left off.'
+            bookingLink
+              ? `Pick a time with ${firstName(rep.fullName)}`
+              : linkedin
+                ? `Connect with ${firstName(rep.fullName)}`
+                : `Keep ${firstName(rep.fullName)}’s details`
           }
           note={
             bookingLink
               ? `${firstName(rep.fullName)} will come prepared.`
-              : linkedin
-                ? `Connect on LinkedIn, or save ${firstName(rep.fullName)}’s contact for later.`
-                : `Save the contact so you have ${firstName(rep.fullName)}’s details when you’re ready.`
+              : `${firstName(rep.fullName)} will pick up from your conversation.`
           }
         >
           {bookingLink ? (
@@ -148,29 +140,35 @@ export function ProspectView({
               preview={preview}
             />
           ) : linkedin ? (
-            // No calendar: LinkedIn is the next step, saving the contact the fallback.
-            <LinkedInConnect
-              code={code}
-              href={linkedin}
-              repName={firstName(rep.fullName)}
-              preview={Boolean(preview)}
-            />
+            // No calendar: LinkedIn is the one action, kept in thumb reach while reading.
+            <StickyAction enabled={!preview}>
+              <LinkedInConnect
+                code={code}
+                href={linkedin}
+                repName={firstName(rep.fullName)}
+                preview={Boolean(preview)}
+                primary
+              />
+            </StickyAction>
           ) : (
             <StickyAction enabled={!preview}>
               <SaveContact code={code} repName={firstName(rep.fullName)} primary />
             </StickyAction>
           )}
-          {bookingLink && linkedin ? (
-            <LinkedInConnect
-              code={code}
-              href={linkedin}
-              repName={firstName(rep.fullName)}
-              preview={Boolean(preview)}
-            />
-          ) : null}
-          {!bookingLink && linkedin ? (
-            <SaveContact code={code} repName={firstName(rep.fullName)} />
-          ) : null}
+          {/* Quiet alternatives: one main action, these never compete with it. */}
+          <div className={styles.quietActions}>
+            {bookingLink && linkedin ? (
+              <LinkedInConnect
+                code={code}
+                href={linkedin}
+                repName={firstName(rep.fullName)}
+                preview={Boolean(preview)}
+              />
+            ) : null}
+            {bookingLink || linkedin ? (
+              <SaveContact code={code} repName={firstName(rep.fullName)} />
+            ) : null}
+          </div>
         </CallToActionBlock>
 
         {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
@@ -209,9 +207,7 @@ function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['p
     <section className={styles.playbook}>
       {playbook.why ? (
         <>
-          <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-            Why this usually happens
-          </h2>
+          <h2 className="text-ink-2 text-sm font-semibold">Why this usually happens</h2>
           <p className="text-ink-2 mt-1.5 text-[16px] leading-relaxed">{playbook.why}</p>
         </>
       ) : null}
@@ -369,9 +365,7 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
 
   return (
     <section className={styles.services}>
-      <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-        What {companyName} does
-      </h2>
+      <h2 className="text-ink-2 text-sm font-semibold">What {companyName} does</h2>
       <ul className="mt-1.5">
         {points.map((point) => (
           <li key={point} className={styles.service}>
@@ -452,19 +446,14 @@ export function Footer({
        * The acquisition loop (2026-09-25 review): whoever is holding this card
        * goes to events and hands out cards — exactly who INSIGNAR is for.
        */}
-      <Link
-        href="/?ref=card"
-        className="text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink mb-4 inline-block font-medium underline underline-offset-2"
-      >
-        Get your own INSIGNAR card
-      </Link>
+      {/* The acquisition loop stays, but quiet: this page belongs to the prospect. */}
       {/* This is what defuses the "what is this?" reaction (§16). Both are real pages. */}
       <div className="flex gap-4">
         <Link
           href="/how-it-works"
           className="[@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
         >
-          How it works
+          Why am I seeing this?
         </Link>
         <Link
           href="/privacy"
@@ -474,6 +463,11 @@ export function Footer({
         </Link>
       </div>
       {removeCode ? <RemoveDetails code={removeCode} /> : null}
+      <p className="mt-4 w-full basis-full text-[12px]">
+        <Link href="/?ref=card" className="text-ink-3">
+          Made with INSIGNAR
+        </Link>
+      </p>
     </footer>
   );
 }
