@@ -63,7 +63,7 @@ describe('callToAction (§16)', () => {
     );
     expect(
       callToAction({ problems: [], customProblems: null, repName: 'Zaid', hasBooking: true }),
-    ).toBe('Book 15 minutes with Zaid');
+    ).toBe('Book 15 minutes to talk it through');
   });
 
   it('falls back to the rep’s name when no problem was captured', () => {

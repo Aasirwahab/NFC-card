@@ -111,7 +111,6 @@ export function ProspectView({
             <PendingBody
               eventName={publicEvent}
               business={business}
-              repName={firstName(rep.fullName)}
               hasBooking={Boolean(bookingLink)}
             />
           )}
@@ -334,12 +333,10 @@ function Pitch({ text }: { text: string }) {
 function PendingBody({
   eventName,
   business,
-  repName,
   hasBooking,
 }: {
   eventName: string | null;
   business: ProspectResolved['business'];
-  repName: string;
   hasBooking: boolean;
 }) {
   return (
@@ -348,8 +345,8 @@ function PendingBody({
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
         {hasBooking
-          ? `If you want to pick up where we left off, grab a slot below and ${repName} will come prepared.`
-          : `If you want to pick up where we left off, save ${repName}’s contact below and get in touch.`}
+          ? 'If you want to pick up where we left off, grab a slot below and I will come prepared.'
+          : 'If you want to pick up where we left off, save my contact below and get in touch.'}
       </p>
     </div>
   );

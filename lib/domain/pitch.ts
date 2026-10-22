@@ -73,8 +73,8 @@ export function callToAction(input: {
     : input.hasLinkedin
       ? 'Connect on LinkedIn'
       : 'Save my details';
-  if (!problem)
-    return input.hasBooking ? `${ask} with ${input.repName}` : `${ask} to talk it through`;
+  // The note is in the rep's own voice, so the ask never names them in the third person.
+  if (!problem) return `${ask} to talk it through`;
 
   // Keep it to one line on a phone. A long free-text problem gets trimmed at a
   // word boundary rather than mid-word.
