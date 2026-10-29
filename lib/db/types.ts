@@ -775,12 +775,12 @@ export type Database = {
           details_revision: number;
           rep_pitch: string | null;
           rep_pitch_edited_at: string | null;
-          pitch_approved_at: string | null;
-          pitch_approved_revision: number | null;
           generated_pitch_prompt: string | null;
           first_view_source: string | null;
           prospect_website: string | null;
           pitch_guidance: string | null;
+          pitch_approved_at: string | null;
+          pitch_approved_revision: number | null;
         };
         Insert: {
           id: string;
@@ -818,12 +818,12 @@ export type Database = {
           details_revision?: number;
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
-          pitch_approved_at?: string | null;
-          pitch_approved_revision?: number | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
           pitch_guidance?: string | null;
+          pitch_approved_at?: string | null;
+          pitch_approved_revision?: number | null;
         };
         Update: {
           id?: string;
@@ -861,12 +861,12 @@ export type Database = {
           details_revision?: number;
           rep_pitch?: string | null;
           rep_pitch_edited_at?: string | null;
-          pitch_approved_at?: string | null;
-          pitch_approved_revision?: number | null;
           generated_pitch_prompt?: string | null;
           first_view_source?: string | null;
           prospect_website?: string | null;
           pitch_guidance?: string | null;
+          pitch_approved_at?: string | null;
+          pitch_approved_revision?: number | null;
         };
         Relationships: [
           {
