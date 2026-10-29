@@ -148,8 +148,18 @@ export async function findLinkedInProfile(input: {
   const plainPending = input.search(plain, { count: 10 });
   const scopedPending = input.search(scoped, { count: 10 });
   scopedPending.catch(() => undefined);
-  const plainResults = await plainPending;
-  const results = plainResults.some((r) => profileUrl(r.url)) ? plainResults : await scopedPending;
+  // A failure of one query must not sink the lookup: the other still answers. Only when
+  // both failed is the search "unavailable"; if the plain one answered with no profile,
+  // a failing scoped one just means "nothing found".
+  let results: Awaited<typeof plainPending>;
+  try {
+    const plainResults = await plainPending;
+    results = plainResults.some((r) => profileUrl(r.url))
+      ? plainResults
+      : await scopedPending.catch(() => plainResults);
+  } catch {
+    results = await scopedPending;
+  }
 
   const seen = new Set<string>();
   const parsed: {

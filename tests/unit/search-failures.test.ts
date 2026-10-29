@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/http/fixed-api', () => ({ callFixedApi: vi.fn() }));
 
 import { callFixedApi } from '@/lib/http/fixed-api';
+import { findLinkedInProfile } from '@/lib/lookup/linkedin';
 import { serpApiSearch, serperSearch, withFallback } from '@/lib/search/providers';
 import { SearchUnavailableError, type SearchFn } from '@/lib/search/types';
 
@@ -63,5 +64,34 @@ describe('withFallback and failures', () => {
       throw new Error('bug');
     };
     await expect(withFallback(broken, found)!('q')).rejects.toThrow('bug');
+  });
+});
+
+describe('LinkedIn lookup with one failing query', () => {
+  const profile = {
+    url: 'https://www.linkedin.com/in/sam-patel-1a2b3c',
+    title: 'Sam Patel - Founder - Brightpath | LinkedIn',
+    snippet: 'Brightpath Web. Leeds.',
+  };
+  const down: SearchFn = async () => {
+    throw new SearchUnavailableError();
+  };
+  const run = (search: SearchFn) =>
+    findLinkedInProfile({ search, jev: null, name: 'Sam Patel', company: 'Brightpath Web' });
+
+  it('uses the scoped query when the plain one fails', async () => {
+    const search: SearchFn = async (q) => (q.startsWith('site:') ? [profile] : down(q));
+    const lookup = await run(search);
+    expect(lookup.candidates).toHaveLength(1);
+  });
+
+  it('says "nothing found" when the plain query answered empty and the scoped one failed', async () => {
+    const search: SearchFn = async (q) => (q.startsWith('site:') ? down(q) : []);
+    const lookup = await run(search);
+    expect(lookup.candidates).toEqual([]);
+  });
+
+  it('is unavailable only when both queries failed', async () => {
+    await expect(run(down)).rejects.toBeInstanceOf(SearchUnavailableError);
   });
 });
