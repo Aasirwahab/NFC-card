@@ -4,6 +4,7 @@ import { jevClient } from '@/lib/jev/server';
 import { findCompanySite } from '@/lib/lookup/company';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 import { searchClient } from '@/lib/search/server';
+import { SearchUnavailableError } from '@/lib/search/types';
 
 const bodySchema = z.object({
   name: z.string().trim().min(2).max(160),
@@ -24,11 +25,16 @@ export const POST = withRep(async (rep, request) => {
   const limit = await checkRateLimit('lookup', rep.userId);
   if (!limit.allowed) return fail('rate_limited', 429);
 
-  const lookup = await findCompanySite({
-    search,
-    jev: jevClient(),
-    name: parsed.data.name,
-    place: parsed.data.place ?? null,
-  });
-  return json(lookup);
+  try {
+    const lookup = await findCompanySite({
+      search,
+      jev: jevClient(),
+      name: parsed.data.name,
+      place: parsed.data.place ?? null,
+    });
+    return json(lookup);
+  } catch (error) {
+    if (error instanceof SearchUnavailableError) return fail('search_unavailable', 502);
+    throw error;
+  }
 });

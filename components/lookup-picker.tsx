@@ -57,10 +57,13 @@ export function LookupPicker({
     } catch (caught) {
       if (mine !== latest.current) return;
       setItems(null);
+      const code = caught instanceof Error ? caught.message : '';
       setError(
-        caught instanceof Error && caught.message === 'rate_limited'
+        code === 'rate_limited'
           ? 'That is a lot of lookups. Try again in a few minutes.'
-          : 'Could not look that up. You can type it instead.',
+          : code === 'search_unavailable'
+            ? 'Search is not working right now. You can type it instead.'
+            : 'Could not look that up. You can type it instead.',
       );
     } finally {
       if (mine === latest.current) setBusy(false);

@@ -4,6 +4,7 @@ import { jevClient } from '@/lib/jev/server';
 import { findLinkedInProfile } from '@/lib/lookup/linkedin';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 import { searchClient } from '@/lib/search/server';
+import { SearchUnavailableError } from '@/lib/search/types';
 
 const bodySchema = z.object({
   name: z
@@ -29,11 +30,16 @@ export const POST = withRep(async (rep, request) => {
   const limit = await checkRateLimit('lookup', rep.userId);
   if (!limit.allowed) return fail('rate_limited', 429);
 
-  const lookup = await findLinkedInProfile({
-    search,
-    jev: jevClient(),
-    name: parsed.data.name,
-    company: parsed.data.company ?? null,
-  });
-  return json(lookup);
+  try {
+    const lookup = await findLinkedInProfile({
+      search,
+      jev: jevClient(),
+      name: parsed.data.name,
+      company: parsed.data.company ?? null,
+    });
+    return json(lookup);
+  } catch (error) {
+    if (error instanceof SearchUnavailableError) return fail('search_unavailable', 502);
+    throw error;
+  }
 });

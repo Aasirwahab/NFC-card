@@ -1,5 +1,5 @@
 import { callFixedApi } from '@/lib/http/fixed-api';
-import type { SearchFn, SearchResult } from './types';
+import { SearchUnavailableError, type SearchFn, type SearchResult } from './types';
 
 function clean(text: unknown): string {
   return typeof text === 'string'
@@ -20,6 +20,19 @@ function collect(
     .filter((r): r is SearchResult => r !== null && r.url.startsWith('https://'));
 }
 
+/** Logs why a vendor call failed (status or reason only, never the key or the query), then reports it. */
+function unavailable(provider: string, error: unknown): never {
+  console.warn(
+    JSON.stringify({
+      event: 'search_failed',
+      provider,
+      reason: (error as { reason?: string }).reason ?? 'unknown',
+      status: (error as { status?: number }).status ?? null,
+    }),
+  );
+  throw new SearchUnavailableError();
+}
+
 export function braveSearch(apiKey: string): SearchFn {
   return async (query, options) => {
     try {
@@ -36,8 +49,8 @@ export function braveSearch(apiKey: string): SearchFn {
         title: clean(r.title),
         snippet: clean(r.description),
       }));
-    } catch {
-      return [];
+    } catch (error) {
+      unavailable('brave', error);
     }
   };
 }
@@ -56,8 +69,8 @@ export function serperSearch(apiKey: string): SearchFn {
         title: clean(r.title),
         snippet: clean(r.snippet),
       }));
-    } catch {
-      return [];
+    } catch (error) {
+      unavailable('serper', error);
     }
   };
 }
@@ -80,8 +93,8 @@ export function serpApiSearch(apiKey: string): SearchFn {
         title: clean(r.title),
         snippet: clean(r.snippet),
       }));
-    } catch {
-      return [];
+    } catch (error) {
+      unavailable('serpapi', error);
     }
   };
 }
@@ -153,16 +166,27 @@ export function searchFor(
   return null;
 }
 
-/** Tries each search in turn; the first that returns anything wins. A dead vendor costs one empty answer, not the feature. */
+/**
+ * Tries each search in turn; the first that returns anything wins. A dead vendor costs
+ * one answer, not the feature. If every vendor that was tried failed, that is reported
+ * as unavailable; if any one of them answered (even with nothing), the answer is "nothing found".
+ */
 export function withFallback(...searches: (SearchFn | null)[]): SearchFn | null {
   const chain = searches.filter((s): s is SearchFn => s !== null);
   if (chain.length === 0) return null;
   if (chain.length === 1) return chain[0]!;
   return async (query, options) => {
+    let answered = false;
     for (const search of chain) {
-      const results = await search(query, options);
-      if (results.length > 0) return results;
+      try {
+        const results = await search(query, options);
+        if (results.length > 0) return results;
+        answered = true;
+      } catch (error) {
+        if (!(error instanceof SearchUnavailableError)) throw error;
+      }
     }
+    if (!answered) throw new SearchUnavailableError();
     return [];
   };
 }
