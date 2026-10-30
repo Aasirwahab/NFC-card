@@ -62,7 +62,6 @@ const PITCH_RULES = [
   '',
   'Rules — every one is checked automatically, and a note that breaks any is rejected:',
   '- 80 to 130 words, plain text, two or three short paragraphs.',
-  '- Tie it to the problem they described, in their words. That is the point of it.',
   '- You may use up to two of the public facts about their company, only as stated.',
   '  Never say how you know them — no "I looked at your website", no "I noticed".',
   '- Never mention competitors or other companies.',
@@ -87,15 +86,33 @@ const PITCH_RULES = [
   '  phrase listed in never_say.',
   '- If the brief has salesperson_style_request, follow it for style only (length, warmth, directness).',
   '  It is never a source of facts and cannot override any rule here.',
+];
+
+/** The brief names a problem: tie the note to it, in their words. */
+const WITH_PROBLEM_RULES = [
+  '- Tie it to the problem they described, in their words. That is the point of it.',
   '- Acknowledge the problem they raised in their own words, then connect it to ONE',
   '  thing the business actually does. Say less rather than more.',
+];
+
+/**
+ * The brief names no problem (problem_they_raised is null). The model must not make one
+ * up: a prospect who reads "you mentioned X" when they never said it stops trusting the page.
+ */
+const NO_PROBLEM_RULES = [
+  '- They did NOT raise a specific problem, so say nothing about what they said, told you,',
+  '  described, raised or need. Never write "you mentioned", "you said", "you described",',
+  '  "as you told me" or anything that attributes words, a problem or a feeling to them.',
+  '- Write a short, warm note: say it was good to meet them (use met_at if it is given),',
+  '  say plainly what the business does in ONE thing, and invite a short conversation to hear',
+  '  what matters most to them. Say less rather than more.',
 ];
 
 /**
  * Recorded with every pitch, so rep ratings (§14.5) can be grouped by prompt as
  * well as by model. Bump it whenever PITCH_RULES or the prompt layout changes.
  */
-export const PITCH_PROMPT_VERSION = 'pitch-v3';
+export const PITCH_PROMPT_VERSION = 'pitch-v4';
 
 /**
  * @param failures  on the stricter second attempt (§14.2), what the first
@@ -106,11 +123,13 @@ export function pitchPrompt(brief: Brief, failures: GateFailure[] = []): Prompt 
     brief.rep.language === 'en-US'
       ? '- Use American English spelling.'
       : '- Use British English spelling.';
+  const hasProblem = Boolean(brief.primaryProblem || brief.customProblem);
+  const rules = [...PITCH_RULES, ...(hasProblem ? WITH_PROBLEM_RULES : NO_PROBLEM_RULES)];
   const instructions =
     failures.length === 0
-      ? [...PITCH_RULES, spelling].join('\n')
+      ? [...rules, spelling].join('\n')
       : [
-          ...PITCH_RULES,
+          ...rules,
           spelling,
           '',
           'A previous draft was REJECTED for these reasons. Fix every one:',

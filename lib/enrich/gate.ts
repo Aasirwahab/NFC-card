@@ -33,6 +33,7 @@ export type GateCheck =
   | 'no_call_to_action'
   | 'promises_booking'
   | 'wrong_name'
+  | 'invented_statement'
   | 'avoided_phrase';
 
 export type GateFailure = { check: GateCheck; detail: string };
@@ -112,6 +113,24 @@ const TELLS: readonly [RegExp, string][] = [
 
 /** §14.4: research deep, say less. Never frame the note around competitors. */
 const COMPETITORS = /\b(?:competitors?|competition|rivals?)\b/i;
+/**
+ * Words that put a statement in the prospect's mouth ("you mentioned ...", "as you said").
+ * Past and progressive forms only, so a neutral invitation such as "once you have shared your
+ * details" or "if you tell me what matters" is not a false hit. Straight and curly apostrophes.
+ */
+const ATTRIBUTES_SPEECH = new RegExp(
+  [
+    // you (also / had / 've / 'd / just ...) mentioned | said | described | told | raised | ...
+    String.raw`\byou(?:['’](?:ve|d))?(?:\s+(?:also|just|only|had|have|already|briefly|specifically|first))*\s+(?:mentioned|said|described|told|raised|explained|noted|brought up|flagged|pointed out|highlighted|indicated|talked about|spoke about|were (?:saying|talking about|describing|mentioning))\b`,
+    // you did (specifically) mention / say / describe ...
+    String.raw`\byou did(?:\s+(?:also|just|specifically))?\s+(?:mention|say|describe|raise|note)\b`,
+    // as you said / as you noted ...
+    String.raw`\bas you\s+(?:said|mentioned|described|noted|put it)\b`,
+    // you're struggling / worried / frustrated
+    String.raw`\byou(?:['’]re| are)\s+(?:struggling|worried|frustrated)\b`,
+  ].join('|'),
+  'i',
+);
 
 /**
  * Saying HOW we know something turns specificity into surveillance (§4, §14.4).
@@ -254,6 +273,14 @@ export function qualityGate(body: string, brief: Brief): GateResult {
     fail(
       'references_problem',
       `does not mention the problem they raised: "${brief.primaryProblem}"`,
+    );
+  }
+
+  // 1b. With no problem in the brief, nothing may be attributed to them: they raised none.
+  if (!brief.primaryProblem && !brief.customProblem && ATTRIBUTES_SPEECH.test(trimmed)) {
+    fail(
+      'invented_statement',
+      'says they mentioned or described something, but they raised no problem: write a neutral note about meeting them',
     );
   }
 

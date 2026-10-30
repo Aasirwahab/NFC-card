@@ -303,3 +303,81 @@ describe('no booking promise without a booking button', () => {
     expect(qualityGate(GOOD, noLink).failures.map((f) => f.check)).toContain('promises_booking');
   });
 });
+
+describe('no problem chosen: nothing is attributed to the prospect', () => {
+  const noProblem = brief({
+    problems: [],
+    primaryProblem: null,
+    customProblem: null,
+    cta: 'A 15-minute conversation',
+  });
+  const NEUTRAL = [
+    'It was good to meet you at the Plant Hire Expo. I wanted to follow up properly rather',
+    'than leave you with a card, and to hear what matters most at BuildRite Plant right now.',
+    '',
+    'TMA builds plant hire automation, so the dull, repeated parts of running a hire business',
+    'take less of the week. It would be useful to hear how things work for you today before',
+    'saying anything about whether any of it fits, and that is a conversation worth having.',
+    '',
+    'If it is useful, have a short conversation with me and we can take it from there.',
+    '— Zaid',
+  ].join('\n');
+
+  it('passes a neutral note about meeting them', () => {
+    expect(qualityGate(NEUTRAL, noProblem).failures).toEqual([]);
+  });
+
+  it.each([
+    'You mentioned that keeping track of conversations takes more effort than it should.',
+    'You said following up afterwards is harder than it ought to be.',
+    'As you described, the admin is eating into your week.',
+    "You've mentioned a few things we could talk through.",
+  ])('rejects a note that says "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).toContain('invented_statement');
+  });
+
+  it.each([
+    'You also mentioned that follow-ups slip.',
+    "You'd mentioned the admin was heavy.",
+    'You had mentioned a slow website.',
+    'You did mention that leads go cold.',
+    'You specifically mentioned the website.',
+    "You've just mentioned the admin.",
+    'You were saying that follow-up is hard.',
+    'You were talking about lost enquiries.',
+    'You spoke about missing calls.',
+    'You noted that time is short.',
+    'You flagged that follow-up is slow.',
+    'You pointed out that leads go cold.',
+    'As you noted, the admin is heavy.',
+    'You\u2019ve mentioned a few things we could talk through.',
+    'You\u2019re worried about leads going cold.',
+  ])('also rejects the phrasing "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).toContain('invented_statement');
+  });
+
+  it.each([
+    'Once you have shared your details, I will be in touch.',
+    'If you shared your email, I will follow up.',
+    'If you tell me what matters most, we can start there.',
+    'I would like to hear what you say about how it works today.',
+  ])('does not reject the neutral phrasing "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).not.toContain('invented_statement');
+  });
+
+  it('still allows "you mentioned" when they did raise a problem', () => {
+    expect(checks(GOOD, brief())).not.toContain('invented_statement');
+  });
+
+  it('tells the model plainly there is no problem, and withdraws the tie-to-the-problem rule', () => {
+    const none = pitchPrompt(noProblem).instructions;
+    expect(none).toContain('did NOT raise a specific problem');
+    expect(none).not.toContain('Tie it to the problem they described');
+    const some = pitchPrompt(brief()).instructions;
+    expect(some).toContain('Tie it to the problem they described');
+    expect(some).not.toContain('did NOT raise');
+  });
+});
