@@ -248,13 +248,7 @@ export function DetailsForm({
   });
 
   // Long chip lists stay short on screen: ticked chips first, the rest behind "Show more".
-  const [moreAreas, setMoreAreas] = useState(false);
   const [moreProblems, setMoreProblems] = useState(false);
-  const areaChips = visibleChips(
-    niches.map((n) => n.name),
-    selectedNiches,
-    moreAreas,
-  );
   const problemChips = visibleChips(quickSelect, problems, moreProblems);
   const tickedCount = keepVisible(problems, quickSelect).length;
   const atLimit = tickedCount >= MAX_TICKED_PROBLEMS;
@@ -456,8 +450,8 @@ export function DetailsForm({
             <legend className="text-ink-2 text-sm font-medium">
               Their area (tick any that fit)
             </legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {areaChips.shown.map((name) => {
+            <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
+              {niches.map(({ name }) => {
                 const selected = selectedNiches.includes(name);
                 return (
                   <button
@@ -483,28 +477,22 @@ export function DetailsForm({
                   </button>
                 );
               })}
-              {areaChips.hiddenCount > 0 || moreAreas ? (
-                <button
-                  type="button"
-                  onClick={() => setMoreAreas((v) => !v)}
-                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
-                >
-                  {moreAreas ? 'Show fewer' : `${areaChips.hiddenCount} more`}
-                </button>
-              ) : null}
             </div>
           </fieldset>
         ) : null}
 
         {quickSelect.length > 0 ? (
           <fieldset>
-            <legend className="text-ink-2 text-sm font-medium">What did they raise?</legend>
-            <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
-              {atLimit
-                ? `That is the most (${MAX_TICKED_PROBLEMS}). Untick one to pick another.`
-                : `Tap what came up, up to ${MAX_TICKED_PROBLEMS}. The page is written around them.`}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <legend className="text-ink-2 w-full text-sm font-medium">
+              What did they raise?
+              <span
+                className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
+                aria-live="polite"
+              >
+                {tickedCount} of {MAX_TICKED_PROBLEMS}
+              </span>
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {problemChips.shown.map((problem) => {
                 const selected = problems.includes(problem);
                 return (
@@ -517,7 +505,7 @@ export function DetailsForm({
                     }}
                     aria-pressed={selected}
                     aria-disabled={!selected && atLimit}
-                    className={`rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                    className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
                       selected
                         ? 'border-accent bg-accent-soft text-accent'
                         : atLimit
