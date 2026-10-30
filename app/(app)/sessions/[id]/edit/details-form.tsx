@@ -15,6 +15,7 @@ import { shrinkToJpeg } from '@/lib/browser/image';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import { serializeCaptureDraft } from '@/lib/capture/draft';
+import { chipProblems, FALLBACK_NICHE, keepVisible, noteNiches } from '@/lib/capture/chips';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
@@ -37,6 +38,7 @@ type Session = Row<'sessions'>;
 export function DetailsForm({
   session,
   niches,
+  fallbackProblems,
   eventName,
   cardCode,
   events,
@@ -47,6 +49,8 @@ export function DetailsForm({
 }: {
   session: Session;
   niches: Niche[];
+  /** The rep's playbook problems, offered as chips when the event has none of its own. */
+  fallbackProblems: string[];
   eventName: string | null;
   /** The printed code of the card, the handle for this lead. */
   cardCode: string;
@@ -220,8 +224,8 @@ export function DetailsForm({
   }, [lookupEnabled, session.details_completed_at, company, name, website, linkedin]);
 
   const quickSelect = useMemo(
-    () => niches.find((n) => n.name === niche)?.problems ?? [],
-    [niches, niche],
+    () => chipProblems(niches, niche, fallbackProblems),
+    [niches, niche, fallbackProblems],
   );
 
   // The non-blocking nudge (§19.3). It never prevents a save — a rep at a loud
@@ -250,7 +254,7 @@ export function DetailsForm({
         prospect_phone: phone,
         linkedin_url: linkedin,
         niche,
-        problems,
+        problems: keepVisible(problems, quickSelect),
         custom_problems: customProblems,
         memorable_info: memorable,
       });
@@ -382,7 +386,7 @@ export function DetailsForm({
       <QuickNote
         line={line}
         setLine={setLine}
-        niches={niches}
+        niches={noteNiches(niches, fallbackProblems)}
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
           // Fill only what is still empty NOW (not what was empty when the photo was taken).
@@ -412,7 +416,9 @@ export function DetailsForm({
           if (fill.name) setName(fillIfEmpty(fill.name));
           if (fill.company) setCompany(fillIfEmpty(fill.company));
           // Never swap a niche the rep already worked in.
-          if (fill.niche && latest.current.problemCount === 0) setNiche(fill.niche);
+          if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
+            setNiche(fill.niche);
+          }
           if (fill.problems.length > 0) {
             setProblems((current) => [...new Set([...current, ...fill.problems])]);
           }
@@ -459,9 +465,10 @@ export function DetailsForm({
                     onClick={() => {
                       if (selected) return;
                       setNiche(n.name);
-                      // Problems belong to a niche, so switching niche clears any
-                      // selections that no longer have a home.
-                      setProblems([]);
+                      // Problems belong to a niche: keep the ticks that still have a chip
+                      // under the new area and drop the rest.
+                      const next = chipProblems(niches, n.name, fallbackProblems);
+                      setProblems((current) => keepVisible(current, next));
                     }}
                     className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                       selected
