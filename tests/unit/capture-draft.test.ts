@@ -87,3 +87,10 @@ describe('long chip lists', () => {
     expect(visibleChips(all, ['p3'], true)).toEqual({ shown: all, hiddenCount: 0 });
   });
 });
+
+describe('niche storage limit', () => {
+  it('keeps whole area names only when the joined text would pass 80 characters', () => {
+    const long = ['a'.repeat(40), 'b'.repeat(30), 'c'.repeat(20)];
+    expect(joinNiches(long)).toBe(`${'a'.repeat(40)} | ${'b'.repeat(30)}`);
+  });
+});

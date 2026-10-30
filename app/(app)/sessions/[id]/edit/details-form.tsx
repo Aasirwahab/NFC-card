@@ -140,7 +140,11 @@ export function DetailsForm({
           setSelectedNiches(parseNicheList(d.niche, niches));
         if (Array.isArray(d.problems))
           setProblems(d.problems.filter((p): p is string => typeof p === 'string'));
-        if (typeof d.customProblems === 'string') setCustomProblems(d.customProblems);
+        // Older drafts kept the quick note apart as `line`: fold it into the one note box.
+        const kept = [d.customProblems, d.line].filter(
+          (x): x is string => typeof x === 'string' && x.trim() !== '',
+        );
+        if (kept.length > 0) setCustomProblems(kept.join('\n'));
         setRestored(true);
       });
     } catch {
@@ -271,7 +275,7 @@ export function DetailsForm({
         prospect_phone: phone,
         linkedin_url: linkedin,
         niche,
-        problems: keepVisible(problems, quickSelect),
+        problems: keepVisible(problems, quickSelect).slice(0, MAX_TICKED_PROBLEMS),
         custom_problems: customProblems,
         memorable_info: memorable,
       });
@@ -536,12 +540,21 @@ export function DetailsForm({
             if (fill.name) setName(fillIfEmpty(fill.name));
             if (fill.company) setCompany(fillIfEmpty(fill.company));
             // Never swap a niche the rep already worked in.
-            if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
-              setSelectedNiches([fill.niche]);
-            }
+            const swap =
+              fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
+            if (swap) setSelectedNiches([fill.niche!]);
+            // Only problems whose chip will be on screen may be ticked, five at most.
+            const visible = chipProblemsForAll(
+              niches,
+              swap ? [fill.niche!] : selectedNiches,
+              fallbackProblems,
+            );
             if (fill.problems.length > 0) {
               setProblems((current) =>
-                [...new Set([...current, ...fill.problems])].slice(0, MAX_TICKED_PROBLEMS),
+                keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
+                  0,
+                  MAX_TICKED_PROBLEMS,
+                ),
               );
             }
           }}
@@ -959,7 +972,10 @@ function NoteBox({
     setBusy(true);
     setMessage(null);
     try {
-      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line: value, niches });
+      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', {
+        line: value.slice(0, 600),
+        niches,
+      });
       const parts = [
         fill.name ? 'name' : null,
         fill.company ? 'company' : null,

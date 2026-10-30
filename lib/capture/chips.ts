@@ -50,7 +50,13 @@ export function parseNicheList(stored: string | null | undefined, niches: Niche[
 
 /** The value saved in the niche column (80 characters at most, the schema limit). PURE. */
 export function joinNiches(selected: string[]): string {
-  return selected.join(NICHE_SEPARATOR).slice(0, 80);
+  // Whole names only: a name cut in half would not match its area when the lead is reopened.
+  const kept: string[] = [];
+  for (const name of selected) {
+    if ([...kept, name].join(NICHE_SEPARATOR).length > 80) break;
+    kept.push(name);
+  }
+  return kept.join(NICHE_SEPARATOR);
 }
 
 /** Chips for every ticked area, without repeats. With none ticked, the playbook fallback applies. PURE. */
