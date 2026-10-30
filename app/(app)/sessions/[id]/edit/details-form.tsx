@@ -336,7 +336,7 @@ export function DetailsForm({
 
   return (
     <div
-      className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4 [&_input]:scroll-mb-36 [&_select]:scroll-mb-36 [&_textarea]:scroll-mb-36`}
+      className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4 [&_input]:scroll-mb-64 [&_select]:scroll-mb-64 [&_textarea]:scroll-mb-64`}
     >
       <header className="flex items-center gap-2.5">
         <span
