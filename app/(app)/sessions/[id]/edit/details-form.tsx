@@ -20,8 +20,10 @@ import {
   FALLBACK_NICHE,
   joinNiches,
   keepVisible,
+  MAX_TICKED_PROBLEMS,
   noteNiches,
   parseNicheList,
+  visibleChips,
 } from '@/lib/capture/chips';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
@@ -245,10 +247,25 @@ export function DetailsForm({
     prospect_email: email.trim() || null,
   });
 
+  // Long chip lists stay short on screen: ticked chips first, the rest behind "Show more".
+  const [moreAreas, setMoreAreas] = useState(false);
+  const [moreProblems, setMoreProblems] = useState(false);
+  const areaChips = visibleChips(
+    niches.map((n) => n.name),
+    selectedNiches,
+    moreAreas,
+  );
+  const problemChips = visibleChips(quickSelect, problems, moreProblems);
+  const tickedCount = keepVisible(problems, quickSelect).length;
+  const atLimit = tickedCount >= MAX_TICKED_PROBLEMS;
+
   function toggleProblem(problem: string) {
-    setProblems((current) =>
-      current.includes(problem) ? current.filter((p) => p !== problem) : [...current, problem],
-    );
+    setProblems((current) => {
+      if (current.includes(problem)) return current.filter((p) => p !== problem);
+      // Over the limit, a new tick is refused: the hint under the chips says why.
+      if (keepVisible(current, quickSelect).length >= MAX_TICKED_PROBLEMS) return current;
+      return [...current, problem];
+    });
   }
 
   async function save() {
@@ -440,17 +457,17 @@ export function DetailsForm({
               Their area (tick any that fit)
             </legend>
             <div className="mt-2 flex flex-wrap gap-2">
-              {niches.map((n) => {
-                const selected = selectedNiches.includes(n.name);
+              {areaChips.shown.map((name) => {
+                const selected = selectedNiches.includes(name);
                 return (
                   <button
-                    key={n.name}
+                    key={name}
                     type="button"
                     aria-pressed={selected}
                     onClick={() => {
                       const next = selected
-                        ? selectedNiches.filter((x) => x !== n.name)
-                        : [...selectedNiches, n.name];
+                        ? selectedNiches.filter((x) => x !== name)
+                        : [...selectedNiches, name];
                       setSelectedNiches(next);
                       // A tick can only stay while its chip is on screen.
                       const visible = chipProblemsForAll(niches, next, fallbackProblems);
@@ -462,10 +479,19 @@ export function DetailsForm({
                         : 'border-line bg-surface text-ink-2'
                     }`}
                   >
-                    {n.name}
+                    {name}
                   </button>
                 );
               })}
+              {areaChips.hiddenCount > 0 || moreAreas ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreAreas((v) => !v)}
+                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
+                >
+                  {moreAreas ? 'Show fewer' : `${areaChips.hiddenCount} more`}
+                </button>
+              ) : null}
             </div>
           </fieldset>
         ) : null}
@@ -474,10 +500,12 @@ export function DetailsForm({
           <fieldset>
             <legend className="text-ink-2 text-sm font-medium">What did they raise?</legend>
             <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
-              Tap everything that came up. This is what the page is written around.
+              {atLimit
+                ? `That is the most (${MAX_TICKED_PROBLEMS}). Untick one to pick another.`
+                : `Tap what came up, up to ${MAX_TICKED_PROBLEMS}. The page is written around them.`}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {quickSelect.map((problem) => {
+              {problemChips.shown.map((problem) => {
                 const selected = problems.includes(problem);
                 return (
                   <button
@@ -488,16 +516,28 @@ export function DetailsForm({
                       toggleProblem(problem);
                     }}
                     aria-pressed={selected}
+                    aria-disabled={!selected && atLimit}
                     className={`rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                       selected
                         ? 'border-accent bg-accent-soft text-accent'
-                        : 'border-line bg-surface text-ink-2'
+                        : atLimit
+                          ? 'border-line bg-surface text-ink-3 opacity-50'
+                          : 'border-line bg-surface text-ink-2'
                     }`}
                   >
                     {problem}
                   </button>
                 );
               })}
+              {problemChips.hiddenCount > 0 || moreProblems ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreProblems((v) => !v)}
+                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
+                >
+                  {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
+                </button>
+              ) : null}
             </div>
           </fieldset>
         ) : null}

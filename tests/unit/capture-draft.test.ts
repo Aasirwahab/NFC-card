@@ -71,3 +71,26 @@ describe('several areas at once', () => {
     ]);
   });
 });
+
+import { visibleChips } from '@/lib/capture/chips';
+
+describe('long chip lists', () => {
+  const all = Array.from({ length: 20 }, (_, i) => `p${i}`);
+
+  it('shows eight, hides the rest, and says how many', () => {
+    const v = visibleChips(all, [], false);
+    expect(v.shown).toHaveLength(8);
+    expect(v.hiddenCount).toBe(12);
+  });
+
+  it('keeps a ticked chip on screen even when it is deep in the list', () => {
+    const v = visibleChips(all, ['p19'], false);
+    expect(v.shown.slice(0, 8)).toEqual(all.slice(0, 8));
+    expect(v.shown).toContain('p19');
+    expect(v.hiddenCount).toBe(11);
+  });
+
+  it('shows everything when expanded', () => {
+    expect(visibleChips(all, ['p3'], true)).toEqual({ shown: all, hiddenCount: 0 });
+  });
+});

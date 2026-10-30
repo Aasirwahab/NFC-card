@@ -62,3 +62,23 @@ export function chipProblemsForAll(
   if (selected.length === 0) return chipProblems(niches, '', fallback);
   return [...new Set(selected.flatMap((name) => chipProblems(niches, name, fallback)))];
 }
+
+/** The most problems a rep can tick: the page is written around them, and too many blur it. */
+export const MAX_TICKED_PROBLEMS = 5;
+
+/** Chips shown before "Show more". Ticked chips always show, first. */
+export const CHIPS_SHOWN = 8;
+
+/**
+ * The first few chips in their own order, plus any ticked chip further down, so a tap never
+ * moves the chips under the rep's finger and a ticked chip is never hidden. PURE.
+ */
+export function visibleChips(
+  all: string[],
+  selected: string[],
+  expanded: boolean,
+  limit = CHIPS_SHOWN,
+): { shown: string[]; hiddenCount: number } {
+  const shown = all.filter((c, i) => expanded || i < limit || selected.includes(c));
+  return { shown, hiddenCount: all.length - shown.length };
+}
