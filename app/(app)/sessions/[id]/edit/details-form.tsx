@@ -335,7 +335,9 @@ export function DetailsForm({
   const hex = COLOUR_HEX[session.colour_tag as ColourTag] ?? '#6F685F';
 
   return (
-    <div className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4`}>
+    <div
+      className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4 [&_input]:scroll-mb-64 [&_select]:scroll-mb-64 [&_textarea]:scroll-mb-64`}
+    >
       <header className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -669,34 +671,6 @@ export function DetailsForm({
           </p>
         ) : null}
 
-        {error ? (
-          <p
-            className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
-
-        {saved && !error ? (
-          <p className="bg-ok-bg text-ok rounded-lg px-3 py-2.5 text-sm font-medium" role="status">
-            Saved. We&rsquo;re putting their page together now.
-          </p>
-        ) : null}
-
-        {saved && !error ? (
-          <Link
-            href="/dashboard"
-            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
-          >
-            Next card
-          </Link>
-        ) : null}
-
-        <Button size="block" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save details'}
-        </Button>
-
         {session.details_completed_at ? (
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
         ) : null}
@@ -730,6 +704,35 @@ export function DetailsForm({
         >
           Delete this lead completely
         </button>
+      </div>
+
+      {/* Always in reach: pinned just above the tab bar (3.75rem), with the result of Saving beside it,
+          so a long form never hides the button or its feedback. -mx-4/px-4 match the rep surface padding. */}
+      <div className="border-line-soft bg-surface/95 sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-10 -mx-4 mt-4 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+        {error ? (
+          <p
+            className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+        {saved && !error ? (
+          <p className="bg-ok-bg text-ok rounded-lg px-3 py-2.5 text-sm font-medium" role="status">
+            Saved. We&rsquo;re putting their page together now.
+          </p>
+        ) : null}
+        {saved && !error ? (
+          <Link
+            href="/dashboard"
+            className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+          >
+            Next card
+          </Link>
+        ) : null}
+        <Button size="block" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save details'}
+        </Button>
       </div>
     </div>
   );
