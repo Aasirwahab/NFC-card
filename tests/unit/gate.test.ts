@@ -303,3 +303,50 @@ describe('no booking promise without a booking button', () => {
     expect(qualityGate(GOOD, noLink).failures.map((f) => f.check)).toContain('promises_booking');
   });
 });
+
+describe('no problem chosen: nothing is attributed to the prospect', () => {
+  const noProblem = brief({
+    problems: [],
+    primaryProblem: null,
+    customProblem: null,
+    cta: 'A 15-minute conversation',
+  });
+  const NEUTRAL = [
+    'It was good to meet you at the Plant Hire Expo. I wanted to follow up properly rather',
+    'than leave you with a card, and to hear what matters most at BuildRite Plant right now.',
+    '',
+    'TMA builds plant hire automation, so the dull, repeated parts of running a hire business',
+    'take less of the week. It would be useful to hear how things work for you today before',
+    'saying anything about whether any of it fits, and that is a conversation worth having.',
+    '',
+    'If it is useful, have a short conversation with me and we can take it from there.',
+    '— Zaid',
+  ].join('\n');
+
+  it('passes a neutral note about meeting them', () => {
+    expect(qualityGate(NEUTRAL, noProblem).failures).toEqual([]);
+  });
+
+  it.each([
+    'You mentioned that keeping track of conversations takes more effort than it should.',
+    'You said following up afterwards is harder than it ought to be.',
+    'As you described, the admin is eating into your week.',
+    "You've mentioned a few things we could talk through.",
+  ])('rejects a note that says "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).toContain('invented_statement');
+  });
+
+  it('still allows "you mentioned" when they did raise a problem', () => {
+    expect(checks(GOOD, brief())).not.toContain('invented_statement');
+  });
+
+  it('tells the model plainly there is no problem, and withdraws the tie-to-the-problem rule', () => {
+    const none = pitchPrompt(noProblem).instructions;
+    expect(none).toContain('did NOT raise a specific problem');
+    expect(none).not.toContain('Tie it to the problem they described');
+    const some = pitchPrompt(brief()).instructions;
+    expect(some).toContain('Tie it to the problem they described');
+    expect(some).not.toContain('did NOT raise');
+  });
+});

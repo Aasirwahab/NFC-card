@@ -33,6 +33,7 @@ export type GateCheck =
   | 'no_call_to_action'
   | 'promises_booking'
   | 'wrong_name'
+  | 'invented_statement'
   | 'avoided_phrase';
 
 export type GateFailure = { check: GateCheck; detail: string };
@@ -112,6 +113,9 @@ const TELLS: readonly [RegExp, string][] = [
 
 /** §14.4: research deep, say less. Never frame the note around competitors. */
 const COMPETITORS = /\b(?:competitors?|competition|rivals?)\b/i;
+/** Words that put a statement in the prospect's mouth ("you mentioned ...", "as you said"). */
+const ATTRIBUTES_SPEECH =
+  /\b(?:you(?:'ve| have)?\s+(?:mentioned|said|described|told|raised|explained|shared|talked about|brought up)|as you\s+(?:said|mentioned|described|put it)|you(?:'re| are) (?:struggling|worried|frustrated))\b/i;
 
 /**
  * Saying HOW we know something turns specificity into surveillance (§4, §14.4).
@@ -254,6 +258,14 @@ export function qualityGate(body: string, brief: Brief): GateResult {
     fail(
       'references_problem',
       `does not mention the problem they raised: "${brief.primaryProblem}"`,
+    );
+  }
+
+  // 1b. With no problem in the brief, nothing may be attributed to them: they raised none.
+  if (!brief.primaryProblem && ATTRIBUTES_SPEECH.test(trimmed)) {
+    fail(
+      'invented_statement',
+      'says they mentioned or described something, but they raised no problem: write a neutral note about meeting them',
     );
   }
 
