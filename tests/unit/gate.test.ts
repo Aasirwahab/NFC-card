@@ -348,6 +348,8 @@ describe('no problem chosen: nothing is attributed to the prospect', () => {
     'You were talking about lost enquiries.',
     'You spoke about missing calls.',
     'You noted that time is short.',
+    'You flagged that follow-up is slow.',
+    'You pointed out that leads go cold.',
     'As you noted, the admin is heavy.',
     'You\u2019ve mentioned a few things we could talk through.',
     'You\u2019re worried about leads going cold.',

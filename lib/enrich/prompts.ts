@@ -123,7 +123,8 @@ export function pitchPrompt(brief: Brief, failures: GateFailure[] = []): Prompt 
     brief.rep.language === 'en-US'
       ? '- Use American English spelling.'
       : '- Use British English spelling.';
-  const rules = [...PITCH_RULES, ...(brief.primaryProblem ? WITH_PROBLEM_RULES : NO_PROBLEM_RULES)];
+  const hasProblem = Boolean(brief.primaryProblem || brief.customProblem);
+  const rules = [...PITCH_RULES, ...(hasProblem ? WITH_PROBLEM_RULES : NO_PROBLEM_RULES)];
   const instructions =
     failures.length === 0
       ? [...rules, spelling].join('\n')
