@@ -207,6 +207,8 @@ export function claimFailures(
   pricing: string | null,
   /** The chat introduces itself as an AI assistant, so saying so there is honest, not a tell. */
   allowAiMention = false,
+  /** In chat, numeric claims must come from stored rep knowledge, not prospect context. */
+  knowledge?: string,
 ): GateFailure[] {
   const failures: GateFailure[] = [];
   const fail = (check: GateCheck, detail: string) => failures.push({ check, detail });
@@ -224,17 +226,30 @@ export function claimFailures(
   if (COMPETITORS.test(text)) fail('competitor_framing', 'mentions competitors');
   if (REVEALS_RESEARCH.test(text)) fail('reveals_research', 'says how we know about them');
 
-  const contextDigits = (context.match(/\d[\d,.]*/g) ?? []).map((d) => d.replace(/[,.]/g, ''));
+  const numbers = (source: string) =>
+    (source.match(/\d[\d,]*(?:\.\d+)?(?:\s?[km]\b)?/gi) ?? []).map((d) =>
+      d.replace(/[,\s]/g, '').toLowerCase(),
+    );
+  const contextDigits = numbers(
+    knowledge === undefined ? context : `${pricing ?? ''}\n${knowledge}`,
+  );
+  const pricingDigits = numbers(pricing ?? '');
   for (const price of text.match(PRICE) ?? []) {
-    const digits = price.replace(/[^\d]/g, '');
-    if (!pricing || !contextDigits.includes(digits)) {
+    const digits = numbers(price)[0]!;
+    if (!pricingDigits.includes(digits)) {
       fail('unsupported_price', `quotes ${price.trim()}, which is not in the pricing`);
     }
   }
   for (const percent of text.match(PERCENT) ?? []) {
-    const digits = percent.replace(/[^\d.]/g, '').replace(/\./g, '');
+    const digits = numbers(percent)[0]!;
     if (!contextDigits.includes(digits)) {
       fail('unsupported_claim', `states ${percent.trim()}, which nothing in the brief supports`);
+    }
+  }
+  if (knowledge !== undefined) {
+    for (const number of numbers(text)) {
+      if (!contextDigits.includes(number))
+        fail('unsupported_claim', 'figure absent from stored rep knowledge');
     }
   }
   const lowerContext = context.toLowerCase();

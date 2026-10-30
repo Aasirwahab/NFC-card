@@ -162,10 +162,13 @@ export function mockChatModel(): MockLanguageModelV4 {
         .find((line) => line.length >= 20);
       const rep = system.match(/^You are (\S+?)’s AI assistant/m)?.[1] ?? 'The team';
 
+      const text = first
+        ? `Good question. ${first.replace(/[.!?]?$/, '.')} For the detail on your setup, ${rep} can give you a straight answer — get in touch using the options on this page.`
+        : `Ask ${rep} about that detail using the contact options on this page.`;
       return reply(
-        first
-          ? `Good question. ${first.replace(/[.!?]?$/, '.')} For the detail on your setup, ${rep} can give you a straight answer — get in touch using the options on this page.`
-          : `That’s one ${rep} can answer properly — get in touch using the options on this page.`,
+        options.responseFormat?.type === 'json'
+          ? JSON.stringify({ outcome: first ? 'answered' : 'unknown', reply: text, action: null })
+          : text,
       );
     },
   });

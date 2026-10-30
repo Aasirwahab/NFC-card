@@ -799,14 +799,15 @@
 .prospectPage .chatRegion > [role='dialog'] {
   top: calc(var(--visual-viewport-top, 0px) + max(16px, env(safe-area-inset-top, 0px)));
   bottom: auto;
-  max-height: min(
+  height: min(
     34rem,
     calc(
       var(--visual-viewport-height, 100dvh) - 32px - env(safe-area-inset-top, 0px) -
         env(safe-area-inset-bottom, 0px)
     )
   );
-  overflow-y: auto;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 32px);
+  overflow: hidden;
 }
 
 .profileCheck {

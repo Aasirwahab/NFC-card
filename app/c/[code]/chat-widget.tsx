@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
+import type { PageAction, PageActionId } from '@/lib/landing/actions';
+import { focusPageAction } from '@/lib/landing/focus-action';
 import { ApiError, apiSend } from '@/lib/http/client';
 
 /**
@@ -15,7 +17,7 @@ import { ApiError, apiSend } from '@/lib/http/client';
  * checking their page never spends the prospect's questions.
  */
 
-type Turn = { role: 'assistant' | 'user'; text: string };
+type Turn = { role: 'assistant' | 'user'; text: string; actionId?: PageActionId };
 
 export function ChatWidget({
   code,
@@ -23,6 +25,7 @@ export function ChatWidget({
   opening,
   enabled,
   preview = false,
+  actions = [],
 }: {
   code: string;
   repFirstName: string;
@@ -30,6 +33,7 @@ export function ChatWidget({
   /** False when the kill switch is off (§18.2): the static answer instead. */
   enabled: boolean;
   preview?: boolean;
+  actions?: PageAction[];
 }) {
   const [open, setOpen] = useState(false);
   // With the kill switch off, the panel opens on the static answer (§18.2) rather
@@ -71,11 +75,15 @@ export function ChatWidget({
     setBusy(true);
 
     try {
-      const result = await apiSend<{ reply: string; remaining: number }>('/api/chat', 'POST', {
-        code,
-        message,
-      });
-      setTurns((t) => [...t, { role: 'assistant', text: result.reply }]);
+      const result = await apiSend<{ reply: string; remaining: number; actionId?: PageActionId }>(
+        '/api/chat',
+        'POST',
+        {
+          code,
+          message,
+        },
+      );
+      setTurns((t) => [...t, { role: 'assistant', text: result.reply, actionId: result.actionId }]);
       setRemaining(result.remaining);
     } catch (error) {
       setTurns((t) => [...t, { role: 'assistant', text: explain(error, repFirstName) }]);
@@ -94,7 +102,7 @@ export function ChatWidget({
           onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
           className="bg-surface border-line shadow-lifted fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-20 flex max-h-[min(34rem,80dvh)] flex-col overflow-hidden rounded-2xl border sm:inset-x-auto sm:right-4 sm:w-[24rem]"
         >
-          <header className="border-line-soft flex items-center justify-between border-b px-4 py-3">
+          <header className="border-line-soft flex shrink-0 items-center justify-between border-b px-4 py-3">
             <span className="font-display text-ink text-[15px] font-semibold">
               {repFirstName}&rsquo;s AI assistant
             </span>
@@ -108,19 +116,43 @@ export function ChatWidget({
             </button>
           </header>
 
-          <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
-            {turns.map((turn, index) => (
-              <p
-                key={index}
-                className={
-                  turn.role === 'assistant'
-                    ? 'bg-surface-2 text-ink max-w-[85%] rounded-2xl rounded-bl-md px-3 py-2 text-[15px] leading-snug'
-                    : 'bg-accent ml-auto max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[15px] leading-snug text-white'
-                }
-              >
-                {turn.text}
-              </p>
-            ))}
+          <div
+            className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-4 py-3"
+            aria-live="polite"
+          >
+            {turns.map((turn, index) => {
+              const action =
+                turn.role === 'assistant' ? actions.find((a) => a.id === turn.actionId) : undefined;
+              return (
+                <div
+                  key={index}
+                  className={turn.role === 'user' ? 'ml-auto max-w-[85%]' : 'max-w-[85%]'}
+                >
+                  <p
+                    className={
+                      turn.role === 'assistant'
+                        ? 'bg-surface-2 text-ink rounded-2xl rounded-bl-md px-3 py-2 text-[15px] leading-snug break-words'
+                        : 'bg-accent rounded-2xl rounded-br-md px-3 py-2 text-[15px] leading-snug break-words text-white'
+                    }
+                  >
+                    {turn.text}
+                  </p>
+                  {action ? (
+                    <button
+                      type="button"
+                      className="text-accent mt-1 min-h-11 rounded-lg px-3 text-left text-sm font-medium underline"
+                      onClick={() => {
+                        setOpen(false);
+                        inputRef.current?.blur();
+                        requestAnimationFrame(() => focusPageAction(action.id));
+                      }}
+                    >
+                      Go to {action.label}
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
             {busy ? (
               <p className="text-ink-3 text-[13px]" role="status">
                 Thinking…
@@ -134,7 +166,7 @@ export function ChatWidget({
               e.preventDefault();
               void ask();
             }}
-            className="border-line-soft flex items-center gap-2 border-t px-3 py-2.5"
+            className="border-line-soft flex shrink-0 items-center gap-2 border-t px-3 py-2.5"
           >
             <input
               ref={inputRef}
@@ -147,7 +179,7 @@ export function ChatWidget({
                 exhausted ? `Get in touch to ask ${repFirstName} directly` : 'Ask a question…'
               }
               aria-label="Your question"
-              className="border-line bg-surface text-ink placeholder:text-ink-3/70 focus:border-accent h-11 flex-1 rounded-full border px-4 text-base focus:outline-none disabled:opacity-60"
+              className="border-line bg-surface text-ink placeholder:text-ink-3/70 focus:border-accent h-11 min-w-0 flex-1 rounded-full border px-4 text-base focus:outline-none disabled:opacity-60"
             />
             <button
               type="submit"
@@ -159,7 +191,7 @@ export function ChatWidget({
             </button>
           </form>
           {remaining !== null && remaining > 0 ? (
-            <p className="text-ink-3 px-4 pb-2 text-[11px]">
+            <p className="text-ink-3 shrink-0 px-4 pb-2 text-[11px]">
               {remaining} {remaining === 1 ? 'question' : 'questions'} left here
             </p>
           ) : null}

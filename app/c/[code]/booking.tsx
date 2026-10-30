@@ -50,6 +50,7 @@ export function Booking({
     return (
       <StickyAction>
         <button
+          id="page-action-book"
           type="button"
           onClick={() => {
             setOpen(true);
@@ -71,6 +72,8 @@ export function Booking({
   return (
     <div
       ref={calendar}
+      id="page-action-book"
+      tabIndex={-1}
       className="border-line-soft -mx-2 mt-4 h-[36rem] scroll-mt-4 overflow-hidden rounded-lg border"
     >
       <Cal
