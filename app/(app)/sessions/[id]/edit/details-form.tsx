@@ -582,6 +582,89 @@ export function DetailsForm({
           />
         </Field>
 
+        <Field
+          label={linkedin.trim() ? 'LinkedIn ✓' : 'LinkedIn'}
+          hint="Suggestions appear once you have typed their name and company. Tap the right one, or paste the link."
+          htmlFor="linkedin"
+        >
+          <Input
+            id="linkedin"
+            type="url"
+            inputMode="url"
+            value={linkedin}
+            onChange={(e) => setLinkedin(e.target.value)}
+            placeholder="https://linkedin.com/in/…"
+          />
+          {lookupEnabled ? (
+            <LookupPicker
+              buttonLabel="Search the web for LinkedIn"
+              disabled={name.trim().split(/\s+/).length < 2}
+              path="/api/lookup/linkedin"
+              body={() => ({ name: name.trim(), company: company.trim() || undefined })}
+              toItems={(response: ProfileLookup) =>
+                response.candidates.map((c) => ({
+                  key: c.url,
+                  checkUrl: c.url,
+                  primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
+                  secondary: c.snippet || undefined,
+                  badge:
+                    c.url === response.likelyUrl
+                      ? 'Likely'
+                      : c.label === 'exact_match'
+                        ? 'Check'
+                        : c.label === 'ambiguous'
+                          ? 'Unsure'
+                          : c.label === 'namesake'
+                            ? 'Other company'
+                            : undefined,
+                  likely: c.url === response.likelyUrl,
+                  value: c.url,
+                }))
+              }
+              onPick={setLinkedin}
+              onReady={setProfileApi}
+              emptyText="No profile found. Paste the link if they shared it."
+            />
+          ) : null}
+        </Field>
+
+        <Field
+          label={website.trim() ? 'Their website ✓' : 'Their website'}
+          htmlFor="website"
+          hint="Tap the right one, or type it. This makes sure we research the right company."
+        >
+          <Input
+            id="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="abcservices.co.uk"
+            inputMode="url"
+            autoCapitalize="none"
+            autoComplete="off"
+          />
+          {lookupEnabled ? (
+            <LookupPicker
+              buttonLabel="Find their website"
+              disabled={company.trim().length < 2}
+              path="/api/lookup/company"
+              body={() => ({ name: company.trim() })}
+              toItems={(response: SiteLookup) =>
+                response.candidates.map((c) => ({
+                  key: c.url,
+                  primary: c.domain,
+                  secondary: c.title,
+                  badge: c.url === response.likelyUrl ? 'Likely' : undefined,
+                  likely: c.url === response.likelyUrl,
+                  value: c.domain,
+                }))
+              }
+              onPick={setWebsite}
+              onReady={setSiteApi}
+              emptyText="Nothing found. Type the website if you know it."
+            />
+          ) : null}
+        </Field>
+
         <div className="grid grid-cols-2 gap-3">
           <Field label="Email" htmlFor="email">
             <Input
@@ -611,42 +694,6 @@ export function DetailsForm({
           </summary>
           <div className="flex flex-col gap-4 pb-4">
             <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
-            <Field
-              label="Their website"
-              htmlFor="website"
-              hint="Optional. Makes sure we research the right company — worth it for a gmail address or a common name."
-            >
-              <Input
-                id="website"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="abcservices.co.uk"
-                inputMode="url"
-                autoCapitalize="none"
-                autoComplete="off"
-              />
-              {lookupEnabled ? (
-                <LookupPicker
-                  buttonLabel="Find their website"
-                  disabled={company.trim().length < 2}
-                  path="/api/lookup/company"
-                  body={() => ({ name: company.trim() })}
-                  toItems={(response: SiteLookup) =>
-                    response.candidates.map((c) => ({
-                      key: c.url,
-                      primary: c.domain,
-                      secondary: c.title,
-                      badge: c.url === response.likelyUrl ? 'Likely' : undefined,
-                      likely: c.url === response.likelyUrl,
-                      value: c.domain,
-                    }))
-                  }
-                  onPick={setWebsite}
-                  onReady={setSiteApi}
-                  emptyText="Nothing found. Type the website if you know it."
-                />
-              ) : null}
-            </Field>
 
             <Field
               label="To remember them by"
@@ -663,60 +710,6 @@ export function DetailsForm({
                 maxLength={500}
               />
             </Field>
-
-            <div className="border-line-soft border-t pt-4">
-              <h2 className="text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase">
-                How to reach them
-              </h2>
-
-              <div className="mt-3 flex flex-col gap-4">
-                <Field
-                  label="LinkedIn"
-                  hint="Best: paste the link. Ask to scan their LinkedIn QR code (search bar, QR icon) or copy it from the app. The search below is a helper and often wrong."
-                  htmlFor="linkedin"
-                >
-                  <Input
-                    id="linkedin"
-                    type="url"
-                    inputMode="url"
-                    value={linkedin}
-                    onChange={(e) => setLinkedin(e.target.value)}
-                    placeholder="https://linkedin.com/in/…"
-                  />
-                  {lookupEnabled ? (
-                    <LookupPicker
-                      buttonLabel="Search the web for LinkedIn"
-                      disabled={name.trim().split(/\s+/).length < 2}
-                      path="/api/lookup/linkedin"
-                      body={() => ({ name: name.trim(), company: company.trim() || undefined })}
-                      toItems={(response: ProfileLookup) =>
-                        response.candidates.map((c) => ({
-                          key: c.url,
-                          checkUrl: c.url,
-                          primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
-                          secondary: c.snippet || undefined,
-                          badge:
-                            c.url === response.likelyUrl
-                              ? 'Likely'
-                              : c.label === 'exact_match'
-                                ? 'Check'
-                                : c.label === 'ambiguous'
-                                  ? 'Unsure'
-                                  : c.label === 'namesake'
-                                    ? 'Other company'
-                                    : undefined,
-                          likely: c.url === response.likelyUrl,
-                          value: c.url,
-                        }))
-                      }
-                      onPick={setLinkedin}
-                      onReady={setProfileApi}
-                      emptyText="No profile found. Paste the link if they shared it."
-                    />
-                  ) : null}
-                </Field>
-              </div>
-            </div>
           </div>
         </details>
         {noChannel ? (
