@@ -33,12 +33,11 @@ A large beta upgrade sits on stacked branches (PRs #5 to #9, on top of #1 and #2
 | 9     | _After v1:_ faster capture — business-card photo, voice note                                | Not started                   |
 | 10    | _After v1:_ team accounts and CRM connectors                                                | Not started                   |
 
-\* Phase 4 runs end to end against an offline **mock** model. Three of its four
-done-when tests pass. The fourth — "a real tap shows a researched pitch that is
-visibly specific" — needs a real model, because a mock cannot show that the
-pitch is good. Setting `MODEL_PITCH` and `MODEL_API_KEY` is what finishes it
-(see below). Until then, **production does not run the pipeline on the mock**:
-prospects get the designed template pitch, exactly as before Phase 4.
+\* Phase 4 runs end to end against an offline **mock** model in tests. **Since
+2026-10-29 production runs a real model** (OpenRouter) and the pitch pipeline
+works live: see [docs/PRODUCTION.md](docs/PRODUCTION.md) for the live setup and
+what is still open. Without `MODEL_PITCH` and `MODEL_API_KEY`, production does
+not run the pipeline on the mock: prospects get the designed template pitch.
 
 † Phase 5 is built and tested against the in-process database, with email and
 chat running on their offline fallbacks. What the tests prove: the sixth chat
@@ -291,6 +290,7 @@ These are flagged in the code with `TODO(zaid)` and in §28 of the spec:
   Then set `RESEND_API_KEY`, `EMAIL_FROM` and `CAL_WEBHOOK_SECRET`, point a
   Cal.com webhook at `/api/webhooks/cal`, and add each rep's Cal.com link and
   contact email in Setup.
+- **Vercel plan (done: Pro).** The team is on Pro, so the every-minute cron works. If `NEXT_PUBLIC_APP_URL` points anywhere the server cannot reach, the cron logs `post_to_self_failed` and jobs stay queued (seen 2026-10-29). The note below applies only to Hobby.
 - **Vercel Pro, or a slower sweep.** `vercel.json` schedules `/api/cron/jobs`
   every minute, as §13 specifies. Vercel's Hobby plan only allows daily cron jobs
   and rejects the deploy. To run on Hobby, change the schedule in `vercel.json`
