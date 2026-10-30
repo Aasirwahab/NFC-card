@@ -693,9 +693,12 @@ export function DetailsForm({
           </Link>
         ) : null}
 
-        <Button size="block" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save details'}
-        </Button>
+        {/* Always in reach: pinned just above the tab bar (3.75rem), so a long form never hides it. */}
+        <div className="border-line-soft bg-surface/95 sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-10 -mx-5 border-t px-5 py-3 backdrop-blur">
+          <Button size="block" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save details'}
+          </Button>
+        </div>
 
         {session.details_completed_at ? (
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
