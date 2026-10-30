@@ -3,6 +3,7 @@ import styles from '@/app/ui-slice.module.css';
 import { UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
+import { availableActions } from '@/lib/landing/actions';
 import { openingLine } from '@/lib/chat/assistant';
 import { midSentence, publicEventName, relevantServices, templatePitch } from '@/lib/domain/pitch';
 import { emailConfigured } from '@/lib/email/mailer';
@@ -60,6 +61,10 @@ export function ProspectView({
   // No link, no button: a dead button on this page is worse than none (§16).
   const bookingLink = parseBookingUrl(rep.bookingUrl);
   const linkedin = linkedinHref(rep.linkedinUrl);
+  const actions = availableActions(
+    { rep: { booking_url: rep.bookingUrl, linkedin_url: rep.linkedinUrl } },
+    { emailEnabled: emailConfigured(), preview },
+  );
   const publicEvent = publicEventName(eventName);
   const prospectFirst = session.prospect_name?.trim() ? firstName(session.prospect_name) : null;
   const topics = session.problems.filter((problem) => problem.trim());
@@ -126,8 +131,8 @@ export function ProspectView({
           }
           note={
             bookingLink
-              ? `${firstName(rep.fullName)} will come prepared.`
-              : `${firstName(rep.fullName)} will pick up from your conversation.`
+              ? 'Choose a time to discuss what you need.'
+              : 'Get in touch directly to continue your conversation.'
           }
         >
           {bookingLink ? (
@@ -182,6 +187,7 @@ export function ProspectView({
             repFirstName={firstName(rep.fullName)}
             opening={openingLine(firstName(rep.fullName), lead)}
             enabled={env.CHAT_ENABLED}
+            actions={actions}
             preview={preview}
           />
         </div>
@@ -345,7 +351,7 @@ function PendingBody({
       {business?.tagline ? <p>{business.tagline}</p> : null}
       <p>
         {hasBooking
-          ? 'If you want to pick up where we left off, grab a slot below and I will come prepared.'
+          ? 'If you want to pick up where we left off, choose a time below to talk it through.'
           : 'If you want to pick up where we left off, save my contact below and get in touch.'}
       </p>
     </div>
@@ -420,6 +426,7 @@ export function SaveContact({
 }) {
   return (
     <a
+      id="page-action-save-contact"
       href={`/c/${code}/contact`}
       className={primary ? styles.primaryAction : compact ? styles.compactSave : styles.saveContact}
     >

@@ -1,13 +1,13 @@
-import { generateText } from 'ai';
+import { generateText, Output } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { mockChatModel } from '@/lib/ai/mock';
 import {
   chatContext,
   chatInstructions,
   checkReply,
-  handOffReply,
   isHandOffReply,
   openingLine,
+  modelReplySchema,
   smallTalkReply,
   type ChatContext,
 } from '@/lib/chat/assistant';
@@ -43,7 +43,7 @@ const snapshot = {
   event: { name: 'Plant Hire Expo' },
 } as unknown as Snapshot;
 
-const context: ChatContext = chatContext(snapshot, ['BuildRite runs seven depots.']);
+const context: ChatContext = chatContext(snapshot, []);
 
 describe('chatContext', () => {
   it('keeps knowledge in order up to 20,000 characters, excluding pricing', () => {
@@ -82,8 +82,7 @@ describe('isHandOffReply', () => {
     "I don't want to guess about that.",
     'I don’t want to guess.',
     'I DO NOT want to guess.',
-    handOffReply('Zaid'),
-    handOffReply('Sam').replaceAll('’', "'"),
+    'I don’t want to give you a wrong answer on that. It’s one Sam can answer properly.',
   ])('detects the prompt and fallback hand-offs: %s', (reply) => {
     expect(isHandOffReply(reply)).toBe(true);
   });
@@ -120,6 +119,7 @@ describe('checkReply (§18.2)', () => {
     );
     expect(result).toEqual({
       ok: true,
+      outcome: 'answered',
       text: 'Setup takes about two weeks. Zaid can walk you through it.',
     });
   });
@@ -127,7 +127,7 @@ describe('checkReply (§18.2)', () => {
   it('replaces an invented price with the hand-off', () => {
     const result = checkReply('It costs £299 a month.', context);
     expect(result.ok).toBe(false);
-    expect(result.text).toMatch(/Zaid can answer properly/);
+    expect(result.text).toMatch(/Zaid can help/);
   });
 
   it('replaces an invented figure or credential', () => {
@@ -227,4 +227,15 @@ describe('smallTalkReply (§18.1: pleasantries spend no answer)', () => {
     const reply = smallTalkReply('hi', 'Zaid', 'TMA')!;
     expect(reply).not.toMatch(/[£$%]/);
   });
+});
+
+it('uses the actual SDK structured output with the offline chat provider', async () => {
+  const result = await generateText({
+    model: mockChatModel(),
+    instructions: chatInstructions(context),
+    messages: [{ role: 'user', content: 'What do you do?' }],
+    output: Output.object({ schema: modelReplySchema }),
+  });
+  expect(result.output).toMatchObject({ outcome: 'answered', action: null });
+  expect(checkReply(result.output, context).ok).toBe(true);
 });

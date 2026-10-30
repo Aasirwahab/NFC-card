@@ -1,4 +1,4 @@
-import { generateText, type ModelMessage } from 'ai';
+import { generateText, NoObjectGeneratedError, Output, type ModelMessage } from 'ai';
 import { cookies, headers } from 'next/headers';
 import { z } from 'zod';
 import { fail, json, readJson } from '@/lib/api';
@@ -10,14 +10,19 @@ import {
   chatContext,
   chatInstructions,
   checkReply,
-  isHandOffReply,
+  fallbackReply,
+  modelReplySchema,
+  parseModelReply,
+  type ModelReply,
   smallTalkReply,
 } from '@/lib/chat/assistant';
 import { getRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
 import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
-import type { Research } from '@/lib/enrich/research';
+import { redactContacts, routeKnownIntent } from '@/lib/chat/intent';
+import { availableActions } from '@/lib/landing/actions';
+import { emailConfigured } from '@/lib/email/mailer';
 import { snapshotSchema } from '@/lib/enrich/snapshot';
 import { env } from '@/lib/env';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
@@ -25,7 +30,7 @@ import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-lim
 /**
  * POST /api/chat — the prospect page's assistant (spec §18).
  *
- *   200 { reply, remaining }            an answer, or the static cap message
+ *   200 { reply, remaining, outcome?, actionId? }            an answer, or the static cap message
  *   400 invalid_request                 404 not_found (says nothing about the code)
  *   403 owner_preview                   the rep's own preview never spends a question
  *   429 rate_limited                    502 chat_unavailable (the claim is handed back)
@@ -37,6 +42,9 @@ import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-lim
  */
 
 export const dynamic = 'force-dynamic';
+// The model call alone may take up to MODEL_TIMEOUT_MS; keep the function alive past it so a
+// claimed question is always released.
+export const maxDuration = 60;
 
 const HISTORY_TURNS = 8;
 const MODEL_TIMEOUT_MS = 20_000;
@@ -75,7 +83,7 @@ export async function POST(request: Request) {
 
   const { data: session } = await db
     .from('sessions')
-    .select('id, user_id, research, chat_response_count')
+    .select('id, user_id, chat_response_count')
     .eq('card_id', card.id)
     .eq('status', 'active')
     .maybeSingle();
@@ -100,26 +108,28 @@ export async function POST(request: Request) {
     return fail('chat_unavailable', 502);
   }
 
-  const stored = session.research as Partial<Research> | null;
-  // Same rule as the pitch (brief.ts): facts from an unconfirmed guessed site
-  // may belong to a different company with the same name.
-  const facts =
-    stored?.domainSource !== 'guess' && Array.isArray(stored?.facts)
-      ? stored.facts.filter((f): f is string => typeof f === 'string')
-      : [];
-  const context = chatContext(snapshot.data, facts);
+  const actions = availableActions(snapshot.data, { emailEnabled: emailConfigured() });
+  const context = chatContext(snapshot.data, actions);
+  const intent = routeKnownIntent(parsed.data.message, actions);
+  // What we keep never contains a phone number or email the visitor typed.
+  const storedQuestion = redactContacts(parsed.data.message);
 
   // A greeting or thanks is answered with fixed text and spends nothing (§18.1).
   const smallTalk = smallTalkReply(parsed.data.message, context.repFirstName, context.businessName);
-  if (smallTalk !== null) {
+  if (smallTalk !== null || intent !== null) {
     // Once the five are used, a greeting must not invite another question.
     const remaining = Math.max(0, CHAT_CAP - session.chat_response_count);
-    const reply = remaining > 0 ? smallTalk : capReachedReply(context.repFirstName);
+    // A fixed router answer costs nothing, so it is still given once the five are used.
+    const reply = intent
+      ? intent.reply
+      : remaining > 0
+        ? smallTalk!
+        : capReachedReply(context.repFirstName);
     // Logged like any turn, so the rep reads the whole conversation and the
     // model sees it as context for the next question.
     const { error: logError } = await db.rpc('record_chat_turn', {
       p_session_id: session.id,
-      p_question: parsed.data.message,
+      p_question: storedQuestion,
       p_answer: reply,
     });
     if (logError) {
@@ -131,14 +141,21 @@ export async function POST(request: Request) {
         }),
       );
     }
-    return json({ reply, remaining });
+    return json({
+      reply,
+      remaining,
+      ...(intent ? { outcome: intent.outcome, actionId: intent.action ?? undefined } : {}),
+    });
   }
 
   // §18.1: claim BEFORE the model call, so a burst cannot exceed the cap.
   const { data: used, error: claimError } = await db.rpc('claim_chat_response', {
     p_session_id: session.id,
   });
-  if (claimError) throw new Error(`claim_chat_response failed: ${claimError.message}`);
+  if (claimError) {
+    console.error(JSON.stringify({ event: 'chat_claim_failed', sessionId: session.id }));
+    return fail('chat_unavailable', 502);
+  }
   if (used === null) {
     return json({ reply: capReachedReply(context.repFirstName), remaining: 0 });
   }
@@ -154,31 +171,40 @@ export async function POST(request: Request) {
 
   const messages: ModelMessage[] = [
     ...(history ?? [])
+      .slice()
       .reverse()
-      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    { role: 'user', content: parsed.data.message },
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: redactContacts(m.content) })),
+    { role: 'user', content: redactContacts(parsed.data.message) },
   ];
 
-  let reply: string;
+  let reply: ModelReply | null = null;
+  let modelFailed = false;
+  let refunded = false;
+  let failureEvent = 'chat_model_failed';
   try {
     const result = await generateText({
       model: modelFor('chat').model,
       instructions: chatInstructions(context),
       messages,
+      output: Output.object({ schema: modelReplySchema }),
       abortSignal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
-    reply = result.text;
+    // Reading output can itself throw when structured generation fails.
+    failureEvent = 'chat_structured_output_failed';
+    reply = parseModelReply(result.output);
   } catch (error) {
-    // An outage must not spend the prospect's questions.
-    await db.rpc('release_chat_response', { p_session_id: session.id });
-    console.error(
-      JSON.stringify({
-        event: 'chat_model_failed',
-        sessionId: session.id,
-        error: error instanceof Error ? error.message : String(error),
-      }),
-    );
-    return fail('chat_unavailable', 502);
+    if (NoObjectGeneratedError.isInstance(error)) failureEvent = 'chat_structured_output_failed';
+    // No raw provider errors: they may contain visitor data or the prompt.
+    modelFailed = true;
+  }
+  if (!reply) {
+    modelFailed = true;
+    const { error: releaseError } = await db.rpc('release_chat_response', {
+      p_session_id: session.id,
+    });
+    refunded = !releaseError;
+    console.error(JSON.stringify({ event: failureEvent, sessionId: session.id }));
+    reply = { outcome: 'unknown', reply: fallbackReply(context), action: null };
   }
 
   const checked = checkReply(reply, context);
@@ -194,7 +220,7 @@ export async function POST(request: Request) {
 
   const { error: logError } = await db.rpc('record_chat_turn', {
     p_session_id: session.id,
-    p_question: parsed.data.message,
+    p_question: storedQuestion,
     p_answer: checked.text,
   });
   if (logError) {
@@ -203,16 +229,21 @@ export async function POST(request: Request) {
     );
   }
 
-  if (isHandOffReply(checked.text)) {
+  if (!modelFailed && (checked.outcome === 'unknown' || checked.outcome === 'partial')) {
     const { error } = await db.from('chat_unanswered').insert({
       session_id: session.id,
       user_id: session.user_id,
-      question: parsed.data.message.trim().slice(0, MAX_QUESTION_CHARS),
+      question: storedQuestion.trim().slice(0, MAX_QUESTION_CHARS),
     });
     if (error) {
       console.error(JSON.stringify({ event: 'chat_unanswered_failed', sessionId: session.id }));
     }
   }
 
-  return json({ reply: checked.text, remaining: Math.max(0, CHAT_CAP - used) });
+  return json({
+    reply: checked.text,
+    outcome: checked.outcome,
+    remaining: Math.max(0, CHAT_CAP - used + (modelFailed && refunded ? 1 : 0)),
+    ...(checked.actionId ? { actionId: checked.actionId } : {}),
+  });
 }

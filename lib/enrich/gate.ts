@@ -152,6 +152,53 @@ const PRICE =
   /(?:[£$€]\s?\d[\d,]*(?:\.\d+)?\s?[km]?\b)|(?:\b\d[\d,]*(?:\.\d+)?\s?(?:pounds|gbp|usd|dollars|euros?)\b)/gi;
 const PERCENT = /\b\d{1,3}(?:\.\d+)?\s?%/g;
 
+/** How a price is billed, read from the words around it ("a month", "one-time", "per year"). */
+const BILLING: readonly (readonly [string, RegExp])[] = [
+  ['monthly', /\b(?:a|per|each|every)\s+month\b|\bmonthly\b|\/\s*mo(?:nth)?\b|\bpcm\b/i],
+  [
+    'yearly',
+    /\b(?:a|per|each|every)\s+(?:year|annum)\b|\b(?:yearly|annual|annually)\b|\/\s*(?:yr|year)\b/i,
+  ],
+  ['once', /\bone[- ]?(?:time|off)\b|\bset-?up fee\b|\bupfront\b/i],
+];
+
+/** The numeric value of a price or figure: "£2,500" is 2500, "£1.5k" is 1500, "150 pounds" is 150. */
+function amountValue(raw: string): number {
+  const cleaned = raw.toLowerCase().replace(/[£$€,\s]|pounds|gbp|usd|dollars|euros?/g, '');
+  const scale = cleaned.endsWith('k') ? 1_000 : cleaned.endsWith('m') ? 1_000_000 : 1;
+  return Number.parseFloat(cleaned) * scale;
+}
+
+/** Each price in the text with its digits and billing terms, taken from the same sentence and
+ *  the stretch up to the neighbouring price, so "£150 a month or £1,500 a year" stays apart. */
+function priceTerms(source: string): { digits: string; terms: Set<string> }[] {
+  const hits = [...source.matchAll(PRICE)];
+  const termsOf = (scope: string) =>
+    new Set(BILLING.filter(([, re]) => re.test(scope)).map(([name]) => name));
+  return hits.map((hit, i) => {
+    const at = hit.index ?? 0;
+    const end = at + hit[0].length;
+    const before = source.slice(0, at);
+    const sentenceStart =
+      Math.max(before.lastIndexOf('.'), before.lastIndexOf(';'), before.lastIndexOf('\n')) + 1;
+    const prevEnd = i > 0 ? (hits[i - 1]!.index ?? 0) + hits[i - 1]![0].length : 0;
+    const stop = source.slice(end).search(/[.;\n]/);
+    const afterEnd = stop === -1 ? source.length : end + stop;
+    const nextStart = i + 1 < hits.length ? (hits[i + 1]!.index ?? source.length) : source.length;
+    // The words after the price describe it ("£150 a month"). Only when there are none do the
+    // words before it count ("Monthly care plans from £150"), and only back to the last
+    // "or", "and" or comma, so a neighbouring price's words are never borrowed.
+    let terms = termsOf(source.slice(end, Math.min(afterEnd, nextStart)));
+    if (terms.size === 0) {
+      let lead = source.slice(Math.max(sentenceStart, prevEnd), at);
+      const sep = [...lead.matchAll(/\b(?:or|and)\b|,/gi)].pop();
+      if (sep) lead = lead.slice((sep.index ?? 0) + sep[0].length);
+      terms = termsOf(lead);
+    }
+    return { digits: String(amountValue(hit[0])), terms };
+  });
+}
+
 /** Claims a business must be able to back up. Allowed only if the brief says so. */
 const CLAIMS =
   /\b(?:guarantee[sd]?|certified|accredited|award[- ]winning|iso ?\d{4,5}|market[- ]leading|industry[- ]leading|number one|best[- ]in[- ]class|world[- ]class)\b/gi;
@@ -207,6 +254,8 @@ export function claimFailures(
   pricing: string | null,
   /** The chat introduces itself as an AI assistant, so saying so there is honest, not a tell. */
   allowAiMention = false,
+  /** In chat, numeric claims must come from stored rep knowledge, not prospect context. */
+  knowledge?: string,
 ): GateFailure[] {
   const failures: GateFailure[] = [];
   const fail = (check: GateCheck, detail: string) => failures.push({ check, detail });
@@ -224,17 +273,46 @@ export function claimFailures(
   if (COMPETITORS.test(text)) fail('competitor_framing', 'mentions competitors');
   if (REVEALS_RESEARCH.test(text)) fail('reveals_research', 'says how we know about them');
 
-  const contextDigits = (context.match(/\d[\d,.]*/g) ?? []).map((d) => d.replace(/[,.]/g, ''));
+  const numbers = (source: string) =>
+    (source.match(/\d[\d,]*(?:\.\d+)?(?:\s?[km]\b)?/gi) ?? []).map((d) =>
+      d.replace(/[,\s]/g, '').toLowerCase(),
+    );
+  const contextDigits = numbers(
+    knowledge === undefined ? context : `${pricing ?? ''}\n${knowledge}`,
+  );
+  // Amounts compare by value ("£50" = "£50.00", "£1k" = "£1,000"). When the pricing text has
+  // currency amounts, only those count: "30 days" must not authorise "£30".
+  const storedPrices = priceTerms(pricing ?? '');
+  const amounts =
+    (pricing ?? '').match(PRICE)?.map(amountValue) ?? numbers(pricing ?? '').map(amountValue);
   for (const price of text.match(PRICE) ?? []) {
-    const digits = price.replace(/[^\d]/g, '');
-    if (!pricing || !contextDigits.includes(digits)) {
+    if (!amounts.includes(amountValue(price))) {
       fail('unsupported_price', `quotes ${price.trim()}, which is not in the pricing`);
     }
   }
+  // The amount may exist, but the billing must match: "£299 one-time" is not "£299 a month".
+  for (const quoted of priceTerms(text)) {
+    const stored = storedPrices.filter((p) => p.digits === quoted.digits);
+    if (stored.length === 0) continue;
+    for (const term of quoted.terms) {
+      if (!stored.some((p) => p.terms.has(term))) {
+        fail(
+          'unsupported_price',
+          `quotes a ${term} price that the pricing does not state that way`,
+        );
+      }
+    }
+  }
   for (const percent of text.match(PERCENT) ?? []) {
-    const digits = percent.replace(/[^\d.]/g, '').replace(/\./g, '');
+    const digits = numbers(percent)[0]!;
     if (!contextDigits.includes(digits)) {
       fail('unsupported_claim', `states ${percent.trim()}, which nothing in the brief supports`);
+    }
+  }
+  if (knowledge !== undefined) {
+    for (const number of numbers(text)) {
+      if (!contextDigits.includes(number))
+        fail('unsupported_claim', 'figure absent from stored rep knowledge');
     }
   }
   const lowerContext = context.toLowerCase();

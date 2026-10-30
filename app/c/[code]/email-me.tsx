@@ -19,7 +19,12 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
 
   if (status === 'sent') {
     return (
-      <p className="text-ok mt-4 text-sm font-medium" role="status">
+      <p
+        id="page-action-email-page"
+        tabIndex={-1}
+        className="text-ok mt-4 text-sm font-medium"
+        role="status"
+      >
         Sent to {email}. It has a link back here whenever you want it.
       </p>
     );
@@ -27,7 +32,12 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={styles.emailLink}>
+      <button
+        id="page-action-email-page"
+        type="button"
+        onClick={() => setOpen(true)}
+        className={styles.emailLink}
+      >
         <Mail className="h-4 w-4" aria-hidden="true" />
         Not ready? Email me this page
       </button>
@@ -58,6 +68,8 @@ export function EmailMe({ code, repFirstName }: { code: string; repFirstName: st
 
   return (
     <form
+      id="page-action-email-page"
+      tabIndex={-1}
       onSubmit={(e) => {
         e.preventDefault();
         void send();

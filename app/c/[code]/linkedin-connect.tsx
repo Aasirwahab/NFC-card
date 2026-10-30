@@ -27,6 +27,7 @@ export function LinkedInConnect({
 }) {
   return (
     <a
+      id="page-action-linkedin"
       href={href}
       target="_blank"
       rel="noopener noreferrer"
