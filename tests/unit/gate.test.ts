@@ -337,6 +337,35 @@ describe('no problem chosen: nothing is attributed to the prospect', () => {
     expect(checks(body, noProblem)).toContain('invented_statement');
   });
 
+  it.each([
+    'You also mentioned that follow-ups slip.',
+    "You'd mentioned the admin was heavy.",
+    'You had mentioned a slow website.',
+    'You did mention that leads go cold.',
+    'You specifically mentioned the website.',
+    "You've just mentioned the admin.",
+    'You were saying that follow-up is hard.',
+    'You were talking about lost enquiries.',
+    'You spoke about missing calls.',
+    'You noted that time is short.',
+    'As you noted, the admin is heavy.',
+    'You\u2019ve mentioned a few things we could talk through.',
+    'You\u2019re worried about leads going cold.',
+  ])('also rejects the phrasing "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).toContain('invented_statement');
+  });
+
+  it.each([
+    'Once you have shared your details, I will be in touch.',
+    'If you shared your email, I will follow up.',
+    'If you tell me what matters most, we can start there.',
+    'I would like to hear what you say about how it works today.',
+  ])('does not reject the neutral phrasing "%s"', (sentence) => {
+    const body = NEUTRAL.replace('It was good to meet you at the Plant Hire Expo.', sentence);
+    expect(checks(body, noProblem)).not.toContain('invented_statement');
+  });
+
   it('still allows "you mentioned" when they did raise a problem', () => {
     expect(checks(GOOD, brief())).not.toContain('invented_statement');
   });

@@ -113,9 +113,24 @@ const TELLS: readonly [RegExp, string][] = [
 
 /** §14.4: research deep, say less. Never frame the note around competitors. */
 const COMPETITORS = /\b(?:competitors?|competition|rivals?)\b/i;
-/** Words that put a statement in the prospect's mouth ("you mentioned ...", "as you said"). */
-const ATTRIBUTES_SPEECH =
-  /\b(?:you(?:'ve| have)?\s+(?:mentioned|said|described|told|raised|explained|shared|talked about|brought up)|as you\s+(?:said|mentioned|described|put it)|you(?:'re| are) (?:struggling|worried|frustrated))\b/i;
+/**
+ * Words that put a statement in the prospect's mouth ("you mentioned ...", "as you said").
+ * Past and progressive forms only, so a neutral invitation such as "once you have shared your
+ * details" or "if you tell me what matters" is not a false hit. Straight and curly apostrophes.
+ */
+const ATTRIBUTES_SPEECH = new RegExp(
+  [
+    // you (also / had / 've / 'd / just ...) mentioned | said | described | told | raised | ...
+    String.raw`\byou(?:['’](?:ve|d))?(?:\s+(?:also|just|only|had|have|already|briefly|specifically|first))*\s+(?:mentioned|said|described|told|raised|explained|noted|brought up|talked about|spoke about|were (?:saying|talking about|describing|mentioning))\b`,
+    // you did (specifically) mention / say / describe ...
+    String.raw`\byou did(?:\s+(?:also|just|specifically))?\s+(?:mention|say|describe|raise|note)\b`,
+    // as you said / as you noted ...
+    String.raw`\bas you\s+(?:said|mentioned|described|noted|put it)\b`,
+    // you're struggling / worried / frustrated
+    String.raw`\byou(?:['’]re| are)\s+(?:struggling|worried|frustrated)\b`,
+  ].join('|'),
+  'i',
+);
 
 /**
  * Saying HOW we know something turns specificity into surveillance (§4, §14.4).
