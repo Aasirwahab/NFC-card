@@ -24,3 +24,12 @@ export function noteNiches(niches: Niche[], fallback: string[]): Niche[] {
   if (eventHasProblems(niches) || fallback.length === 0) return niches;
   return [{ name: FALLBACK_NICHE, problems: fallback }];
 }
+
+/**
+ * Only problems whose chip is on screen may be saved. A tick can outlive its chip (the lead
+ * is moved to another event, a draft is restored, the note reader names another area), and
+ * a problem the rep can no longer see must never feed the pitch. PURE.
+ */
+export function keepVisible(selected: string[], visible: string[]): string[] {
+  return selected.filter((p) => visible.includes(p));
+}

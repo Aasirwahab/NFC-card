@@ -25,14 +25,14 @@ export async function listEvents(userId: string): Promise<EventSummary[]> {
   return data ?? [];
 }
 
-/** The problems the rep has written a playbook entry for, oldest first (the capture form's fallback chips). */
+/** The problems the rep has written a playbook entry for, oldest first, up to the 20 that Setup lists (the capture form's fallback chips). */
 export async function listPlaybookProblems(userId: string): Promise<string[]> {
   const { data } = await serviceClient()
     .from('playbook_entries')
     .select('problem')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
-    .limit(12);
+    .limit(20);
   return [...new Set((data ?? []).map((e) => e.problem.trim()).filter(Boolean))];
 }
 
