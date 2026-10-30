@@ -85,7 +85,6 @@ export function DetailsForm({
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
-  const [line, setLine] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,7 +141,6 @@ export function DetailsForm({
         if (Array.isArray(d.problems))
           setProblems(d.problems.filter((p): p is string => typeof p === 'string'));
         if (typeof d.customProblems === 'string') setCustomProblems(d.customProblems);
-        if (typeof d.line === 'string') setLine(d.line);
         setRestored(true);
       });
     } catch {
@@ -173,7 +171,6 @@ export function DetailsForm({
             niche,
             problems,
             customProblems,
-            line,
           }),
         );
       } catch {
@@ -194,7 +191,6 @@ export function DetailsForm({
     niche,
     problems,
     customProblems,
-    line,
   ]);
   const clearDraft = () => {
     try {
@@ -530,6 +526,27 @@ export function DetailsForm({
           </fieldset>
         ) : null}
 
+        <NoteBox
+          value={customProblems}
+          setValue={setCustomProblems}
+          niches={noteNiches(niches, fallbackProblems)}
+          onFill={(fill) => {
+            const fillIfEmpty = (value: string) => (current: string) =>
+              current.trim() ? current : value;
+            if (fill.name) setName(fillIfEmpty(fill.name));
+            if (fill.company) setCompany(fillIfEmpty(fill.company));
+            // Never swap a niche the rep already worked in.
+            if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
+              setSelectedNiches([fill.niche]);
+            }
+            if (fill.problems.length > 0) {
+              setProblems((current) =>
+                [...new Set([...current, ...fill.problems])].slice(0, MAX_TICKED_PROBLEMS),
+              );
+            }
+          }}
+        />
+
         <Field label="Their name" htmlFor="name">
           <Input
             id="name"
@@ -574,46 +591,12 @@ export function DetailsForm({
           </Field>
         </div>
 
-        <QuickNote
-          line={line}
-          setLine={setLine}
-          niches={noteNiches(niches, fallbackProblems)}
-          onFill={(fill) => {
-            const fillIfEmpty = (value: string) => (current: string) =>
-              current.trim() ? current : value;
-            if (fill.name) setName(fillIfEmpty(fill.name));
-            if (fill.company) setCompany(fillIfEmpty(fill.company));
-            // Never swap a niche the rep already worked in.
-            if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
-              setSelectedNiches([fill.niche]);
-            }
-            if (fill.problems.length > 0) {
-              setProblems((current) => [...new Set([...current, ...fill.problems])]);
-            }
-            // Leftovers are often small talk; they stay private, never on the prospect's page.
-            if (fill.extra) setMemorable((current) => (current.trim() ? current : fill.extra!));
-          }}
-        />
-
         <details className={styles.optionalDetails}>
           <summary>
             <span>More details (optional)</span>
             <ChevronDown aria-hidden="true" className="h-5 w-5" />
           </summary>
           <div className="flex flex-col gap-4 pb-4">
-            <Field
-              label="Anything else they said"
-              hint="Their own words, if you can remember them."
-              htmlFor="custom"
-            >
-              <Textarea
-                id="custom"
-                rows={3}
-                value={customProblems}
-                onChange={(e) => setCustomProblems(e.target.value)}
-              />
-            </Field>
-
             <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
             <Field
               label="Their website"
@@ -952,18 +935,19 @@ function CardScan({
 }
 
 /**
- * "Say it or type it": a small note for what the chips cannot say. The phone's own
- * keyboard microphone does the dictating, so no audio ever reaches us. When the AI is on,
- * one tap turns the line into name, company and problems for the rep to check.
+ * The rep's own words about what came up, under the chips. They are saved with the lead as
+ * it stands. "Sort it for me" is optional: it ticks chips that already exist and fills a
+ * blank name or company, and never changes the words. The keyboard's own microphone does
+ * any dictating, so no audio reaches us.
  */
-function QuickNote({
-  line,
-  setLine,
+function NoteBox({
+  value,
+  setValue,
   niches,
   onFill,
 }: {
-  line: string;
-  setLine: (line: string) => void;
+  value: string;
+  setValue: (value: string) => void;
   niches: { name: string; problems: string[] }[];
   onFill: (fill: NoteFill) => void;
 }) {
@@ -975,7 +959,7 @@ function QuickNote({
     setBusy(true);
     setMessage(null);
     try {
-      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line, niches });
+      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line: value, niches });
       const parts = [
         fill.name ? 'name' : null,
         fill.company ? 'company' : null,
@@ -985,18 +969,18 @@ function QuickNote({
       ].filter(Boolean);
       onFill(fill);
       if (parts.length > 0) {
-        setMessage(`Filled in ${parts.join(', ')}. Check it above, then save.`);
-        setLine('');
+        setMessage(
+          `Ticked or filled ${parts.join(', ')}. Your words stay saved. Check it, then save.`,
+        );
       } else {
-        // Keep the line: it is the rep's only record of the conversation so far.
-        setMessage('Nothing to fill in from that line. Your note is kept.');
+        setMessage('Nothing matched a chip. Your words stay saved with the lead.');
       }
     } catch (error) {
       const code = error instanceof ApiError ? error.message : '';
       setMessage(
         code === 'model_not_configured' || code === 'ai_unavailable'
-          ? 'The AI isn’t available right now. Your note is kept.'
-          : 'Could not read that. Your note is kept.',
+          ? 'The AI isn’t available right now. Your words are saved with the lead.'
+          : 'Could not sort that. Your words are saved with the lead.',
       );
     } finally {
       setBusy(false);
@@ -1004,27 +988,30 @@ function QuickNote({
   }
 
   return (
-    <section>
-      <label htmlFor="quick-note" className="text-ink-2 text-sm font-medium">
-        Anything else? Type or dictate
+    <section className="border-accent/40 bg-accent-soft/40 rounded-xl border p-3">
+      <label htmlFor="quick-note" className="text-ink text-sm font-semibold">
+        Not in the list? Say it in your words
       </label>
+      <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
+        Business things only. Private details go in More details.
+      </p>
       <Textarea
         id="quick-note"
         rows={2}
-        value={line}
-        onChange={(e) => setLine(e.target.value)}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
-        maxLength={600}
+        maxLength={1000}
         className="mt-1 min-h-0 text-base"
       />
-      {line.trim().length >= 3 ? (
+      {value.trim().length >= 3 ? (
         <button
           type="button"
           disabled={busy}
           onClick={() => void run()}
           className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
         >
-          {busy ? 'Reading…' : 'Fill the form from this'}
+          {busy ? 'Reading…' : 'Sort it for me'}
         </button>
       ) : null}
       {message ? (

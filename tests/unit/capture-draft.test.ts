@@ -12,10 +12,9 @@ describe('capture drafts', () => {
     niche: 'Property developers',
     problems: ['Deals stall waiting on funding'],
     customProblems: '',
-    line: 'Waiting on funding — follow up next week',
   };
 
-  it('keeps the quick note alongside the form fields across JSON storage', () => {
+  it('keeps the form fields across JSON storage', () => {
     const before = Date.now();
     const stored = JSON.parse(serializeCaptureDraft(draft));
 
@@ -30,12 +29,6 @@ describe('capture drafts', () => {
 
     expect(stored).not.toHaveProperty('memorable');
     expect(stored).not.toHaveProperty('memorable_info');
-  });
-
-  it('keeps an empty line after the quick note is used or cleared', () => {
-    const stored = JSON.parse(serializeCaptureDraft({ ...draft, line: '' }));
-
-    expect(stored.line).toBe('');
   });
 });
 
