@@ -38,3 +38,36 @@ describe('capture drafts', () => {
     expect(stored.line).toBe('');
   });
 });
+
+import { chipProblemsForAll, joinNiches, parseNicheList } from '@/lib/capture/chips';
+
+describe('several areas at once', () => {
+  const niches = [
+    { name: 'Clinics', problems: ['Missed calls', 'No-shows'] },
+    { name: 'Trades', problems: ['Missed calls', 'Slow quotes'] },
+  ];
+
+  it('shows each problem once across every ticked area', () => {
+    expect(chipProblemsForAll(niches, ['Clinics', 'Trades'], [])).toEqual([
+      'Missed calls',
+      'No-shows',
+      'Slow quotes',
+    ]);
+  });
+
+  it('round-trips the ticked areas through the single niche column', () => {
+    const stored = joinNiches(['Clinics', 'Trades']);
+    expect(parseNicheList(stored, niches)).toEqual(['Clinics', 'Trades']);
+  });
+
+  it('starts on the first area, and drops an area that no longer exists', () => {
+    expect(parseNicheList(null, niches)).toEqual(['Clinics']);
+    expect(parseNicheList('Gone | Trades', niches)).toEqual(['Trades']);
+  });
+
+  it('falls back to the playbook when nothing is ticked and the event has no problems', () => {
+    expect(chipProblemsForAll([{ name: 'A', problems: [] }], [], ['Common one'])).toEqual([
+      'Common one',
+    ]);
+  });
+});

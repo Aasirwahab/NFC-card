@@ -15,7 +15,14 @@ import { shrinkToJpeg } from '@/lib/browser/image';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import { serializeCaptureDraft } from '@/lib/capture/draft';
-import { chipProblems, FALLBACK_NICHE, keepVisible, noteNiches } from '@/lib/capture/chips';
+import {
+  chipProblemsForAll,
+  FALLBACK_NICHE,
+  joinNiches,
+  keepVisible,
+  noteNiches,
+  parseNicheList,
+} from '@/lib/capture/chips';
 import type { SiteLookup } from '@/lib/lookup/company';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
@@ -70,7 +77,9 @@ export function DetailsForm({
   const [email, setEmail] = useState(session.prospect_email ?? '');
   const [phone, setPhone] = useState(session.prospect_phone ?? '');
   const [linkedin, setLinkedin] = useState(session.linkedin_url ?? '');
-  const [niche, setNiche] = useState(session.niche ?? niches[0]?.name ?? '');
+  // Several areas can be ticked: the chips below are everything raised under any of them.
+  const [selectedNiches, setSelectedNiches] = useState(() => parseNicheList(session.niche, niches));
+  const niche = joinNiches(selectedNiches);
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
@@ -126,7 +135,8 @@ export function DetailsForm({
         if (typeof d.email === 'string') setEmail(d.email);
         if (typeof d.phone === 'string') setPhone(d.phone);
         if (typeof d.linkedin === 'string') setLinkedin(d.linkedin);
-        if (typeof d.niche === 'string' && d.niche) setNiche(d.niche);
+        if (typeof d.niche === 'string' && d.niche)
+          setSelectedNiches(parseNicheList(d.niche, niches));
         if (Array.isArray(d.problems))
           setProblems(d.problems.filter((p): p is string => typeof p === 'string'));
         if (typeof d.customProblems === 'string') setCustomProblems(d.customProblems);
@@ -224,8 +234,8 @@ export function DetailsForm({
   }, [lookupEnabled, session.details_completed_at, company, name, website, linkedin]);
 
   const quickSelect = useMemo(
-    () => chipProblems(niches, niche, fallbackProblems),
-    [niches, niche, fallbackProblems],
+    () => chipProblemsForAll(niches, selectedNiches, fallbackProblems),
+    [niches, selectedNiches, fallbackProblems],
   );
 
   // The non-blocking nudge (§19.3). It never prevents a save — a rep at a loud
@@ -337,6 +347,18 @@ export function DetailsForm({
   return (
     <div
       className={`${styles.surface} ${styles.repSurface} ${styles.capture} pb-4 [&_input]:scroll-mb-64 [&_select]:scroll-mb-64 [&_textarea]:scroll-mb-64`}
+      // The keyboard goes away when the rep scrolls past it, taps a chip, or presses Enter
+      // in a one-line field, so the form is never stuck half-covered.
+      onTouchMove={(e) => {
+        const active = document.activeElement;
+        if (active && !active.contains(e.target as Node)) dismissKeyboard();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+          e.preventDefault();
+          dismissKeyboard();
+        }
+      }}
     >
       <header className="flex items-center gap-2.5">
         <span
@@ -385,10 +407,7 @@ export function DetailsForm({
         </p>
       ) : null}
 
-      <QuickNote
-        line={line}
-        setLine={setLine}
-        niches={noteNiches(niches, fallbackProblems)}
+      <CardScan
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
           // Fill only what is still empty NOW (not what was empty when the photo was taken).
@@ -412,65 +431,30 @@ export function DetailsForm({
             }
           }
         }}
-        onFill={(fill) => {
-          const fillIfEmpty = (value: string) => (current: string) =>
-            current.trim() ? current : value;
-          if (fill.name) setName(fillIfEmpty(fill.name));
-          if (fill.company) setCompany(fillIfEmpty(fill.company));
-          // Never swap a niche the rep already worked in.
-          if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
-            setNiche(fill.niche);
-          }
-          if (fill.problems.length > 0) {
-            setProblems((current) => [...new Set([...current, ...fill.problems])]);
-          }
-          // Leftovers are often small talk; they stay private, never on the prospect's page.
-          if (fill.extra) setMemorable((current) => (current.trim() ? current : fill.extra!));
-        }}
       />
 
-      <div className="mt-6 flex flex-col gap-4">
-        <h2 className={styles.checkTitle}>Is this right?</h2>
-        <Field label="Their name" htmlFor="name">
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-        </Field>
-
-        <Field label="Company" htmlFor="company">
-          <Input
-            id="company"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-        </Field>
-
+      <div className="mt-4 flex flex-col gap-4">
         {niches.length > 0 ? (
           <fieldset>
-            <legend className="text-ink-2 text-sm font-medium">Their area</legend>
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <legend className="text-ink-2 text-sm font-medium">
+              Their area (tick any that fit)
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-2">
               {niches.map((n) => {
-                const selected = n.name === niche;
+                const selected = selectedNiches.includes(n.name);
                 return (
                   <button
                     key={n.name}
                     type="button"
                     aria-pressed={selected}
                     onClick={() => {
-                      if (selected) return;
-                      setNiche(n.name);
-                      // Problems belong to a niche: keep the ticks that still have a chip
-                      // under the new area and drop the rest.
-                      const next = chipProblems(niches, n.name, fallbackProblems);
-                      setProblems((current) => keepVisible(current, next));
+                      const next = selected
+                        ? selectedNiches.filter((x) => x !== n.name)
+                        : [...selectedNiches, n.name];
+                      setSelectedNiches(next);
+                      // A tick can only stay while its chip is on screen.
+                      const visible = chipProblemsForAll(niches, next, fallbackProblems);
+                      setProblems((current) => keepVisible(current, visible));
                     }}
                     className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                       selected
@@ -499,7 +483,10 @@ export function DetailsForm({
                   <button
                     key={problem}
                     type="button"
-                    onClick={() => toggleProblem(problem)}
+                    onClick={() => {
+                      dismissKeyboard();
+                      toggleProblem(problem);
+                    }}
                     aria-pressed={selected}
                     className={`rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
                       selected
@@ -514,6 +501,28 @@ export function DetailsForm({
             </div>
           </fieldset>
         ) : null}
+
+        <Field label="Their name" htmlFor="name">
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </Field>
+
+        <Field label="Company" htmlFor="company">
+          <Input
+            id="company"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Email" htmlFor="email">
@@ -536,6 +545,27 @@ export function DetailsForm({
             />
           </Field>
         </div>
+
+        <QuickNote
+          line={line}
+          setLine={setLine}
+          niches={noteNiches(niches, fallbackProblems)}
+          onFill={(fill) => {
+            const fillIfEmpty = (value: string) => (current: string) =>
+              current.trim() ? current : value;
+            if (fill.name) setName(fillIfEmpty(fill.name));
+            if (fill.company) setCompany(fillIfEmpty(fill.company));
+            // Never swap a niche the rep already worked in.
+            if (fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0) {
+              setSelectedNiches([fill.niche]);
+            }
+            if (fill.problems.length > 0) {
+              setProblems((current) => [...new Set([...current, ...fill.problems])]);
+            }
+            // Leftovers are often small talk; they stay private, never on the prospect's page.
+            if (fill.extra) setMemorable((current) => (current.trim() ? current : fill.extra!));
+          }}
+        />
 
         <details className={styles.optionalDetails}>
           <summary>
@@ -820,61 +850,23 @@ function EventPicker({
   );
 }
 
-/**
- * "Say it or type it": one line, then the form fills itself for you to check. The
- * phone's own keyboard microphone does the dictating, so no audio ever reaches us.
- */
-function QuickNote({
-  line,
-  setLine,
-  niches,
+/** Hands the keyboard back so the form is visible again. */
+function dismissKeyboard() {
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) active.blur();
+}
+
+/** A photo of their business card fills what is still empty. The photo is read, not stored. */
+function CardScan({
   scanEnabled,
   onScan,
-  onFill,
 }: {
-  line: string;
-  setLine: (line: string) => void;
-  niches: { name: string; problems: string[] }[];
   scanEnabled: boolean;
   onScan: (card: CardFields) => void;
-  onFill: (fill: NoteFill) => void;
 }) {
   const camera = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  async function run() {
-    setBusy(true);
-    setMessage(null);
-    try {
-      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line, niches });
-      const parts = [
-        fill.name ? 'name' : null,
-        fill.company ? 'company' : null,
-        fill.problems.length > 0
-          ? `${fill.problems.length} problem${fill.problems.length === 1 ? '' : 's'}`
-          : null,
-      ].filter(Boolean);
-      onFill(fill);
-      if (parts.length > 0) {
-        setMessage(`Filled in ${parts.join(', ')}. Check it below, then save.`);
-        setLine('');
-      } else {
-        // Keep the line: it is the rep's only record of the conversation so far.
-        setMessage('Nothing to fill in from that line. Your note is kept.');
-      }
-    } catch (error) {
-      const code = error instanceof ApiError ? error.message : '';
-      setMessage(
-        code === 'model_not_configured' || code === 'ai_unavailable'
-          ? 'The AI isn’t available right now. Type the details below. Your note is kept.'
-          : 'Could not read that. Fill the form below. Your note is kept.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function scan(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -901,53 +893,111 @@ function QuickNote({
     }
   }
 
+  if (!scanEnabled) return null;
   return (
-    <section className={styles.quickNote}>
-      <label htmlFor="quick-note" className={styles.noteTitle}>
-        What did they say?
+    <div className="mt-4">
+      <button
+        type="button"
+        disabled={scanning}
+        onClick={() => camera.current?.click()}
+        className={styles.scanButton}
+      >
+        <Camera className="h-5 w-5" aria-hidden="true" />
+        {scanning ? 'Reading card…' : 'Scan their card'}
+      </button>
+      <input
+        ref={camera}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={scan}
+      />
+      {message ? (
+        <p className="text-ink-2 mt-2 text-[13px]" role="status">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * "Say it or type it": a small note for what the chips cannot say. The phone's own
+ * keyboard microphone does the dictating, so no audio ever reaches us. When the AI is on,
+ * one tap turns the line into name, company and problems for the rep to check.
+ */
+function QuickNote({
+  line,
+  setLine,
+  niches,
+  onFill,
+}: {
+  line: string;
+  setLine: (line: string) => void;
+  niches: { name: string; problems: string[] }[];
+  onFill: (fill: NoteFill) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    dismissKeyboard();
+    setBusy(true);
+    setMessage(null);
+    try {
+      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', { line, niches });
+      const parts = [
+        fill.name ? 'name' : null,
+        fill.company ? 'company' : null,
+        fill.problems.length > 0
+          ? `${fill.problems.length} problem${fill.problems.length === 1 ? '' : 's'}`
+          : null,
+      ].filter(Boolean);
+      onFill(fill);
+      if (parts.length > 0) {
+        setMessage(`Filled in ${parts.join(', ')}. Check it above, then save.`);
+        setLine('');
+      } else {
+        // Keep the line: it is the rep's only record of the conversation so far.
+        setMessage('Nothing to fill in from that line. Your note is kept.');
+      }
+    } catch (error) {
+      const code = error instanceof ApiError ? error.message : '';
+      setMessage(
+        code === 'model_not_configured' || code === 'ai_unavailable'
+          ? 'The AI isn’t available right now. Your note is kept.'
+          : 'Could not read that. Your note is kept.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <label htmlFor="quick-note" className="text-ink-2 text-sm font-medium">
+        Anything else? Type or dictate
       </label>
-      <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
-        One line is enough. Tap the microphone on your keyboard to dictate.
-      </p>
       <Textarea
         id="quick-note"
-        rows={7}
+        rows={2}
         value={line}
         onChange={(e) => setLine(e.target.value)}
         placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
         maxLength={600}
-        className={styles.noteInput}
+        className="mt-1 min-h-0 text-base"
       />
-      <button
-        type="button"
-        disabled={busy || line.trim().length < 3}
-        onClick={() => void run()}
-        className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
-      >
-        {busy ? 'Reading…' : 'Fill the form'}
-      </button>
-      {scanEnabled ? (
-        <>
-          <button
-            type="button"
-            disabled={scanning}
-            onClick={() => camera.current?.click()}
-            className={styles.scanButton}
-          >
-            <Camera className="h-5 w-5" aria-hidden="true" />
-            {scanning ? 'Reading card…' : 'Scan their card'}
-          </button>
-          <p className="text-ink-3 mt-2 text-sm">The photo is read, not stored.</p>
-          <input
-            ref={camera}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            tabIndex={-1}
-            onChange={scan}
-          />
-        </>
+      {line.trim().length >= 3 ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void run()}
+          className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {busy ? 'Reading…' : 'Fill the form from this'}
+        </button>
       ) : null}
       {message ? (
         <p className="text-ink-2 mt-2 text-[13px]" role="status">
