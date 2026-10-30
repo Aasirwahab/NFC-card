@@ -375,3 +375,53 @@ describe('readBytesCapped', () => {
     expect(await readBytesCapped(big, 100)).toBeNull();
   });
 });
+
+describe('industry fit when the company text settles nothing', () => {
+  const search: SearchFn = async () => [
+    {
+      url: 'https://www.linkedin.com/in/alex-morgan-aaa111',
+      title: 'Alex Morgan - Consultant - Brightwater | LinkedIn',
+      snippet: 'Management consultant. London.',
+    },
+    {
+      url: 'https://www.linkedin.com/in/alex-morgan-bbb222',
+      title: 'Alex Morgan - Practice Manager - Smile Dental | LinkedIn',
+      snippet: 'Dental practice manager. Leeds.',
+    },
+  ];
+  // A judge that knows nothing about the employer, but says dental text fits dentistry.
+  const jev: JevClient = {
+    async yes({ state }) {
+      return /dental/i.test(state.split('Text from')[1] ?? '') ? 0.9 : 0.1;
+    },
+    async pick<T extends string>() {
+      return {
+        choice: 'not_stated' as T,
+        confidence: 0.9,
+        probabilities: { not_stated: 0.9 },
+      };
+    },
+  };
+
+  it('ranks the profile that fits the picked industry first, and never calls it likely', async () => {
+    const result = await findLinkedInProfile({
+      search,
+      jev,
+      name: 'Alex Morgan',
+      company: 'Unlisted Ltd',
+      context: { niche: 'Dental practices', problems: ['Missed calls'] },
+    });
+    expect(result.candidates[0]!.url).toMatch(/bbb222/);
+    expect(result.likelyUrl).toBeNull();
+  });
+
+  it('keeps the old order when no industry was picked', async () => {
+    const result = await findLinkedInProfile({
+      search,
+      jev,
+      name: 'Alex Morgan',
+      company: 'Unlisted Ltd',
+    });
+    expect(result.candidates[0]!.url).toMatch(/aaa111/);
+  });
+});
