@@ -2,7 +2,7 @@ import type { ModelReply } from '@/lib/chat/assistant';
 import type { PageAction } from '@/lib/landing/actions';
 
 const EMAIL = /\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9.-]*[A-Z0-9])?\.[A-Z]{2,}\b/gi;
-const PHONE = /(?<![\p{L}\d])\+?\d[\d ()-]{5,}\d(?![\p{L}\d])/gu;
+const PHONE = /(?<![\p{L}\d])\+?\d[\d ().-]{5,}\d(?![\p{L}\d])/gu;
 
 /** Used on prompt copies only; the original chat log is left intact. */
 export function redactContacts(text: string): string {
@@ -15,9 +15,25 @@ export function redactContacts(text: string): string {
 const BOOKING =
   /^(?:(?:can|could|may) (?:i|we) |(?:i|we)(?:'d| would) like to |(?:please )?)(?:book|schedule|arrange)(?: in)? (?:a |an |the )?(?:call|meeting|appointment|demo)(?: (?:with (?:you|[\p{L}]+)|this week|next week|today|tomorrow))*[.!?]*$/iu;
 
+// A callback request in so many words. Short messages only: a long question that happens to
+// contain "call me" is a product question and goes to the model.
+const CALLBACK =
+  /\b(?:call|ring|phone|text|whatsapp|contact|reach)\s+me\b|\bgive me a (?:call|ring)\b|\bcall(?:\s|-)?back\b|\bget back to me\b|\b(?:ask|tell|have|get)\s+[\p{L}]+\s+to\s+(?:call|ring|phone|contact|email|text|message)\b|\b(?:i(?:'d| would) like|can (?:i|we) (?:have|get)|could (?:i|we) (?:have|get)) a (?:call|callback)\b/iu;
+
+const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
 export function routeKnownIntent(message: string, actions: PageAction[]): ModelReply | null {
-  const contactShared = redactContacts(message) !== message;
-  if (!contactShared && !BOOKING.test(message.trim())) return null;
+  const text = message.trim();
+  const redacted = redactContacts(text);
+  const contactShared = redacted !== text;
+  // Contact details are the whole message only when almost nothing else is said and it is not a
+  // question: "Is jane@example.com your support address?" must reach the model.
+  const leftover = redacted.replace(/\[(?:email|phone) redacted\]/g, ' ');
+  const justContact = contactShared && !text.includes('?') && wordCount(leftover) <= 5;
+  const callback = wordCount(text) <= 15 && CALLBACK.test(text);
+  const booking = BOOKING.test(text);
+  if (!justContact && !callback && !booking) return null;
+  const noMessages = justContact || callback;
   const action =
     actions.find((a) => a.id === 'book') ??
     actions.find((a) => a.id === 'linkedin') ??
@@ -32,7 +48,7 @@ export function routeKnownIntent(message: string, actions: PageAction[]): ModelR
           : 'Please contact the rep directly.';
   return {
     outcome: 'action',
-    reply: `${contactShared ? 'I can’t arrange calls or pass messages from this chat. ' : ''}${next}`,
+    reply: `${noMessages ? 'I can’t arrange calls or pass messages from this chat. ' : ''}${next}`,
     action: action?.id ?? null,
   };
 }
