@@ -121,7 +121,7 @@ const COMPETITORS = /\b(?:competitors?|competition|rivals?)\b/i;
 const ATTRIBUTES_SPEECH = new RegExp(
   [
     // you (also / had / 've / 'd / just ...) mentioned | said | described | told | raised | ...
-    String.raw`\byou(?:['’](?:ve|d))?(?:\s+(?:also|just|only|had|have|already|briefly|specifically|first))*\s+(?:mentioned|said|described|told|raised|explained|noted|brought up|talked about|spoke about|were (?:saying|talking about|describing|mentioning))\b`,
+    String.raw`\byou(?:['’](?:ve|d))?(?:\s+(?:also|just|only|had|have|already|briefly|specifically|first))*\s+(?:mentioned|said|described|told|raised|explained|noted|brought up|flagged|pointed out|highlighted|indicated|talked about|spoke about|were (?:saying|talking about|describing|mentioning))\b`,
     // you did (specifically) mention / say / describe ...
     String.raw`\byou did(?:\s+(?:also|just|specifically))?\s+(?:mention|say|describe|raise|note)\b`,
     // as you said / as you noted ...
@@ -277,7 +277,7 @@ export function qualityGate(body: string, brief: Brief): GateResult {
   }
 
   // 1b. With no problem in the brief, nothing may be attributed to them: they raised none.
-  if (!brief.primaryProblem && ATTRIBUTES_SPEECH.test(trimmed)) {
+  if (!brief.primaryProblem && !brief.customProblem && ATTRIBUTES_SPEECH.test(trimmed)) {
     fail(
       'invented_statement',
       'says they mentioned or described something, but they raised no problem: write a neutral note about meeting them',
