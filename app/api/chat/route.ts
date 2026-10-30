@@ -119,8 +119,12 @@ export async function POST(request: Request) {
   if (smallTalk !== null || intent !== null) {
     // Once the five are used, a greeting must not invite another question.
     const remaining = Math.max(0, CHAT_CAP - session.chat_response_count);
-    const reply =
-      remaining > 0 ? (intent?.reply ?? smallTalk!) : capReachedReply(context.repFirstName);
+    // A fixed router answer costs nothing, so it is still given once the five are used.
+    const reply = intent
+      ? intent.reply
+      : remaining > 0
+        ? smallTalk!
+        : capReachedReply(context.repFirstName);
     // Logged like any turn, so the rep reads the whole conversation and the
     // model sees it as context for the next question.
     const { error: logError } = await db.rpc('record_chat_turn', {
@@ -140,9 +144,7 @@ export async function POST(request: Request) {
     return json({
       reply,
       remaining,
-      ...(remaining > 0 && intent
-        ? { outcome: intent.outcome, actionId: intent.action ?? undefined }
-        : {}),
+      ...(intent ? { outcome: intent.outcome, actionId: intent.action ?? undefined } : {}),
     });
   }
 

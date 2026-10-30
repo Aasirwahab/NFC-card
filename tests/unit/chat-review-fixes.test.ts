@@ -81,3 +81,28 @@ describe('price gate: the billing term must match the stored pricing', () => {
     expect(failures('It costs £400.')).not.toEqual([]);
   });
 });
+
+describe('price gate: amounts, not stray digits', () => {
+  const check = (text: string, pricing: string) =>
+    claimFailures(text, pricing, pricing, true, pricing).filter(
+      (f) => f.check === 'unsupported_price',
+    );
+
+  it('does not let "30 days" authorise "£30"', () => {
+    const pricing = 'Tier 1: £500, with a 30 days guarantee.';
+    expect(check('It costs £30.', pricing)).not.toEqual([]);
+    expect(check('Tier 1 is £500.', pricing)).toEqual([]);
+  });
+
+  it('compares by value, not by spelling', () => {
+    expect(check('It is £50.', 'Sessions are £50.00.')).toEqual([]);
+    expect(check('It is £1k.', 'Projects are £1,000.')).toEqual([]);
+    expect(check('It is £1,000.', 'Projects are £1k.')).toEqual([]);
+    expect(check('It is £51.', 'Sessions are £50.00.')).not.toEqual([]);
+  });
+
+  it('falls back to bare numbers when the pricing has no currency amounts', () => {
+    expect(check('The Pro plan is £900.', 'Starter 500, Pro 900')).toEqual([]);
+    expect(check('The Pro plan is £700.', 'Starter 500, Pro 900')).not.toEqual([]);
+  });
+});

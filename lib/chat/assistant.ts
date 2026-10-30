@@ -220,7 +220,10 @@ export function checkReply(reply: ModelReply | string, context: ChatContext): Re
     contextText(context),
     context.pricing,
     true,
-    context.knowledge,
+    // Stored rep text only: knowledge, services, business name and tagline ("Route 66", "24/7").
+    [context.knowledge, context.businessName, context.tagline, ...context.services]
+      .filter((part): part is string => Boolean(part))
+      .join('\n'),
   );
   const unavailable =
     (value.action !== null && !context.actions.some((a) => a.id === value.action)) ||

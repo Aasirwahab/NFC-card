@@ -162,6 +162,13 @@ const BILLING: readonly (readonly [string, RegExp])[] = [
   ['once', /\bone[- ]?(?:time|off)\b|\bset-?up fee\b|\bupfront\b/i],
 ];
 
+/** The numeric value of a price or figure: "£2,500" is 2500, "£1.5k" is 1500, "150 pounds" is 150. */
+function amountValue(raw: string): number {
+  const cleaned = raw.toLowerCase().replace(/[£$€,\s]|pounds|gbp|usd|dollars|euros?/g, '');
+  const scale = cleaned.endsWith('k') ? 1_000 : cleaned.endsWith('m') ? 1_000_000 : 1;
+  return Number.parseFloat(cleaned) * scale;
+}
+
 /** Each price in the text with its digits and billing terms, taken from the same sentence and
  *  the stretch up to the neighbouring price, so "£150 a month or £1,500 a year" stays apart. */
 function priceTerms(source: string): { digits: string; terms: Set<string> }[] {
@@ -188,7 +195,7 @@ function priceTerms(source: string): { digits: string; terms: Set<string> }[] {
       if (sep) lead = lead.slice((sep.index ?? 0) + sep[0].length);
       terms = termsOf(lead);
     }
-    return { digits: hit[0].replace(/[^\d.]/g, '').toLowerCase(), terms };
+    return { digits: String(amountValue(hit[0])), terms };
   });
 }
 
@@ -273,17 +280,19 @@ export function claimFailures(
   const contextDigits = numbers(
     knowledge === undefined ? context : `${pricing ?? ''}\n${knowledge}`,
   );
-  const pricingDigits = numbers(pricing ?? '');
+  // Amounts compare by value ("£50" = "£50.00", "£1k" = "£1,000"). When the pricing text has
+  // currency amounts, only those count: "30 days" must not authorise "£30".
   const storedPrices = priceTerms(pricing ?? '');
+  const amounts =
+    (pricing ?? '').match(PRICE)?.map(amountValue) ?? numbers(pricing ?? '').map(amountValue);
   for (const price of text.match(PRICE) ?? []) {
-    const digits = numbers(price)[0]!;
-    if (!pricingDigits.includes(digits)) {
+    if (!amounts.includes(amountValue(price))) {
       fail('unsupported_price', `quotes ${price.trim()}, which is not in the pricing`);
     }
   }
   // The amount may exist, but the billing must match: "£299 one-time" is not "£299 a month".
   for (const quoted of priceTerms(text)) {
-    const stored = storedPrices.filter((p) => p.digits === quoted.digits.replace(/,/g, ''));
+    const stored = storedPrices.filter((p) => p.digits === quoted.digits);
     if (stored.length === 0) continue;
     for (const term of quoted.terms) {
       if (!stored.some((p) => p.terms.has(term))) {

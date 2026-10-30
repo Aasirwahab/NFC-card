@@ -46,9 +46,14 @@ export function ChatWidget({
   const [remaining, setRemaining] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
+    // The launcher unmounts while the panel is open: give focus back to it on close.
+    else if (wasOpen.current) launcherRef.current?.focus();
+    wasOpen.current = open;
   }, [open]);
 
   useEffect(() => {
@@ -110,7 +115,7 @@ export function ChatWidget({
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close"
-              className="text-ink-3 hover:text-ink -mr-1 flex h-9 w-9 items-center justify-center rounded-lg"
+              className="text-ink-3 hover:text-ink -mr-2 flex h-11 w-11 items-center justify-center rounded-lg"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -200,7 +205,10 @@ export function ChatWidget({
 
       {!open ? (
         <button
+          ref={launcherRef}
           type="button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
           onClick={() => setOpen(true)}
           className="border-line text-ink-2 flex min-h-12 w-full items-center justify-between gap-2 border-t py-3 text-left text-[15px]"
         >
