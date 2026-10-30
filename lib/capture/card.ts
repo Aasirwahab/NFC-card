@@ -27,6 +27,14 @@ export type CardFields = {
   website: string | null;
 };
 
+/** The card reader itself failed (model down, timeout, rate limit), as opposed to a card it could not read. */
+export class CardReaderUnavailableError extends Error {
+  constructor() {
+    super('scan_unavailable');
+    this.name = 'CardReaderUnavailableError';
+  }
+}
+
 export const NO_CARD: CardFields = {
   name: null,
   title: null,
@@ -87,7 +95,7 @@ export async function readCard(input: {
           role: 'user',
           content: [
             { type: 'text', text: 'Read this business card.' },
-            { type: 'image', image: input.jpeg, mediaType: 'image/jpeg' },
+            { type: 'file', data: input.jpeg, mediaType: 'image/jpeg' },
           ],
         },
       ],
@@ -95,7 +103,15 @@ export async function readCard(input: {
       abortSignal: AbortSignal.timeout(25_000),
     });
     return cleanCard(output);
-  } catch {
-    return NO_CARD;
+  } catch (error) {
+    // Reason only, never the image or what was on the card.
+    console.warn(
+      JSON.stringify({
+        event: 'card_scan_failed',
+        reason: error instanceof Error ? error.name : 'unknown',
+        status: (error as { statusCode?: number }).statusCode ?? null,
+      }),
+    );
+    throw new CardReaderUnavailableError();
   }
 }

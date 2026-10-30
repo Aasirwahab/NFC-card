@@ -132,3 +132,18 @@ describe('extractNote failures', () => {
     ).rejects.toThrow();
   });
 });
+
+import { CardReaderUnavailableError, readCard } from '@/lib/capture/card';
+
+describe('readCard failures', () => {
+  it('tells a broken card reader apart from a card it could not read', async () => {
+    const broken = new MockLanguageModelV4({
+      doGenerate: async () => {
+        throw new Error('model unavailable');
+      },
+    });
+    await expect(
+      readCard({ model: broken, jpeg: new Uint8Array([0xff, 0xd8, 0xff]) }),
+    ).rejects.toBeInstanceOf(CardReaderUnavailableError);
+  });
+});

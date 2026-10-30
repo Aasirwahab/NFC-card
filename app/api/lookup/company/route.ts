@@ -11,6 +11,9 @@ const bodySchema = z.object({
   place: z.string().trim().max(80).optional(),
 });
 
+/** Search vendors can take a while; the default would cut the lookup short. */
+export const maxDuration = 30;
+
 /**
  * POST /api/lookup/company: likely official websites for a company name. Suggests
  * only; the rep taps the right one. 501 when no search provider is configured.

@@ -919,8 +919,15 @@ function CardScan({
           ? 'Read their card. Tap any field below to correct it, and tap the right website and LinkedIn when they appear.'
           : 'Could not read that card. Try again in better light, or type it.',
       );
-    } catch {
-      setMessage('Could not read that card. Fill the form below instead.');
+    } catch (error) {
+      const code = error instanceof ApiError ? error.message : '';
+      setMessage(
+        code === 'rate_limited'
+          ? 'That is a lot of scans. Try again in a few minutes, or type it.'
+          : code === 'scan_unavailable' || code === 'scan_not_configured'
+            ? 'The card reader is not working right now. Type the details instead.'
+            : 'Could not read that card. Fill the form below instead.',
+      );
     } finally {
       setScanning(false);
     }
