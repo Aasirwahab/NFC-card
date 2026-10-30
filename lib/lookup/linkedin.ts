@@ -131,11 +131,16 @@ export function phrase(text: string): string {
     .slice(0, 120);
 }
 
+/** What the rep picked about the lead: business-level text only, never personal details. */
+export type LeadContext = { niche?: string | null; problems?: string[] };
+
 export async function findLinkedInProfile(input: {
   search: SearchFn;
   jev: JevClient | null;
   name: string;
   company?: string | null;
+  /** The industry and problems picked on the capture screen: they help order namesakes. */
+  context?: LeadContext;
 }): Promise<ProfileLookup> {
   const company = input.company?.trim() || null;
   // Two shapes, measured on 8 well-known people (2026-09-29): the plain phrase query
@@ -192,8 +197,19 @@ export async function findLinkedInProfile(input: {
         input.name,
         p.candidateName,
       ]);
-      const { label, score } = classify(p.relation, company$);
-      return { url: p.url, headline: p.headline, snippet: p.snippet, label, score };
+      const base = classify(p.relation, company$);
+      // Only a nudge for ordering: when the company text settles nothing, a headline that
+      // fits the picked industry ranks above one that does not. It never makes a "Likely".
+      let score = base.score;
+      if (base.label === 'ambiguous') {
+        const fit = await industryFit(
+          input.jev,
+          input.context,
+          redactNames(`${p.rest}. ${p.snippet}`, [input.name, p.candidateName]),
+        );
+        if (fit !== null) score = Math.min(LIKELY_MIN - 0.01, score + 0.25 * fit);
+      }
+      return { url: p.url, headline: p.headline, snippet: p.snippet, label: base.label, score };
     }),
   );
 
@@ -273,6 +289,22 @@ async function companyRelation(
   if (!pick) return { relation: 'not_stated', sameProbability: null };
   const relation = (pick.choice === 'other' ? 'not_stated' : pick.choice) as CompanyRelation;
   return { relation, sameProbability: pick.probabilities['same_company'] ?? null };
+}
+
+/** Does the (name-free) headline text fit the industry or problems the rep picked? 0 to 1, or null. */
+export async function industryFit(
+  jev: JevClient | null,
+  context: LeadContext | undefined,
+  text: string,
+): Promise<number | null> {
+  const niche = context?.niche?.trim();
+  const problems = (context?.problems ?? []).filter(Boolean).slice(0, 5);
+  if (!jev || (!niche && problems.length === 0) || !text.trim()) return null;
+  return jev.yes({
+    state: `Industry: ${niche || 'not stated'}. Problems raised: ${problems.join('; ') || 'none'}. Text from a search result about a person (name removed): ${text}`,
+    question:
+      'Does the text suggest this person works in that industry or in a role that deals with those problems?',
+  });
 }
 
 function classify(

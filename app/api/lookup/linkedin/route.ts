@@ -13,6 +13,9 @@ const bodySchema = z.object({
     .max(120)
     .regex(/\S+\s+\S+/, 'a first and last name'),
   company: z.string().trim().max(160).optional(),
+  /** The industry and problems the rep picked: business text that helps order namesakes. */
+  niche: z.string().trim().max(80).optional(),
+  problems: z.array(z.string().trim().min(1).max(200)).max(5).optional(),
 });
 
 /**
@@ -36,6 +39,7 @@ export const POST = withRep(async (rep, request) => {
       jev: jevClient(),
       name: parsed.data.name,
       company: parsed.data.company ?? null,
+      context: { niche: parsed.data.niche, problems: parsed.data.problems },
     });
     return json(lookup);
   } catch (error) {

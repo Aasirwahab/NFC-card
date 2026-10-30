@@ -217,6 +217,10 @@ export function DetailsForm({
   // Start the look-ups while the rep is still talking: once the company (or a full name)
   // has been still for a moment, ask. The rep only ever taps the right answer; nothing is
   // filled in. Each distinct value is asked once, so retyping does not spend searches.
+  // What the rep has picked so far (industry, problems): business text that helps Jev order
+  // namesakes. Read from a ref so a lookup that starts later sees the newest ticks.
+  const contextRef = useRef<{ niche?: string; problems?: string[] }>({});
+  const pickedContext = () => contextRef.current;
   const autoAsked = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!lookupEnabled || session.details_completed_at) return;
@@ -229,7 +233,7 @@ export function DetailsForm({
       const n = name.trim();
       if (/\S+\s+\S+/.test(n) && !linkedin.trim() && !autoAsked.current.has(`in:${n}|${c}`)) {
         autoAsked.current.add(`in:${n}|${c}`);
-        profileLookup.current?.run({ name: n, ...(c ? { company: c } : {}) });
+        profileLookup.current?.run({ name: n, ...(c ? { company: c } : {}), ...pickedContext() });
       }
     }, 900);
     return () => clearTimeout(timer);
@@ -239,6 +243,14 @@ export function DetailsForm({
     () => chipProblemsForAll(niches, selectedNiches, fallbackProblems),
     [niches, selectedNiches, fallbackProblems],
   );
+
+  useEffect(() => {
+    const ticked = keepVisible(problems, quickSelect).slice(0, MAX_TICKED_PROBLEMS);
+    contextRef.current = {
+      ...(selectedNiches.length > 0 ? { niche: selectedNiches.join(', ').slice(0, 80) } : {}),
+      ...(ticked.length > 0 ? { problems: ticked } : {}),
+    };
+  });
 
   // The non-blocking nudge (§19.3). It never prevents a save — a rep at a loud
   // venue who does not have an email must still be able to record the lead.
@@ -600,7 +612,11 @@ export function DetailsForm({
               buttonLabel="Search the web for LinkedIn"
               disabled={name.trim().split(/\s+/).length < 2}
               path="/api/lookup/linkedin"
-              body={() => ({ name: name.trim(), company: company.trim() || undefined })}
+              body={() => ({
+                name: name.trim(),
+                company: company.trim() || undefined,
+                ...pickedContext(),
+              })}
               toItems={(response: ProfileLookup) =>
                 response.candidates.map((c) => ({
                   key: c.url,
