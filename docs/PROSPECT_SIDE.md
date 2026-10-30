@@ -26,9 +26,11 @@ The rep's private note (it never reaches a model either), the event label "Unsor
 
 ## How the brief is made (AI, with guardrails)
 
-- Pipeline: `lib/enrich/` (snapshot of the lead + the rep's business, research of the prospect's own website only, a prompt, a quality gate). Prompt version `pitch-v2`.
+- Pipeline: `lib/enrich/` (snapshot of the lead + the rep's business, research of the prospect's own website only, a prompt, a quality gate). Prompt version `pitch-v4`.
 - The gate rejects invented facts, salesy phrasing and anything not backed by what the rep captured; on rejection or model failure the deterministic template (`lib/domain/pitch.ts`) is used. The template claims nothing about experience.
 - The playbook is written by the rep and shown as-is; the AI never adds to it.
+- **No problem chosen, no claim.** When the lead has no chosen problem (and no typed one), the prompt uses the neutral-note rules (`NO_PROBLEM_RULES` in `lib/enrich/prompts.ts`): say it was good to meet them, say plainly what the business does, invite a short conversation. The gate check `invented_statement` rejects "you mentioned / said / described / flagged ..." in that case, so a slip is retried and then falls back to the template. This exists because a pitch once told a prospect "you mentioned X" when they never had (found live 2026-10-29).
+- **Problem chips on every card.** The capture form shows the event's own areas and problems; a card with none (Unsorted, or an event with no problems set up) shows the rep's playbook problems instead (`lib/capture/chips.ts`). Only problems whose chip is on screen are saved. Matching to the playbook entry on this page is by exact problem text, case-insensitive (`playbookFor` in `lib/db/landing.ts`).
 - Chat (`/api/chat`): says it is an AI assistant, answers only from the rep's business and the captured problem, capped at 5 questions per card, 500 characters each, kill switch `CHAT_ENABLED`. History is read from the database, never trusted from the browser.
 - Model calls go through OpenRouter asking for zero data retention and no collection.
 
