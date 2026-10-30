@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { BackLink } from '@/components/back-link';
-import { getEvent, getSessionForRep, listEvents } from '@/lib/db/rep';
+import { eventHasProblems } from '@/lib/capture/chips';
+import { getEvent, getSessionForRep, listEvents, listPlaybookProblems } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
 import { env } from '@/lib/env';
 import { modelFor } from '@/lib/ai/models';
@@ -40,6 +41,11 @@ export default async function EditSessionPage({
       .maybeSingle(),
   ]);
 
+  // No problems on the event (Unsorted, or none set up): offer the rep's playbook problems instead.
+  const fallbackProblems = eventHasProblems(event?.niches ?? [])
+    ? []
+    : await listPlaybookProblems(rep.userId);
+
   return (
     <div>
       <BackLink href="/dashboard">Today</BackLink>
@@ -47,6 +53,7 @@ export default async function EditSessionPage({
         <DetailsForm
           session={session}
           niches={event?.niches ?? []}
+          fallbackProblems={fallbackProblems}
           eventName={event?.name ?? null}
           cardCode={card?.code ?? ''}
           events={events.map((e) => ({ id: e.id, name: e.name }))}
