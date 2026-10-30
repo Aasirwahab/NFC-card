@@ -33,3 +33,58 @@ export function noteNiches(niches: Niche[], fallback: string[]): Niche[] {
 export function keepVisible(selected: string[], visible: string[]): string[] {
   return selected.filter((p) => visible.includes(p));
 }
+
+/** Several areas can be ticked at once; they are stored in the one niche column, joined by this. */
+const NICHE_SEPARATOR = ' | ';
+
+/** The areas ticked on a saved lead. Only areas that still exist; none stored means the first. PURE. */
+export function parseNicheList(stored: string | null | undefined, niches: Niche[]): string[] {
+  const names = new Set(niches.map((n) => n.name));
+  const picked = (stored ?? '')
+    .split(NICHE_SEPARATOR)
+    .map((s) => s.trim())
+    .filter((s) => names.has(s));
+  if (picked.length > 0) return [...new Set(picked)];
+  return niches[0] ? [niches[0].name] : [];
+}
+
+/** The value saved in the niche column (80 characters at most, the schema limit). PURE. */
+export function joinNiches(selected: string[]): string {
+  // Whole names only: a name cut in half would not match its area when the lead is reopened.
+  const kept: string[] = [];
+  for (const name of selected) {
+    if ([...kept, name].join(NICHE_SEPARATOR).length > 80) break;
+    kept.push(name);
+  }
+  return kept.join(NICHE_SEPARATOR);
+}
+
+/** Chips for every ticked area, without repeats. With none ticked, the playbook fallback applies. PURE. */
+export function chipProblemsForAll(
+  niches: Niche[],
+  selected: string[],
+  fallback: string[],
+): string[] {
+  if (selected.length === 0) return chipProblems(niches, '', fallback);
+  return [...new Set(selected.flatMap((name) => chipProblems(niches, name, fallback)))];
+}
+
+/** The most problems a rep can tick: the page is written around them, and too many blur it. */
+export const MAX_TICKED_PROBLEMS = 5;
+
+/** Chips shown before "Show more". Ticked chips always show, first. */
+export const CHIPS_SHOWN = 8;
+
+/**
+ * The first few chips in their own order, plus any ticked chip further down, so a tap never
+ * moves the chips under the rep's finger and a ticked chip is never hidden. PURE.
+ */
+export function visibleChips(
+  all: string[],
+  selected: string[],
+  expanded: boolean,
+  limit = CHIPS_SHOWN,
+): { shown: string[]; hiddenCount: number } {
+  const shown = all.filter((c, i) => expanded || i < limit || selected.includes(c));
+  return { shown, hiddenCount: all.length - shown.length };
+}

@@ -8,7 +8,6 @@ type CaptureDraft = {
   niche: string;
   problems: string[];
   customProblems: string;
-  line: string;
 };
 
 /** Only these fields may be kept on the phone; never the private note. */
@@ -24,6 +23,5 @@ export function serializeCaptureDraft(draft: CaptureDraft): string {
     niche: draft.niche,
     problems: draft.problems,
     customProblems: draft.customProblems,
-    line: draft.line,
   });
 }
