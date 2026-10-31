@@ -12,7 +12,8 @@ import type { SearchFn } from '@/lib/search/types';
  */
 
 export type ProfileLabel = 'exact_match' | 'colleague' | 'namesake' | 'ambiguous' | 'unrelated';
-export type NameRelation = 'same' | 'alias' | 'different';
+/** `close`: the first name is one typo away (Zaid / Zaidh). Counts as a match but never reaches "Likely" on its own. */
+export type NameRelation = 'same' | 'alias' | 'close' | 'different';
 type CompanyRelation =
   'same_company' | 'similar_name_different_company' | 'different_company' | 'not_stated';
 
@@ -75,15 +76,28 @@ export function normaliseName(text: string): string[] {
     );
 }
 
-function sameFirst(a: string, b: string): 'same' | 'alias' | 'different' {
+/** True when a and b differ by at most one inserted, dropped or changed letter. */
+function oneTypoApart(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  const [long, short] = a.length > b.length ? [a, b] : [b, a];
+  return long.slice(i + 1) === short.slice(i);
+}
+
+function sameFirst(a: string, b: string): 'same' | 'alias' | 'close' | 'different' {
   if (a === b) return 'same';
-  return ALIASES.some((group) => group.includes(a) && group.includes(b)) ? 'alias' : 'different';
+  if (ALIASES.some((group) => group.includes(a) && group.includes(b))) return 'alias';
+  // Short names (Sam / Sarah, Dan / Dana) are different people one letter apart.
+  return a.length >= 4 && b.length >= 4 && oneTypoApart(a, b) ? 'close' : 'different';
 }
 
 /** How the typed name relates to the name at the start of a result title. Deterministic. */
 export function nameRelation(typed: string, candidateName: string): NameRelation {
-  const t = normaliseName(typed);
-  const c = normaliseName(candidateName);
+  // "Sarah Jones, CPA" -> "Sarah Jones"; apostrophes dropped so O'Neill = ONeill.
+  const t = normaliseName(typed.replace(/'/g, ''));
+  const c = normaliseName(candidateName.split(',')[0]!.replace(/'/g, ''));
   if (t.length === 0 || c.length === 0) return 'different';
   const tFirst = t[0]!;
   const tLast = t[t.length - 1]!;
@@ -91,11 +105,7 @@ export function nameRelation(typed: string, candidateName: string): NameRelation
   const cLast = c[c.length - 1]!;
   if (t.length === 1 || c.length === 1) return 'different'; // a lone name is never enough
   if (tLast !== cLast) return 'different';
-  return sameFirst(tFirst, cFirst) === 'same'
-    ? 'same'
-    : sameFirst(tFirst, cFirst) === 'alias'
-      ? 'alias'
-      : 'different';
+  return sameFirst(tFirst, cFirst);
 }
 
 // -------------------------------------------------------------- results
@@ -120,6 +130,12 @@ export function splitHeadline(title: string): { name: string; rest: string } {
 }
 
 const MAX_CANDIDATES = 5;
+
+/** "Bluewave Logistics Limited" -> "Bluewave Logistics": profiles rarely carry the legal suffix. */
+export function searchCompany(company: string): string {
+  const trimmed = company.replace(/[\s,.]+(ltd|limited|llp|llc|inc|plc|corp|co)\.?$/i, '').trim();
+  return trimmed || company;
+}
 export const LIKELY_MIN = 0.7;
 
 /** Text going inside a quoted search phrase: no quotes, operators or line breaks. */
@@ -142,7 +158,7 @@ export async function findLinkedInProfile(input: {
   /** The industry and problems picked on the capture screen: they help order namesakes. */
   context?: LeadContext;
 }): Promise<ProfileLookup> {
-  const company = input.company?.trim() || null;
+  const company = input.company?.trim() ? searchCompany(input.company.trim()) : null;
   // Two shapes, measured on 8 well-known people (2026-09-29): the plain phrase query
   // found more profiles than the site: operator, which returned lookalikes and
   // colleagues. Try the plain one; only if it yields no profile at all, the site: one.
@@ -164,6 +180,25 @@ export async function findLinkedInProfile(input: {
       : await scopedPending.catch(() => plainResults);
   } catch {
     results = await scopedPending;
+  }
+
+  // Nothing yet (a nickname, a typo, a company the profile does not mention, or a
+  // different spelling of it): ask two looser questions at once. One drops the company;
+  // the other keeps only the surname exact, so Tom finds Thomas and Zaid finds Zaidh.
+  if (!results.some((r) => profileUrl(r.url))) {
+    const nameTokens = normaliseName(input.name.replace(/'/g, ''));
+    const first = nameTokens[0];
+    const last = nameTokens.length > 1 ? nameTokens[nameTokens.length - 1] : null;
+    // The third has no quotes at all, for spellings a quoted phrase cannot match (ONeill).
+    const loose = [
+      `site:linkedin.com/in "${phrase(input.name)}"`,
+      `site:linkedin.com/in ${phrase(input.name)}`,
+    ];
+    if (first && last) {
+      loose.push(`site:linkedin.com/in "${last}" ${first}${company ? ` ${phrase(company)}` : ''}`);
+    }
+    const settled = await Promise.allSettled(loose.map((q) => input.search(q, { count: 10 })));
+    results = settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
   }
 
   const seen = new Set<string>();
@@ -315,7 +350,11 @@ function classify(
   const same = company.relation === 'same_company';
   const p = company.sameProbability ?? 0.6;
 
-  if (nameOk && same) return { label: 'exact_match', score: (name === 'same' ? 0.95 : 0.85) * p };
+  if (nameOk && same)
+    return {
+      label: 'exact_match',
+      score: (name === 'same' ? 0.95 : name === 'alias' ? 0.85 : 0.7) * p,
+    };
   if (nameOk && company.relation === 'not_stated')
     return { label: 'ambiguous', score: name === 'same' ? 0.4 : 0.3 };
   if (nameOk) return { label: 'namesake', score: 0.1 };

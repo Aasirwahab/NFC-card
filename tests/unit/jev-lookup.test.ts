@@ -311,10 +311,12 @@ describe('search query hygiene', () => {
       name: 'Sarah "x" Whitlock',
       company: 'Whitlock "Homes"',
     });
-    expect(seen).toEqual([
+    // The first two are the real searches; the rest only run because those found nothing.
+    expect(seen.slice(0, 2)).toEqual([
       '"Sarah x Whitlock" "Whitlock Homes" LinkedIn',
       'site:linkedin.com/in "Sarah x Whitlock" "Whitlock Homes"',
     ]);
+    expect(seen).toHaveLength(5);
   });
 });
 
