@@ -133,7 +133,10 @@ const MAX_CANDIDATES = 5;
 
 /** "Bluewave Logistics Limited" -> "Bluewave Logistics": profiles rarely carry the legal suffix. */
 export function searchCompany(company: string): string {
-  const trimmed = company.replace(/[\s,.]+(ltd|limited|llp|llc|inc|plc|corp|co)\.?$/i, '').trim();
+  const trimmed = company
+    .replace(/\.(com|co\.uk|uk|io|net|org)$/i, '') // "Webvoxel.com" is how people write it, "Webvoxel" is on the profile
+    .replace(/[\s,.]+(ltd|limited|llp|llc|inc|plc|corp|co)\.?$/i, '')
+    .trim();
   return trimmed || company;
 }
 export const LIKELY_MIN = 0.7;
