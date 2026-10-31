@@ -1,7 +1,7 @@
 import { fail, json, withRep } from '@/lib/api';
 import { readBytesCapped } from '@/lib/http/body';
 import { visionModel } from '@/lib/ai/models';
-import { readCard } from '@/lib/capture/card';
+import { CardReaderUnavailableError, readCard } from '@/lib/capture/card';
 import { isJpeg } from '@/lib/profile/photo';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
@@ -17,7 +17,7 @@ export const POST = withRep(async (rep, request) => {
   const vision = visionModel();
   if (!vision) return fail('scan_not_configured', 501);
 
-  const limit = await checkRateLimit('lookup', rep.userId);
+  const limit = await checkRateLimit('cardScan', rep.userId);
   if (!limit.allowed) return fail('rate_limited', 429);
 
   const bytes = await readBytesCapped(request, MAX_BYTES);
@@ -25,5 +25,10 @@ export const POST = withRep(async (rep, request) => {
   if (bytes.length === 0) return fail('empty', 400);
   if (!isJpeg(bytes)) return fail('not_jpeg', 400);
 
-  return json(await readCard({ model: vision.model, jpeg: bytes }));
+  try {
+    return json(await readCard({ model: vision.model, jpeg: bytes }));
+  } catch (error) {
+    if (error instanceof CardReaderUnavailableError) return fail('scan_unavailable', 502);
+    throw error;
+  }
 });

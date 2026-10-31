@@ -42,7 +42,7 @@ export function braveSearch(apiKey: string): SearchFn {
       const data = (await callFixedApi({
         url: url.toString(),
         headers: { 'x-subscription-token': apiKey, accept: 'application/json' },
-        timeoutMs: 4_000,
+        timeoutMs: 8_000,
       })) as { web?: { results?: unknown } };
       return collect(data?.web?.results, (r) => ({
         url: String(r.url ?? ''),
@@ -62,7 +62,7 @@ export function serperSearch(apiKey: string): SearchFn {
         url: 'https://google.serper.dev/search',
         headers: { 'x-api-key': apiKey },
         body: { q: query, num: options?.count ?? 8 },
-        timeoutMs: 4_000,
+        timeoutMs: 8_000,
       })) as { organic?: unknown };
       return collect(data?.organic, (r) => ({
         url: String(r.link ?? ''),
@@ -85,7 +85,11 @@ export function serpApiSearch(apiKey: string): SearchFn {
       url.searchParams.set('q', query);
       url.searchParams.set('num', String(options?.count ?? 8));
       url.searchParams.set('api_key', apiKey);
-      const data = (await callFixedApi({ url: url.toString(), headers: {}, timeoutMs: 5_000 })) as {
+      const data = (await callFixedApi({
+        url: url.toString(),
+        headers: {},
+        timeoutMs: 12_000,
+      })) as {
         organic_results?: unknown;
       };
       return collect(data?.organic_results, (r) => ({

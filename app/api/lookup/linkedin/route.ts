@@ -18,6 +18,9 @@ const bodySchema = z.object({
   problems: z.array(z.string().trim().min(1).max(200)).max(5).optional(),
 });
 
+/** Search vendors can take a while; the default would cut the lookup short. */
+export const maxDuration = 30;
+
 /**
  * POST /api/lookup/linkedin: candidate profiles for a name and company, from
  * search-result text only (LinkedIn is never fetched). Nothing returned here is
