@@ -1108,14 +1108,16 @@ function NoteBox({
           `Ticked or filled ${parts.join(', ')}. Your words stay saved. Check it, then save.`,
         );
       } else {
-        setMessage('Nothing matched a chip. Your words stay saved with the lead.');
+        setMessage(
+          'Nothing matched a chip. Your words are still in the box: tap Save details to keep them.',
+        );
       }
     } catch (error) {
       const code = error instanceof ApiError ? error.message : '';
       setMessage(
         code === 'model_not_configured' || code === 'ai_unavailable'
-          ? 'The AI isn’t available right now. Your words are saved with the lead.'
-          : 'Could not sort that. Your words are saved with the lead.',
+          ? 'The AI isn’t available right now. Your words are still in the box: tap Save details to keep them.'
+          : 'Could not sort that. Your words are still in the box: tap Save details to keep them.',
       );
     } finally {
       setBusy(false);
