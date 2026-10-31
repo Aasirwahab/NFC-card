@@ -27,6 +27,7 @@
   --color-accent: #d63c2a;
   --color-accent-hover: #b93122;
   --color-accent-soft: #f8dcd6;
+  --color-on-accent: #ffffff;
 
   --color-ok: #2b7f4a;
   --color-ok-bg: #dff0e5;
@@ -44,10 +45,8 @@
 }
 
 /*
- * No dark mode. The prospect page is handed to a stranger's phone and has one shot
- * at looking deliberate; a second theme is a second thing to get wrong for no gain.
- * The rep app is used at events under venue lighting, where the light theme reads
- * better anyway.
+ * Light by default. Only the prospect pages (.publicPage in ui-slice.module.css) follow the
+ * phone's dark setting; the rep app is used under venue lighting and stays light.
  */
 
 html {

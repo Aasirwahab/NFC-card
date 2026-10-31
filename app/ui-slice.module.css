@@ -21,6 +21,35 @@
   background: #efeeea;
 }
 
+/*
+ * Prospect pages follow the phone's light/dark setting. Same tokens, darker values;
+ * the rep app (no .publicPage) stays light.
+ */
+@media (prefers-color-scheme: dark) {
+  .publicPage {
+    color-scheme: dark;
+    --color-ground: #151412;
+    --color-surface: #201e1b;
+    --color-surface-2: #2c2925;
+    --color-line: #45413a;
+    --color-line-soft: #3a3731;
+    --color-ink: #f5f2eb;
+    --color-ink-2: #d6d1c7;
+    --color-ink-3: #aaa498;
+    --color-accent: #ff7a4f;
+    --color-accent-hover: #ff9068;
+    --color-accent-soft: #3b2118;
+    --color-on-accent: #14110f;
+    --color-crit: #ff8f80;
+  }
+
+  :global(body):has(.publicPage),
+  :global(html):has(.publicPage) {
+    background: #151412;
+    color-scheme: dark;
+  }
+}
+
 .surface :is(button, a, summary) {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -153,7 +182,7 @@
   border: 1px solid var(--color-accent);
   border-radius: 3px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent, white);
   font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
@@ -882,7 +911,7 @@
 @media (max-width: 430px) {
   .prospectPage > header {
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     gap: 12px;
   }
 
@@ -970,4 +999,235 @@
 }
 .prospectPage .chatRegion {
   margin-top: 28px;
+}
+
+/* ---- The Quiet Note: one column, one main action, identical soft rows ---- */
+.publicPage {
+  padding-inline: 20px;
+}
+
+.publicPage > header {
+  min-height: 64px;
+  gap: 14px;
+  padding-top: 12px;
+}
+
+.publicPage > header > :is(img, div[aria-hidden]) {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.publicPage > header p {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.publicPage > header p + p {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.publicPage .headline {
+  margin-top: 8px;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-wrap: pretty;
+}
+
+.publicPage .metaLine {
+  margin-top: 24px;
+}
+
+.publicPage .pitchSection {
+  margin-top: 16px;
+}
+
+.publicPage .pitchSection :is(p, .pitch) {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.publicPage .pitch {
+  margin-top: 0;
+}
+
+.publicPage .cta {
+  margin-top: 24px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.publicPage .primaryAction {
+  min-height: 56px;
+  border-radius: 14px;
+  font-size: 17px;
+}
+
+.publicPage .quietActions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.publicPage .quietActions > a {
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 14px;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.publicPage .quietActions > a[href$='/contact'] {
+  border: 1.5px solid var(--color-ink);
+}
+
+.publicPage .quietActions > a:not([href$='/contact']) {
+  background: var(--color-surface-2);
+}
+
+/* The rep's idea: plain text, no boxes, no lines, no numbered circles. */
+.publicPage .playbook {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+  padding: 0;
+  border: 0;
+}
+
+.publicPage .playbook h2 {
+  color: var(--color-ink-3);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.publicPage .playbook p {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.publicPage .playbook a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.quietList,
+.publicPage .playbook ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 20px;
+  list-style: disc;
+  font-size: 17px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.quietList li::marker,
+.publicPage .playbook li::marker {
+  color: var(--color-accent);
+}
+
+/* "What the business does": the same soft row as everything else, opens in place. */
+.publicPage .services {
+  margin-top: 20px;
+  border-radius: 14px;
+  background: var(--color-surface-2);
+}
+
+.publicPage .services > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 16px;
+  font-size: 16px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.publicPage .services > summary::-webkit-details-marker {
+  display: none;
+}
+
+.publicPage .services > summary svg {
+  color: var(--color-ink-3);
+  transition: transform 150ms ease-out;
+}
+
+.publicPage .services[open] > summary svg {
+  transform: rotate(90deg);
+}
+
+.publicPage .services > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 16px 16px 36px;
+  list-style: disc;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.publicPage .chatRegion {
+  margin-top: 20px;
+}
+
+.publicPage .footer {
+  margin-top: 28px;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 13px;
+}
+
+/* Owner portfolio (no details yet): same vocabulary, no boxed panel. */
+.ownerPage .ownerActions {
+  margin-top: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.ownerPage .ownerActions > a[target='_blank']:not(.primaryAction) {
+  min-height: 52px;
+  margin-top: 10px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-surface-2);
+}
+
+.ownerPage .ownerActions > a[href$='/contact']:not(.primaryAction) {
+  min-height: 52px;
+  margin-top: 10px;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 14px;
+  text-decoration: none;
+}
+
+.ownerPage .ownerSection > h2 {
+  padding-bottom: 6px;
+  border-bottom: 0;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
 }

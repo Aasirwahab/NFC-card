@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TapMark } from '@/components/brand';
+import styles from '@/app/ui-slice.module.css';
 import { RepSignInLink } from './rep-sign-in-link';
 
 /**
@@ -15,29 +15,25 @@ import { RepSignInLink } from './rep-sign-in-link';
  */
 export default function CardNotFound() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[34rem] flex-col justify-center px-5 py-10">
-      <TapMark className="text-accent h-8 w-8" />
-
-      <h1 className="font-display text-ink mt-5 text-2xl font-bold tracking-tight">
-        This card is not active
-      </h1>
-
-      <p className="text-ink-2 mt-2.5 text-[17px] leading-relaxed">
-        Check the code printed on the front of the card, or ask the person who gave it to you to
-        send the link again.
-      </p>
-
-      <div className="border-line-soft text-ink-3 mt-8 border-t pt-5 text-[13px]">
+    <div className={`${styles.surface} ${styles.publicPage}`}>
+      <main className="flex-1 pt-16">
+        <h1 className={styles.headline}>This page isn&rsquo;t available</h1>
+        <p className={styles.companyLine}>
+          The link may have been removed, or it is not active. If someone gave you this card, ask
+          them to send the link again.
+        </p>
+      </main>
+      <footer className={styles.footer}>
         <div className="flex gap-4">
-          <Link href="/how-it-works" className="hover:text-ink-2 underline underline-offset-2">
+          <Link href="/how-it-works" className="underline underline-offset-2">
             How it works
           </Link>
-          <Link href="/privacy" className="hover:text-ink-2 underline underline-offset-2">
+          <Link href="/privacy" className="underline underline-offset-2">
             Privacy
           </Link>
           <RepSignInLink />
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

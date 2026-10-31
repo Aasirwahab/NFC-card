@@ -39,7 +39,7 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
       <Header rep={rep} business={business} />
 
       <main className="flex-1">
-        <h1 className={styles.headline}>Great to meet you.</h1>
+        <h1 className={styles.headline}>Meet {first}</h1>
         {tagline ? <p className={`${styles.tagline} mt-3`}>{tagline}</p> : null}
 
         <div className={styles.ownerActions}>
@@ -53,7 +53,7 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
               className={styles.primaryAction}
             >
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              Book a time with {first}
+              Book a meeting with {first}
             </a>
           ) : (
             <SaveContact code={code} repName={first} primary />
@@ -63,26 +63,20 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
             <LinkedInConnect code={code} href={linkedin} repName={first} preview />
           ) : null}
           {booking ? <SaveContact code={code} repName={first} /> : null}
-          {!booking ? (
-            <p className="text-ink-3 mt-3 text-center text-sm">Save my details to reconnect.</p>
-          ) : null}
         </div>
 
         {services.length > 0 ? (
           <section className={styles.ownerSection}>
-            <h2 className={styles.sectionLabel}>What I do</h2>
-            <ol className={styles.numberedServices}>
-              {services.map((service, index) => (
-                <li key={service}>
-                  <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-                  <p>{service}</p>
-                </li>
+            <h2 className={styles.sectionLabel}>What {first} does</h2>
+            <ul className={styles.quietList}>
+              {services.map((service) => (
+                <li key={service}>{service}</li>
               ))}
-            </ol>
+            </ul>
           </section>
         ) : (
           <p className={`${styles.tagline} mt-7`}>
-            Let&rsquo;s discuss what you&rsquo;re looking for.
+            Happy to talk about what you&rsquo;re looking for.
           </p>
         )}
 
@@ -112,15 +106,6 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
                 </div>
               </a>
             ) : null}
-          </section>
-        ) : null}
-
-        {linkedin ? (
-          <section className={styles.ownerSection}>
-            <h2 className={styles.sectionLabel}>Keep in touch</h2>
-            <div className={styles.keepInTouch}>
-              <LinkedInConnect code={code} href={linkedin} repName={first} preview />
-            </div>
           </section>
         ) : null}
       </main>
