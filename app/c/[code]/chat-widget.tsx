@@ -137,7 +137,7 @@ export function ChatWidget({
                     className={
                       turn.role === 'assistant'
                         ? 'bg-surface-2 text-ink rounded-2xl rounded-bl-md px-3 py-2 text-[15px] leading-snug break-words'
-                        : 'bg-accent rounded-2xl rounded-br-md px-3 py-2 text-[15px] leading-snug break-words text-white'
+                        : 'bg-accent text-on-accent rounded-2xl rounded-br-md px-3 py-2 text-[15px] leading-snug break-words'
                     }
                   >
                     {turn.text}
@@ -190,7 +190,7 @@ export function ChatWidget({
               type="submit"
               disabled={busy || exhausted || !draft.trim()}
               aria-label="Send"
-              className="bg-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-40"
+              className="bg-accent text-on-accent flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
             </button>

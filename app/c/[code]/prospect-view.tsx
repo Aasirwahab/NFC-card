@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import styles from '@/app/ui-slice.module.css';
-import { UserPlus } from 'lucide-react';
+import { ChevronRight, UserPlus } from 'lucide-react';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { availableActions } from '@/lib/landing/actions';
@@ -74,33 +74,65 @@ export function ProspectView({
   const lead = topics[0] ?? null;
   const services = relevantServices(business?.services ?? [], [...topics, customTopic ?? '']);
 
+  const first = firstName(rep.fullName);
+
+  // Held for the rep's review: a calm holding page. No pitch, no booking, no chat, and no
+  // claim about when it will be ready. Removing details and the privacy links stay.
+  if (held) {
+    return (
+      <div className={`${styles.surface} ${styles.publicPage}`}>
+        <Header rep={rep} business={business} />
+        <main className="flex-1">
+          {!preview ? <HeldWatcher code={code} /> : null}
+          <h1 className={styles.headline}>{first} is preparing this page</h1>
+          <p className={styles.companyLine}>It is not ready to show yet.</p>
+          <div className={styles.cta}>
+            <SaveContact code={code} repName={first} primary />
+            <div className={styles.quietActions}>
+              {linkedin ? (
+                <LinkedInConnect code={code} href={linkedin} repName={first} preview={preview} />
+              ) : null}
+            </div>
+          </div>
+        </main>
+        <Footer removeCode={preview ? undefined : code} />
+      </div>
+    );
+  }
+
   return (
     // A private note from one person: recognition first, one action, nothing that competes with it.
     <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
       <Header rep={rep} business={business} />
 
       <main className="flex-1">
-        {held && !preview ? <HeldWatcher code={code} /> : null}
-        <p className={styles.metaLine}>
-          {publicEvent ? `After ${publicEvent}` : 'From our conversation'}
-        </p>
+        {/* Greeting first; everything below it arrives a moment later (see .arrive). */}
         <h1 className={styles.headline}>
-          {prospectFirst && lead
-            ? `${prospectFirst}, about ${midSentence(lead)}`
-            : prospectFirst
-              ? `${prospectFirst}, following up on our conversation`
-              : 'Following up on our conversation'}
+          {prospectFirst
+            ? `Hi ${prospectFirst}`
+            : lead
+              ? `About ${midSentence(lead)}`
+              : `Nice to meet you`}
         </h1>
-        {session.prospect_company || topics.length > 1 ? (
-          <p className={styles.companyLine}>
-            {[
-              session.prospect_company,
-              topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        ) : null}
+        {/* Only what the system knows: whose card this is, and the place if the rep named one. */}
+        <p className={styles.metaLine}>
+          {publicEvent ? `A note from ${first}, after ${publicEvent}` : `A note from ${first}`}
+        </p>
+        <div className={styles.arrive}>
+          {prospectFirst && lead ? (
+            <p className={styles.topicLine}>About {midSentence(lead)}</p>
+          ) : null}
+          {session.prospect_company || topics.length > 1 ? (
+            <p className={styles.companyLine}>
+              {[
+                session.prospect_company,
+                topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : null}
+        </div>
 
         <section
           className={styles.pitchSection}
@@ -121,26 +153,14 @@ export function ProspectView({
           )}
         </section>
 
-        <CallToActionBlock
-          label={
-            bookingLink
-              ? `Pick a time with ${firstName(rep.fullName)}`
-              : linkedin
-                ? `Connect with ${firstName(rep.fullName)}`
-                : `Keep ${firstName(rep.fullName)}’s details`
-          }
-          note={
-            bookingLink
-              ? 'Choose a time to discuss what you need.'
-              : 'Get in touch directly to continue your conversation.'
-          }
-        >
+        <section className={styles.cta}>
           {bookingLink ? (
             <Booking
               code={code}
               sessionId={session.id}
               prospectName={session.prospect_name}
               link={bookingLink}
+              repName={first}
               preview={preview}
             />
           ) : linkedin ? (
@@ -149,33 +169,42 @@ export function ProspectView({
               <LinkedInConnect
                 code={code}
                 href={linkedin}
-                repName={firstName(rep.fullName)}
+                repName={first}
                 preview={Boolean(preview)}
                 primary
               />
             </StickyAction>
           ) : (
             <StickyAction enabled={!preview}>
-              <SaveContact code={code} repName={firstName(rep.fullName)} primary />
+              <SaveContact
+                code={code}
+                repName={first}
+                primary
+                label={
+                  lead
+                    ? `Save ${first}’s contact to follow up about ${midSentence(lead)}`
+                    : undefined
+                }
+              />
             </StickyAction>
           )}
           {/* Quiet alternatives: one main action, these never compete with it. */}
           <div className={styles.quietActions}>
+            {bookingLink || linkedin ? <SaveContact code={code} repName={first} /> : null}
             {bookingLink && linkedin ? (
               <LinkedInConnect
                 code={code}
                 href={linkedin}
-                repName={firstName(rep.fullName)}
+                repName={first}
                 preview={Boolean(preview)}
               />
             ) : null}
-            {bookingLink || linkedin ? (
-              <SaveContact code={code} repName={firstName(rep.fullName)} />
-            ) : null}
           </div>
-        </CallToActionBlock>
+        </section>
 
-        {playbook && view.state !== 'pending' ? <PlaybookBlock playbook={playbook} /> : null}
+        {playbook && view.state !== 'pending' ? (
+          <PlaybookBlock playbook={playbook} repName={first} />
+        ) : null}
 
         {business && services.length > 0 && view.state !== 'crafting' ? (
           <SolutionPoints services={services} companyName={business.companyName} />
@@ -184,7 +213,7 @@ export function ProspectView({
         <div className={styles.chatRegion}>
           <ChatWidget
             code={code}
-            repFirstName={firstName(rep.fullName)}
+            repFirstName={first}
             opening={openingLine(firstName(rep.fullName), lead)}
             enabled={env.CHAT_ENABLED}
             actions={actions}
@@ -194,9 +223,7 @@ export function ProspectView({
       </main>
 
       <Footer removeCode={preview ? undefined : code}>
-        {emailConfigured() && !preview ? (
-          <EmailMe code={code} repFirstName={firstName(rep.fullName)} />
-        ) : null}
+        {emailConfigured() && !preview ? <EmailMe code={code} repFirstName={first} /> : null}
       </Footer>
     </ProspectShell>
   );
@@ -207,43 +234,26 @@ export function ProspectView({
  * happens, up to three things worth checking, and an optional link. Nothing here is
  * generated, so nothing here can be invented. It is the "something for you" in the note.
  */
-function PlaybookBlock({ playbook }: { playbook: NonNullable<ProspectResolved['playbook']> }) {
+function PlaybookBlock({
+  playbook,
+  repName,
+}: {
+  playbook: NonNullable<ProspectResolved['playbook']>;
+  repName: string;
+}) {
   return (
     <section className={styles.playbook}>
-      {playbook.why ? (
-        <>
-          <h2 className="text-ink-2 text-sm font-semibold">Why this usually happens</h2>
-          <p className="text-ink-2 mt-1.5 text-[16px] leading-relaxed">{playbook.why}</p>
-        </>
-      ) : null}
+      <h2>An idea from {repName}</h2>
+      {playbook.why ? <p>{playbook.why}</p> : null}
       {playbook.checks.length > 0 ? (
-        <>
-          <h2
-            className={`text-ink-3 font-mono text-[11px] tracking-[0.08em] uppercase ${
-              playbook.why ? 'mt-5' : ''
-            }`}
-          >
-            Worth checking this week
-          </h2>
-          <ol className={styles.stepper}>
-            {playbook.checks.map((check, index) => (
-              <li key={check}>
-                <span className={styles.stepNumber} aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span>{check}</span>
-              </li>
-            ))}
-          </ol>
-        </>
+        <ul>
+          {playbook.checks.map((check) => (
+            <li key={check}>{check}</li>
+          ))}
+        </ul>
       ) : null}
       {playbook.resourceUrl ? (
-        <a
-          href={playbook.resourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-accent mt-5 inline-block text-[15px] font-medium underline underline-offset-2"
-        >
+        <a href={playbook.resourceUrl} target="_blank" rel="noopener noreferrer">
           A useful read
         </a>
       ) : null}
@@ -280,7 +290,7 @@ export function Header({
   business: ProspectResolved['business'];
 }) {
   return (
-    <header className="border-line-soft flex items-center gap-3.5 border-b pt-8 pb-5">
+    <header className="flex items-center gap-3.5">
       {rep.photoUrl ? (
         /*
          * A plain <img> on purpose. photo_url is an arbitrary URL the rep typed,
@@ -319,15 +329,30 @@ export function Header({
 }
 
 function Pitch({ text }: { text: string }) {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  // Two short paragraphs are enough to read at a glance; the rest opens on tap.
+  // A trailing sign-off ("— Sam") stays visible.
+  const signOff = paragraphs.length > 3 && /^[—–-]\s/.test(paragraphs[paragraphs.length - 1]!);
+  const tail = signOff ? paragraphs.pop() : null;
+  const shown = paragraphs.slice(0, 2);
+  const rest = paragraphs.slice(2);
   return (
-    <div className={styles.pitch}>
-      {text
-        .split(/\n{2,}/)
-        .map((paragraph) => paragraph.trim())
-        .filter(Boolean)
-        .map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+    <div className={`${styles.pitch} ${styles.arrive}`}>
+      {shown.map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+      {rest.length > 0 ? (
+        <details className={styles.more}>
+          <summary>Read the rest</summary>
+          {rest.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </details>
+      ) : null}
+      {tail ? <p>{tail}</p> : null}
     </div>
   );
 }
@@ -366,45 +391,19 @@ function SolutionPoints({ services, companyName }: { services: string[]; company
 
   if (points.length === 0) return null;
 
+  // Collapsed by default: the idea above is the proof, this is the reference.
   return (
-    <section className={styles.services}>
-      <h2 className="text-ink-2 text-sm font-semibold">What {companyName} does</h2>
-      <ul className="mt-1.5">
+    <details className={styles.services}>
+      <summary>
+        <span>What {companyName} does</span>
+        <ChevronRight aria-hidden="true" className="h-[18px] w-[18px]" />
+      </summary>
+      <ul>
         {points.map((point) => (
-          <li key={point} className={styles.service}>
-            <span aria-hidden="true" className={styles.serviceDot} />
-            <span>{point}</span>
-          </li>
+          <li key={point}>{point}</li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-/**
- * The CTA (§16, §5.5). Problem-specific text, never "Book a demo".
- *
- * Carries the rep's booking calendar when they have set a Cal.com link, and
- * nothing that pretends to work when they have not — a dead button on the one
- * page that gets one chance would be worse than no button.
- */
-function CallToActionBlock({
-  label,
-  note,
-  children,
-}: {
-  label: string;
-  note: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <section className={styles.cta}>
-      <p className="font-display text-ink text-[17px] leading-snug font-semibold tracking-tight">
-        {label}
-      </p>
-      <p className="text-ink-2 mt-1.5 text-sm">{note}</p>
-      {children}
-    </section>
+    </details>
   );
 }
 
@@ -418,11 +417,14 @@ export function SaveContact({
   repName,
   compact = false,
   primary = false,
+  label,
 }: {
   code: string;
   repName: string;
   compact?: boolean;
   primary?: boolean;
+  /** Overrides the default text, e.g. to name the topic on the page's one main action. */
+  label?: string;
 }) {
   return (
     <a
@@ -431,7 +433,7 @@ export function SaveContact({
       className={primary ? styles.primaryAction : compact ? styles.compactSave : styles.saveContact}
     >
       <UserPlus className="h-4 w-4" aria-hidden="true" />
-      {compact ? 'Save contact' : <>Save {repName}&rsquo;s contact</>}
+      {label ?? (compact ? 'Save contact' : <>Save {repName}&rsquo;s contact</>)}
     </a>
   );
 }

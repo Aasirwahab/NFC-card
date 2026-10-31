@@ -23,12 +23,14 @@ export function Booking({
   sessionId,
   prospectName,
   link,
+  repName,
   preview,
 }: {
   code: string;
   sessionId: string;
   prospectName: string | null;
   link: CalLink;
+  repName: string;
   preview: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -60,7 +62,7 @@ export function Booking({
           className={`${styles.primaryAction} mt-4`}
         >
           <CalendarDays className="h-4 w-4" aria-hidden="true" />
-          Pick a time
+          Book a meeting with {repName}
         </button>
       </StickyAction>
     );
