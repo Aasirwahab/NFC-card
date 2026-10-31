@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { JevClient } from '@/lib/jev/client';
-import { findLinkedInProfile, nameRelation } from '@/lib/lookup/linkedin';
+import { findLinkedInProfile, nameRelation, searchCompany } from '@/lib/lookup/linkedin';
 import type { SearchFn, SearchResult } from '@/lib/search/types';
 
 /**
@@ -131,6 +131,13 @@ describe('LinkedIn lookup recall', () => {
       expect(['unrelated', 'colleague']).not.toContain(hit!.label);
     });
   }
+
+  it('drops a web suffix and a legal suffix from the company', () => {
+    expect(searchCompany('Webvoxel.com')).toBe('Webvoxel');
+    expect(searchCompany('Hughes Legal Ltd.')).toBe('Hughes Legal');
+    expect(searchCompany('Brightside.co.uk')).toBe('Brightside');
+    expect(searchCompany('.com')).toBe('.com');
+  });
 
   it('keeps a lone namesake from being recommended', async () => {
     const found = await run('Sarah Jones', null);
