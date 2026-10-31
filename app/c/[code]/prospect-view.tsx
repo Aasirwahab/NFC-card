@@ -106,29 +106,33 @@ export function ProspectView({
       <Header rep={rep} business={business} />
 
       <main className="flex-1">
+        {/* Greeting first; everything below it arrives a moment later (see .arrive). */}
+        <h1 className={styles.headline}>
+          {prospectFirst
+            ? `Hi ${prospectFirst}`
+            : lead
+              ? `About ${midSentence(lead)}`
+              : `Nice to meet you`}
+        </h1>
         {/* Only what the system knows: whose card this is, and the place if the rep named one. */}
         <p className={styles.metaLine}>
           {publicEvent ? `A note from ${first}, after ${publicEvent}` : `A note from ${first}`}
         </p>
-        <h1 className={styles.headline}>
-          {prospectFirst && lead
-            ? `${prospectFirst}, about ${midSentence(lead)}`
-            : lead
-              ? `About ${midSentence(lead)}`
-              : prospectFirst
-                ? `${prospectFirst}, nice to meet you`
-                : `Nice to meet you`}
-        </h1>
-        {session.prospect_company || topics.length > 1 ? (
-          <p className={styles.companyLine}>
-            {[
-              session.prospect_company,
-              topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        ) : null}
+        <div className={styles.arrive}>
+          {prospectFirst && lead ? (
+            <p className={styles.topicLine}>About {midSentence(lead)}</p>
+          ) : null}
+          {session.prospect_company || topics.length > 1 ? (
+            <p className={styles.companyLine}>
+              {[
+                session.prospect_company,
+                topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : null}
+        </div>
 
         <section
           className={styles.pitchSection}
@@ -325,15 +329,30 @@ export function Header({
 }
 
 function Pitch({ text }: { text: string }) {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  // Two short paragraphs are enough to read at a glance; the rest opens on tap.
+  // A trailing sign-off ("— Sam") stays visible.
+  const signOff = paragraphs.length > 3 && /^[—–-]\s/.test(paragraphs[paragraphs.length - 1]!);
+  const tail = signOff ? paragraphs.pop() : null;
+  const shown = paragraphs.slice(0, 2);
+  const rest = paragraphs.slice(2);
   return (
-    <div className={styles.pitch}>
-      {text
-        .split(/\n{2,}/)
-        .map((paragraph) => paragraph.trim())
-        .filter(Boolean)
-        .map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+    <div className={`${styles.pitch} ${styles.arrive}`}>
+      {shown.map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+      {rest.length > 0 ? (
+        <details className={styles.more}>
+          <summary>Read the rest</summary>
+          {rest.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </details>
+      ) : null}
+      {tail ? <p>{tail}</p> : null}
     </div>
   );
 }
