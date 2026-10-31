@@ -29,7 +29,7 @@ export function comparable(field: ReconciledField, value: string): string {
       return v.toLowerCase();
     case 'phone': {
       const digits = v.replace(/\D/g, '');
-      return digits.slice(-9); // 07… and +44 7… are the same number
+      return digits.slice(-10); // 07… and +44 7… are the same number; 020… and 030… are not
     }
     case 'website':
       return v
@@ -39,13 +39,13 @@ export function comparable(field: ReconciledField, value: string): string {
         .replace(/[/?#].*$/, '');
     case 'company':
       return fold(v)
-        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim()
         .replace(LEGAL_SUFFIX, '');
     default:
       return fold(v)
-        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim();
   }
@@ -58,7 +58,11 @@ export function reconcileCard(current: FormValues, card: CardFields): Reconciled
     if (!fromCard) continue;
     const typed = current[field].trim();
     if (!typed) out.fill[field] = fromCard;
-    else if (comparable(field, typed) === comparable(field, fromCard)) out.matched.push(field);
+    else if (
+      comparable(field, typed) !== '' &&
+      comparable(field, typed) === comparable(field, fromCard)
+    )
+      out.matched.push(field);
     else out.conflicts.push({ field, typed, card: fromCard });
   }
   return out;

@@ -53,6 +53,22 @@ describe('reconcileCard', () => {
   });
 });
 
+describe('reconcileCard edge cases', () => {
+  it('does not treat different area codes as the same phone', () => {
+    const r = reconcileCard(
+      { ...empty, phone: '020 7123 4567' },
+      { ...NO_CARD, phone: '030 7123 4567' },
+    );
+    expect(r.matched).toEqual([]);
+    expect(r.conflicts).toHaveLength(1);
+  });
+
+  it('keeps non-Latin names apart', () => {
+    const r = reconcileCard({ ...empty, name: '李明' }, { ...NO_CARD, name: '王伟' });
+    expect(r.conflicts).toHaveLength(1);
+  });
+});
+
 describe('classifyLink', () => {
   it('routes LinkedIn profiles, with or without a scheme', () => {
     expect(classifyLink('https://uk.linkedin.com/in/zaid-z/?trk=x')).toEqual({

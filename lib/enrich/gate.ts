@@ -205,7 +205,7 @@ const CLAIMS =
 
 /** Wording that sends the reader to a calendar or something on the page. */
 const BOOKING_PROMISE =
-  /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\bbelow\b/i;
+  /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\b(?:arrange|set up|organi[sz]e|fix|plan) a (?:meeting|time|call)\b|\bbelow\b/i;
 
 const CALL_TO_ACTION =
   /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation|connect|linkedin|save my details|my details)\b/i;

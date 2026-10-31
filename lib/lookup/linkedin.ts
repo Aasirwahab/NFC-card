@@ -161,6 +161,7 @@ export async function findLinkedInProfile(input: {
   /** The industry and problems picked on the capture screen: they help order namesakes. */
   context?: LeadContext;
 }): Promise<ProfileLookup> {
+  const startedAt = Date.now();
   const company = input.company?.trim() ? searchCompany(input.company.trim()) : null;
   // Two shapes, measured on 8 well-known people (2026-09-29): the plain phrase query
   // found more profiles than the site: operator, which returned lookalikes and
@@ -188,7 +189,8 @@ export async function findLinkedInProfile(input: {
   // Nothing yet (a nickname, a typo, a company the profile does not mention, or a
   // different spelling of it): ask two looser questions at once. One drops the company;
   // the other keeps only the surname exact, so Tom finds Thomas and Zaid finds Zaidh.
-  if (!results.some((r) => profileUrl(r.url))) {
+  // Skipped when the first wave was already slow: the route stops at 30s and searches cost money.
+  if (!results.some((r) => profileUrl(r.url)) && Date.now() - startedAt < 9_000) {
     const nameTokens = normaliseName(input.name.replace(/'/g, ''));
     const first = nameTokens[0];
     const last = nameTokens.length > 1 ? nameTokens[nameTokens.length - 1] : null;
@@ -356,7 +358,7 @@ function classify(
   if (nameOk && same)
     return {
       label: 'exact_match',
-      score: (name === 'same' ? 0.95 : name === 'alias' ? 0.85 : 0.7) * p,
+      score: (name === 'same' ? 0.95 : name === 'alias' ? 0.85 : 0.69) * p,
     };
   if (nameOk && company.relation === 'not_stated')
     return { label: 'ambiguous', score: name === 'same' ? 0.4 : 0.3 };

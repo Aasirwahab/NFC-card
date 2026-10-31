@@ -120,7 +120,7 @@ export function ProspectView({
         </p>
         <div className={styles.arrive}>
           {prospectFirst && lead ? (
-            <p className={styles.topicLine}>About {midSentence(lead)}</p>
+            <h2 className={styles.topicLine}>About {midSentence(lead)}</h2>
           ) : null}
           {session.prospect_company || topics.length > 1 ? (
             <p className={styles.companyLine}>
@@ -335,7 +335,7 @@ function Pitch({ text }: { text: string }) {
     .filter(Boolean);
   // Two short paragraphs are enough to read at a glance; the rest opens on tap.
   // A trailing sign-off ("— Sam") stays visible.
-  const signOff = paragraphs.length > 3 && /^[—–-]\s/.test(paragraphs[paragraphs.length - 1]!);
+  const signOff = paragraphs.length > 1 && /^[—–-]\s/.test(paragraphs[paragraphs.length - 1]!);
   const tail = signOff ? paragraphs.pop() : null;
   const shown = paragraphs.slice(0, 2);
   const rest = paragraphs.slice(2);
