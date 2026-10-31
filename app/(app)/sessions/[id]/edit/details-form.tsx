@@ -292,10 +292,15 @@ export function DetailsForm({
     else setCompany('');
   }
 
+  // A question about a value the rep has since edited is stale: drop it instead of overwriting their newer typing.
+  const liveConflicts = cardConflicts.filter(
+    (c) => ({ name, company, email, phone, website })[c.field].trim() === c.typed,
+  );
+
   const cardTick = (field: ReconciledField, label: string) =>
     ({ name, company, email, phone, website })[field].trim() !== '' &&
     cardMatched.includes(field) &&
-    !cardConflicts.some((c) => c.field === field)
+    !liveConflicts.some((c) => c.field === field)
       ? `${label} ✓ card`
       : label;
 
@@ -617,10 +622,10 @@ export function DetailsForm({
           }}
         />
 
-        {cardConflicts.length > 0 ? (
+        {liveConflicts.length > 0 ? (
           <div className="border-accent bg-accent-soft flex flex-col gap-3 rounded-xl border p-3">
             <p className="text-ink text-[13px] font-medium">The card says something different</p>
-            {cardConflicts.map((c) => (
+            {liveConflicts.map((c) => (
               <div key={c.field} className="flex flex-col gap-2">
                 <p className="text-ink-2 text-[14px] leading-snug">
                   <span className="text-ink-3 capitalize">{c.field}: </span>
