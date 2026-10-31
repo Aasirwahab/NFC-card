@@ -16,6 +16,7 @@ import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import {
   classifyLink,
+  comparable,
   reconcileCard,
   type CardConflict,
   type ReconciledField,
@@ -93,7 +94,7 @@ export function DetailsForm({
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
 
   // After a card scan: fields that agree with the card, and ones that differ (the rep decides).
-  const [cardMatched, setCardMatched] = useState<ReconciledField[]>([]);
+  const [cardSnap, setCardSnap] = useState<Partial<Record<ReconciledField, string | null>>>({});
   const [cardConflicts, setCardConflicts] = useState<CardConflict[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -283,10 +284,14 @@ export function DetailsForm({
   }
 
   // A pasted link in Name or Company goes where it belongs and leaves the box empty.
-  function changeText(field: 'name' | 'company', value: string) {
-    const link = classifyLink(value);
-    if (link?.kind === 'linkedin') setLinkedin(link.value);
-    else if (link?.kind === 'website') setWebsite(link.value);
+  // Only on paste: typing "www.e" on the way to "www.example.com" must not be moved mid-word,
+  // and a link never replaces a different value the rep already has.
+  function changeText(field: 'name' | 'company', value: string, pasted: boolean) {
+    const link = pasted ? classifyLink(value) : null;
+    const taken = link?.kind === 'linkedin' ? linkedin : link?.kind === 'website' ? website : '';
+    const free = !taken.trim() || taken.trim() === link?.value;
+    if (link?.kind === 'linkedin' && free) setLinkedin(link.value);
+    else if (link?.kind === 'website' && free) setWebsite(link.value);
     else return field === 'name' ? setName(value) : setCompany(value);
     if (field === 'name') setName('');
     else setCompany('');
@@ -299,7 +304,9 @@ export function DetailsForm({
 
   const cardTick = (field: ReconciledField, label: string) =>
     ({ name, company, email, phone, website })[field].trim() !== '' &&
-    cardMatched.includes(field) &&
+    comparable(field, cardSnap[field] ?? '') !== '' &&
+    comparable(field, { name, company, email, phone, website }[field]) ===
+      comparable(field, cardSnap[field] ?? '') &&
     !liveConflicts.some((c) => c.field === field)
       ? `${label} ✓ card`
       : label;
@@ -490,7 +497,7 @@ export function DetailsForm({
           if (f.email) setEmail(f.email);
           if (f.phone) setPhone(f.phone);
           if (f.website) setWebsite(f.website);
-          setCardMatched([...result.matched, ...(Object.keys(f) as ReconciledField[])]);
+          setCardSnap(card);
           setCardConflicts(result.conflicts);
           // The scan starts the lookups: the rep only taps the right answers below.
           const fullName = f.name ?? now.name.trim();
@@ -628,17 +635,16 @@ export function DetailsForm({
             {liveConflicts.map((c) => (
               <div key={c.field} className="flex flex-col gap-2">
                 <p className="text-ink-2 text-[14px] leading-snug">
-                  <span className="text-ink-3 capitalize">{c.field}: </span>
-                  card <strong className="text-ink">{c.card}</strong>, you typed{' '}
-                  <strong className="text-ink">{c.typed}</strong>
+                  The card says <strong className="text-ink">{c.card}</strong>. You typed{' '}
+                  <strong className="text-ink">{c.typed}</strong>.
                 </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    aria-label={`Use the card’s ${c.field}: ${c.card}`}
                     onClick={() => {
                       applyField(c.field, c.card);
                       setCardConflicts((list) => list.filter((x) => x.field !== c.field));
-                      setCardMatched((list) => [...list, c.field]);
                     }}
                     className="border-accent bg-accent h-10 rounded-lg border px-3 text-[13px] font-medium text-white"
                   >
@@ -646,6 +652,7 @@ export function DetailsForm({
                   </button>
                   <button
                     type="button"
+                    aria-label={`Keep my ${c.field}: ${c.typed}`}
                     onClick={() =>
                       setCardConflicts((list) => list.filter((x) => x.field !== c.field))
                     }
@@ -664,7 +671,13 @@ export function DetailsForm({
             <Input
               id="name"
               value={name}
-              onChange={(e) => changeText('name', e.target.value)}
+              onChange={(e) =>
+                changeText(
+                  'name',
+                  e.target.value,
+                  (e.nativeEvent as InputEvent).inputType === 'insertFromPaste',
+                )
+              }
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
@@ -675,7 +688,13 @@ export function DetailsForm({
             <Input
               id="company"
               value={company}
-              onChange={(e) => changeText('company', e.target.value)}
+              onChange={(e) =>
+                changeText(
+                  'company',
+                  e.target.value,
+                  (e.nativeEvent as InputEvent).inputType === 'insertFromPaste',
+                )
+              }
               placeholder="or paste their website"
               autoComplete="off"
               autoCorrect="off"

@@ -1088,6 +1088,21 @@
   animation-delay: 1300ms;
 }
 
+/* Never hold a focusable control invisible: reduced motion skips the wait, focus reveals at once. */
+@media (prefers-reduced-motion: reduce) {
+  .publicPage .arrive,
+  .publicPage .cta,
+  .publicPage .headline {
+    animation: none;
+  }
+}
+
+.publicPage .cta:focus-within,
+.publicPage .arrive:focus-within {
+  animation: none;
+  opacity: 1;
+}
+
 @keyframes greet {
   from {
     opacity: 0;
