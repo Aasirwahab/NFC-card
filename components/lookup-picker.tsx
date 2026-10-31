@@ -28,6 +28,7 @@ export function LookupPicker({
   onPick,
   emptyText,
   onReady,
+  filled = false,
 }: {
   buttonLabel: string;
   disabled: boolean;
@@ -38,10 +39,13 @@ export function LookupPicker({
   emptyText: string;
   /** Lets a parent start the lookup itself (after a card scan), with fresh values. */
   onReady?: (api: { run: (override?: Record<string, unknown>) => void }) => void;
+  /** The field already has a value: the search button is hidden until suggestions arrive. */
+  filled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState<PickerItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showOthers, setShowOthers] = useState(false);
 
   const latest = useRef(0);
 
@@ -53,6 +57,7 @@ export function LookupPicker({
     try {
       const response = await apiSend<never>(path, 'POST', override ?? body());
       if (mine !== latest.current) return;
+      setShowOthers(false);
       setItems(toItems(response));
     } catch (caught) {
       if (mine !== latest.current) return;
@@ -78,14 +83,16 @@ export function LookupPicker({
 
   return (
     <div className="mt-2">
-      <button
-        type="button"
-        disabled={disabled || busy}
-        onClick={() => void run()}
-        className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 h-11 rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
-      >
-        {busy ? 'Looking…' : buttonLabel}
-      </button>
+      {filled && items === null && !busy ? null : (
+        <button
+          type="button"
+          disabled={disabled || busy}
+          onClick={() => void run()}
+          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 h-11 rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
+        >
+          {busy ? 'Looking…' : buttonLabel}
+        </button>
+      )}
 
       {error ? (
         <p className="text-crit mt-2 text-[13px]" role="alert">
@@ -99,46 +106,61 @@ export function LookupPicker({
 
       {items && items.length > 0 ? (
         <ul className="mt-2 flex flex-col gap-2" aria-live="polite">
-          {items.map((item) => (
-            <li key={item.key}>
-              <button
-                type="button"
-                onClick={() => {
-                  onPick(item.value);
-                  setItems(null);
-                }}
-                className={`w-full rounded-xl border px-3.5 py-3 text-left ${
-                  item.likely
-                    ? 'border-accent bg-accent-soft'
-                    : 'border-line bg-surface [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3'
-                }`}
-              >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="text-ink text-[15px] font-medium break-all">{item.primary}</span>
-                  {item.badge ? (
-                    <span className="text-ink-3 shrink-0 font-mono text-[10px] tracking-[0.08em] uppercase">
-                      {item.badge}
+          {(showOthers || !items.some((i) => i.likely) ? items : items.filter((i) => i.likely)).map(
+            (item) => (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(item.value);
+                    setItems(null);
+                  }}
+                  className={`w-full rounded-xl border px-3.5 py-3 text-left ${
+                    item.likely
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-line bg-surface [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3'
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-ink text-[15px] font-medium break-all">
+                      {item.primary}
+                    </span>
+                    {item.badge ? (
+                      <span className="text-ink-3 shrink-0 font-mono text-[10px] tracking-[0.08em] uppercase">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                  {item.secondary ? (
+                    <span className="text-ink-3 mt-0.5 block text-[13px] leading-snug">
+                      {item.secondary}
                     </span>
                   ) : null}
-                </span>
-                {item.secondary ? (
-                  <span className="text-ink-3 mt-0.5 block text-[13px] leading-snug">
-                    {item.secondary}
-                  </span>
+                </button>
+                {item.checkUrl ? (
+                  <a
+                    href={item.checkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-1 ml-1 inline-block text-[12px] underline underline-offset-2"
+                  >
+                    Open to check
+                  </a>
                 ) : null}
+              </li>
+            ),
+          )}
+          {!showOthers && items.some((i) => i.likely) && items.length > 1 ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => setShowOthers(true)}
+                className="text-ink-2 text-[13px] font-medium underline underline-offset-2"
+              >
+                Other ({items.length - 1})
               </button>
-              {item.checkUrl ? (
-                <a
-                  href={item.checkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 mt-1 ml-1 inline-block text-[12px] underline underline-offset-2"
-                >
-                  Open to check
-                </a>
-              ) : null}
             </li>
-          ))}
+          ) : null}
           <li>
             <button
               type="button"

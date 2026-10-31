@@ -14,6 +14,12 @@ import { LookupPicker } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
+import {
+  classifyLink,
+  reconcileCard,
+  type CardConflict,
+  type ReconciledField,
+} from '@/lib/capture/reconcile';
 import { serializeCaptureDraft } from '@/lib/capture/draft';
 import {
   chipProblemsForAll,
@@ -86,6 +92,9 @@ export function DetailsForm({
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
 
+  // After a card scan: fields that agree with the card, and ones that differ (the rep decides).
+  const [cardMatched, setCardMatched] = useState<ReconciledField[]>([]);
+  const [cardConflicts, setCardConflicts] = useState<CardConflict[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -265,6 +274,36 @@ export function DetailsForm({
   const tickedCount = keepVisible(problems, quickSelect).length;
   const atLimit = tickedCount >= MAX_TICKED_PROBLEMS;
 
+  function applyField(field: ReconciledField, value: string) {
+    if (field === 'name') setName(value);
+    else if (field === 'company') setCompany(value);
+    else if (field === 'email') setEmail(value);
+    else if (field === 'phone') setPhone(value);
+    else setWebsite(value);
+  }
+
+  // A pasted link in Name or Company goes where it belongs and leaves the box empty.
+  function changeText(field: 'name' | 'company', value: string) {
+    const link = classifyLink(value);
+    if (link?.kind === 'linkedin') setLinkedin(link.value);
+    else if (link?.kind === 'website') setWebsite(link.value);
+    else return field === 'name' ? setName(value) : setCompany(value);
+    if (field === 'name') setName('');
+    else setCompany('');
+  }
+
+  // A question about a value the rep has since edited is stale: drop it instead of overwriting their newer typing.
+  const liveConflicts = cardConflicts.filter(
+    (c) => ({ name, company, email, phone, website })[c.field].trim() === c.typed,
+  );
+
+  const cardTick = (field: ReconciledField, label: string) =>
+    ({ name, company, email, phone, website })[field].trim() !== '' &&
+    cardMatched.includes(field) &&
+    !liveConflicts.some((c) => c.field === field)
+      ? `${label} ✓ card`
+      : label;
+
   function toggleProblem(problem: string) {
     setProblems((current) => {
       if (current.includes(problem)) return current.filter((p) => p !== problem);
@@ -433,18 +472,29 @@ export function DetailsForm({
       <CardScan
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
-          // Fill only what is still empty NOW (not what was empty when the photo was taken).
+          // Never overwrite typing: fill what is empty NOW, tick what agrees, ask about the rest.
           const now = latest.current;
-          const fullName = now.name.trim() || card.name || '';
-          const companyName = now.company.trim() || card.company || '';
-          const fillIfEmpty = (value: string | null) => (current: string) =>
-            current.trim() ? current : (value ?? current);
-          if (card.name) setName(fillIfEmpty(card.name));
-          if (card.company) setCompany(fillIfEmpty(card.company));
-          if (card.email) setEmail(fillIfEmpty(card.email));
-          if (card.phone) setPhone(fillIfEmpty(card.phone));
-          if (card.website) setWebsite(fillIfEmpty(card.website));
+          const result = reconcileCard(
+            {
+              name: now.name,
+              company: now.company,
+              email: now.email,
+              phone: now.phone,
+              website: now.website,
+            },
+            card,
+          );
+          const f = result.fill;
+          if (f.name) setName(f.name);
+          if (f.company) setCompany(f.company);
+          if (f.email) setEmail(f.email);
+          if (f.phone) setPhone(f.phone);
+          if (f.website) setWebsite(f.website);
+          setCardMatched([...result.matched, ...(Object.keys(f) as ReconciledField[])]);
+          setCardConflicts(result.conflicts);
           // The scan starts the lookups: the rep only taps the right answers below.
+          const fullName = f.name ?? now.name.trim();
+          const companyName = f.company ?? now.company.trim();
           if (lookupEnabled) {
             if (!card.website && !now.website.trim() && companyName.length >= 2) {
               siteLookup.current?.run({ name: companyName });
@@ -572,33 +622,69 @@ export function DetailsForm({
           }}
         />
 
-        <Field label="Their name" htmlFor="name">
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-        </Field>
+        {liveConflicts.length > 0 ? (
+          <div className="border-accent bg-accent-soft flex flex-col gap-3 rounded-xl border p-3">
+            <p className="text-ink text-[13px] font-medium">The card says something different</p>
+            {liveConflicts.map((c) => (
+              <div key={c.field} className="flex flex-col gap-2">
+                <p className="text-ink-2 text-[14px] leading-snug">
+                  <span className="text-ink-3 capitalize">{c.field}: </span>
+                  card <strong className="text-ink">{c.card}</strong>, you typed{' '}
+                  <strong className="text-ink">{c.typed}</strong>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      applyField(c.field, c.card);
+                      setCardConflicts((list) => list.filter((x) => x.field !== c.field));
+                      setCardMatched((list) => [...list, c.field]);
+                    }}
+                    className="border-accent bg-accent h-10 rounded-lg border px-3 text-[13px] font-medium text-white"
+                  >
+                    Use the card&rsquo;s
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCardConflicts((list) => list.filter((x) => x.field !== c.field))
+                    }
+                    className="border-line bg-surface text-ink h-10 rounded-lg border px-3 text-[13px] font-medium"
+                  >
+                    Keep mine
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-        <Field label="Company" htmlFor="company">
-          <Input
-            id="company"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={cardTick('name', 'Their name')} htmlFor="name">
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => changeText('name', e.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </Field>
 
-        <Field
-          label={linkedin.trim() ? 'LinkedIn ✓' : 'LinkedIn'}
-          hint="Suggestions appear once you have typed their name and company. Tap the right one, or paste the link."
-          htmlFor="linkedin"
-        >
+          <Field label={cardTick('company', 'Company')} htmlFor="company">
+            <Input
+              id="company"
+              value={company}
+              onChange={(e) => changeText('company', e.target.value)}
+              placeholder="or paste their website"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </Field>
+        </div>
+
+        <Field label={linkedin.trim() ? 'LinkedIn ✓' : 'LinkedIn'} htmlFor="linkedin">
           <Input
             id="linkedin"
             type="url"
@@ -610,6 +696,7 @@ export function DetailsForm({
           {lookupEnabled ? (
             <LookupPicker
               buttonLabel="Search the web for LinkedIn"
+              filled={linkedin.trim() !== ''}
               disabled={name.trim().split(/\s+/).length < 2}
               path="/api/lookup/linkedin"
               body={() => ({
@@ -644,11 +731,7 @@ export function DetailsForm({
           ) : null}
         </Field>
 
-        <Field
-          label={website.trim() ? 'Their website ✓' : 'Their website'}
-          htmlFor="website"
-          hint="Tap the right one, or type it. This makes sure we research the right company."
-        >
+        <Field label={website.trim() ? 'Their website ✓' : 'Their website'} htmlFor="website">
           <Input
             id="website"
             value={website}
@@ -661,6 +744,7 @@ export function DetailsForm({
           {lookupEnabled ? (
             <LookupPicker
               buttonLabel="Find their website"
+              filled={website.trim() !== ''}
               disabled={company.trim().length < 2}
               path="/api/lookup/company"
               body={() => ({ name: company.trim() })}
