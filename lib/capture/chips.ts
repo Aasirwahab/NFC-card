@@ -59,6 +59,11 @@ export function joinNiches(selected: string[]): string {
   return kept.join(NICHE_SEPARATOR);
 }
 
+/** True when every ticked area fits in the saved value (80 characters). PURE. */
+export function nichesFit(selected: string[]): boolean {
+  return joinNiches(selected) === selected.join(NICHE_SEPARATOR);
+}
+
 /** Chips for every ticked area, without repeats. With none ticked, the playbook fallback applies. PURE. */
 export function chipProblemsForAll(
   niches: Niche[],

@@ -26,6 +26,7 @@ import {
   chipProblemsForAll,
   FALLBACK_NICHE,
   joinNiches,
+  nichesFit,
   keepVisible,
   MAX_TICKED_PROBLEMS,
   noteNiches,
@@ -110,6 +111,7 @@ export function DetailsForm({
     phone,
     customProblems,
     problemCount: problems.length,
+    selectedNiches,
   });
   useEffect(() => {
     latest.current = {
@@ -120,6 +122,7 @@ export function DetailsForm({
       phone,
       customProblems,
       problemCount: problems.length,
+      selectedNiches,
     };
   });
 
@@ -320,7 +323,25 @@ export function DetailsForm({
     });
   }
 
+  const formJson = JSON.stringify({
+    name,
+    company,
+    website,
+    email,
+    phone,
+    linkedin,
+    niche,
+    problems,
+    customProblems,
+    memorable,
+  });
+  const formRef = useRef(formJson);
+  useEffect(() => {
+    formRef.current = formJson;
+  });
+
   async function save() {
+    const sent = formJson;
     setSaving(true);
     setError(null);
 
@@ -338,6 +359,11 @@ export function DetailsForm({
         memorable_info: memorable,
       });
 
+      // Typed something while it saved? Keep the draft and say so: that part is not saved yet.
+      if (formRef.current !== sent) {
+        setError('Saved, but you changed something while it saved. Tap Save details again.');
+        return;
+      }
       clearDraft();
       setSaved(true);
       router.refresh();
@@ -531,6 +557,11 @@ export function DetailsForm({
                       const next = selected
                         ? selectedNiches.filter((x) => x !== name)
                         : [...selectedNiches, name];
+                      // The saved value holds 80 characters: a tick that would be dropped is refused.
+                      if (!selected && !nichesFit(next)) {
+                        setError('That is too many areas to save. Untick one first.');
+                        return;
+                      }
                       setSelectedNiches(next);
                       // A tick can only stay while its chip is on screen.
                       const visible = chipProblemsForAll(niches, next, fallbackProblems);
@@ -615,7 +646,7 @@ export function DetailsForm({
             // Only problems whose chip will be on screen may be ticked, five at most.
             const visible = chipProblemsForAll(
               niches,
-              swap ? [fill.niche!] : selectedNiches,
+              swap ? [fill.niche!] : latest.current.selectedNiches,
               fallbackProblems,
             );
             if (fill.problems.length > 0) {
@@ -1105,7 +1136,7 @@ function NoteBox({
       onFill(fill);
       if (parts.length > 0) {
         setMessage(
-          `Ticked or filled ${parts.join(', ')}. Your words stay saved. Check it, then save.`,
+          `Ticked or filled ${parts.join(', ')}. Your words are still in the box. Check it, then save.`,
         );
       } else {
         setMessage(

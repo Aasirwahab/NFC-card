@@ -399,6 +399,11 @@ export function qualityGate(body: string, brief: Brief): GateResult {
     fail('promises_booking', 'invites a booking, but the page has no booking button');
   }
 
+  // Without a LinkedIn button either, nothing may send them to LinkedIn.
+  if (brief.cta.startsWith('Save') && /\blinkedin\b/i.test(trimmed)) {
+    fail('promises_booking', 'sends them to LinkedIn, but the page has no LinkedIn button');
+  }
+
   // 6. Names the right person — the one mistake a prospect always notices.
   const allowed = new Set(
     [brief.prospect.firstName, brief.rep.firstName].filter(Boolean).map((n) => n!.toLowerCase()),
