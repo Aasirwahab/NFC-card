@@ -381,3 +381,11 @@ describe('no problem chosen: nothing is attributed to the prospect', () => {
     expect(some).not.toContain('did NOT raise');
   });
 });
+
+describe('no LinkedIn invitation without a LinkedIn button', () => {
+  it('rejects a LinkedIn ask when the only action is saving details', () => {
+    const saveOnly = brief({ cta: 'Save my details to talk about idle machine tracking' });
+    const body = GOOD.replace('book 15 minutes below and', 'connect with me on LinkedIn and');
+    expect(qualityGate(body, saveOnly).failures.map((f) => f.check)).toContain('promises_booking');
+  });
+});

@@ -42,7 +42,7 @@ export function Crafting({ code, fallbackPitch }: { code: string; fallbackPitch:
           `/api/landing/${encodeURIComponent(code)}/status`,
         );
 
-        if (status === 'completed' || status === 'failed') {
+        if (status === 'completed' || status === 'failed' || status === 'held') {
           clearInterval(poll);
           // Re-render on the server, which reads the freshly committed pitch.
           router.refresh();

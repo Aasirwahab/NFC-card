@@ -205,7 +205,7 @@ const CLAIMS =
 
 /** Wording that sends the reader to a calendar or something on the page. */
 const BOOKING_PROMISE =
-  /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\bbelow\b/i;
+  /\b(?:book|booking|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|calendar)\b|\b(?:arrange|set up|organi[sz]e|fix|plan) a (?:meeting|time|call)\b|\bbelow\b/i;
 
 const CALL_TO_ACTION =
   /\b(?:book|schedule|pick a (?:time|slot)|grab a (?:time|slot)|find a time|(?:15|fifteen)[- ]minute|15 minutes|fifteen minutes|quick call|short call|a call|conversation|connect|linkedin|save my details|my details)\b/i;
@@ -397,6 +397,11 @@ export function qualityGate(body: string, brief: Brief): GateResult {
   // No booking button on the page: nothing may send them looking for one.
   if (!brief.cta.startsWith('Book') && BOOKING_PROMISE.test(trimmed)) {
     fail('promises_booking', 'invites a booking, but the page has no booking button');
+  }
+
+  // Without a LinkedIn button either, nothing may send them to LinkedIn.
+  if (brief.cta.startsWith('Save') && /\blinkedin\b/i.test(trimmed)) {
+    fail('promises_booking', 'sends them to LinkedIn, but the page has no LinkedIn button');
   }
 
   // 6. Names the right person — the one mistake a prospect always notices.

@@ -29,7 +29,12 @@ export function routeKnownIntent(message: string, actions: PageAction[]): ModelR
   // Contact details are the whole message only when almost nothing else is said and it is not a
   // question: "Is jane@example.com your support address?" must reach the model.
   const leftover = redacted.replace(/\[(?:email|phone) redacted\]/g, ' ');
-  const justContact = contactShared && !text.includes('?') && wordCount(leftover) <= 5;
+  const asksSomething =
+    /^(?:does|do|is|are|can|could|will|would|what|how|where|why|who|when|which)\b/i.test(
+      leftover.trim(),
+    );
+  const justContact =
+    contactShared && !text.includes('?') && !asksSomething && wordCount(leftover) <= 5;
   const callback = wordCount(text) <= 15 && CALLBACK.test(text);
   const booking = BOOKING.test(text);
   if (!justContact && !callback && !booking) return null;

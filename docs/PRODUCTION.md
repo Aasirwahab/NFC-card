@@ -1,4 +1,4 @@
-# Production setup and runbook (as of 2026-10-30)
+# Production setup and runbook (as of 2026-11-06)
 
 Where the live app is, what it needs, and what has already bitten us. Secrets are never written here.
 
@@ -7,6 +7,7 @@ Where the live app is, what it needs, and what has already bitten us. Secrets ar
 - Live address: **https://insignar.com** (`www` redirects to it). Vercel project **`nfc-card`** in team "Aasir's projects" (Pro plan). Production deploys from `main` automatically. The projects `nfc-card-pnmn` and `nfc-card-s4zm` are spare duplicates; their failed previews are noise and they can be deleted.
 - DNS (Namecheap): A `@` to `216.150.1.1` and `216.150.16.1`, CNAME `www` to the Vercel target. Mail (MX) is not set yet.
 - Database: shared Supabase project. Migrations through `20261021110000_chat_unanswered` are applied (the dashboard recorded them with its own version numbers, so a future `supabase db` CLI run may report a mismatch).
+- Code on `main` as of 2026-10-31: `1635ffe` (PRs #32 to #38: faster capture, LinkedIn/website lookups, card scan and reconcile, prospect page redesign). Rollback points are git tags on the repo: `release-pr26` to `release-pr38` (state after each merge), `rollback-2026-10-31-before-pr34`, `-before-pr35`, `-before-compact-capture`, `-before-pr37`, plus Vercel Instant Rollback on any production deploy. No database migration was applied from PR #26 to #38. Draft PR #39 (review fixes) is open and not merged.
 - Printed cards and QR codes use `NEXT_PUBLIC_APP_URL` (`https://insignar.com/c/<code>`), so treat the domain as permanent.
 
 ## Settings in Vercel (production), names only
@@ -24,6 +25,11 @@ Where the live app is, what it needs, and what has already bitten us. Secrets ar
 ## Checks to run after a deploy
 
 `GET /api/health` (database and redis ok); open `/c/<code>` for a seeded card; `/ops` shows "System checks" all Ready (Search key reads "Ready" when set; it does not test the key); save a lead and watch the pitch finish (about 25 seconds).
+
+## Working rules that came out of the 2026-10-30/31 handover
+
+- Claude covered Aasir's merge and deploy duty on those two days only, with a per-action log in Obsidian; merges need Zaid's explicit yes each time. Vercel settings are never changed without asking. Preview builds fail by design until `NEXT_PUBLIC_APP_URL` is set for previews; `verify` is the check that matters.
+- Scan and lookups need `MODEL_VISION` and a search key; locally the throwaway test reps and a mock search are used, never real accounts.
 
 ## Open items
 

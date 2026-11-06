@@ -25,7 +25,7 @@ export default function PrivacyPage() {
   return (
     <article className="max-w-xl">
       <h1 className="font-display text-ink text-3xl font-bold tracking-tight">Privacy notice</h1>
-      <p className="text-ink-3 mt-2 text-sm">Last updated 16 October 2026</p>
+      <p className="text-ink-3 mt-2 text-sm">Last updated 6 November 2026</p>
 
       <p className="text-ink-2 mt-5 text-lg">
         If you tapped one of our cards, this page explains what we hold about you and how to have it
@@ -59,12 +59,38 @@ export default function PrivacyPage() {
           <li>Your LinkedIn profile or email address, if you shared one.</li>
           <li>Publicly available information about your company, gathered from its website.</li>
           <li>
+            A link to your public LinkedIn profile and your company website, if the person you met
+            looked them up (see &ldquo;Where it comes from&rdquo;).
+          </li>
+          <li>
             Whether the card was tapped, and anything you typed into the chat or booking form.
           </li>
         </ul>
         <p>
           We collect this from the conversation you had, not from your device. Tapping the card does
           not transmit anything about you or your phone to us.
+        </p>
+      </Section>
+
+      <Section title="Where it comes from">
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>
+            <strong>The conversation.</strong> The person you met typed or dictated what you told
+            them. A language model provider reads that one line to suggest which fields to fill in;
+            we ask for it not to be kept or used for training.
+          </li>
+          <li>
+            <strong>A public web search.</strong> They may have searched the web for your name and
+            company to find your public LinkedIn link and company website, and chose which result
+            was you. We do not open or copy your LinkedIn page.
+          </li>
+          <li>
+            <strong>Your company&rsquo;s own website</strong>, for facts about what it does.
+          </li>
+        </ul>
+        <p>
+          If a lookup picked the wrong person or company, press <strong>Remove my details</strong>{' '}
+          or email us and it will be deleted.
         </p>
       </Section>
 

@@ -4,6 +4,7 @@ import {
   eventHasProblems,
   FALLBACK_NICHE,
   keepVisible,
+  nichesFit,
   noteNiches,
 } from '@/lib/capture/chips';
 
@@ -68,5 +69,13 @@ describe('keepVisible', () => {
 
   it('saves nothing when no chips are shown', () => {
     expect(keepVisible(['Old website'], [])).toEqual([]);
+  });
+});
+
+describe('nichesFit', () => {
+  it('is true while every ticked area fits the 80 character column, false once one would be dropped', () => {
+    expect(nichesFit(['Dental', 'Physio'])).toBe(true);
+    const long = ['A'.repeat(40), 'B'.repeat(40), 'C'.repeat(10)];
+    expect(nichesFit(long.slice(0, 2))).toBe(false);
   });
 });
