@@ -68,6 +68,13 @@ describe('POST followup/sent', () => {
 });
 
 describe('POST followup/outcome', () => {
+  it('reopen clears the outcome', async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: { id }, error: null });
+    const response = await setOutcome(post({ outcome: 'reopen' }), context(id));
+    expect(response.status).toBe(200);
+    expect(mocks.update).toHaveBeenCalledWith({ followup_outcome: null });
+  });
+
   it.each(['replied', 'dropped'])(
     'records %s for the rep’s own live lead only',
     async (outcome) => {

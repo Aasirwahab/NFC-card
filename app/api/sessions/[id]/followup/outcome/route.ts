@@ -7,7 +7,7 @@ import { followupOutcomeSchema } from '@/lib/schemas/sessions';
  * POST /api/sessions/[id]/followup/outcome { outcome: 'replied' | 'dropped' } (§19.3).
  *
  * The lead replied, or the rep is dropping it. Either way no draft is written for
- * it again. Setting the same outcome twice changes nothing.
+ * it again. Setting the same outcome twice changes nothing. 'reopen' undoes it.
  */
 export const POST = withRep(async (rep, request, context: { params: Promise<{ id: string }> }) => {
   const id = z
@@ -24,7 +24,7 @@ export const POST = withRep(async (rep, request, context: { params: Promise<{ id
 
   const { data, error } = await serviceClient()
     .from('sessions')
-    .update({ followup_outcome: parsed.data.outcome })
+    .update({ followup_outcome: parsed.data.outcome === 'reopen' ? null : parsed.data.outcome })
     .eq('id', id.data)
     .eq('user_id', rep.userId)
     .eq('status', 'active')

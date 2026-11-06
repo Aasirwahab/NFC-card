@@ -155,7 +155,17 @@ function FollowupCard({ row }: { row: FollowupRow }) {
             {busy ? 'Saving…' : 'Done'}
           </Button>
         ) : null}
-        {closed ? null : (
+        {closed ? (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => send('outcome', { outcome: 'reopen' })}
+            className="ml-auto"
+          >
+            Undo
+          </Button>
+        ) : (
           <details className="basis-full">
             <summary className="text-ink-2 inline-flex min-h-11 cursor-pointer items-center text-sm">
               More

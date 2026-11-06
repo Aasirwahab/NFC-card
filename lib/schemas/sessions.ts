@@ -160,7 +160,8 @@ export function hasNoFollowUpChannel(details: {
 
 /** POST /api/sessions/[id]/followup/outcome: how a follow-up ended. */
 export const followupOutcomeSchema = z.object({
-  outcome: z.enum(['replied', 'dropped']),
+  /** 'reopen' clears the outcome: an undo for a mistaken Replied or Drop. */
+  outcome: z.enum(['replied', 'dropped', 'reopen']),
 });
 
 /** POST /api/cards/batch */
