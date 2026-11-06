@@ -781,6 +781,8 @@ export type Database = {
           pitch_guidance: string | null;
           pitch_approved_at: string | null;
           pitch_approved_revision: number | null;
+          followup_sent_at: string | null;
+          followup_outcome: string | null;
         };
         Insert: {
           id: string;
@@ -824,6 +826,8 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
         };
         Update: {
           id?: string;
@@ -867,6 +871,8 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
         };
         Relationships: [
           {

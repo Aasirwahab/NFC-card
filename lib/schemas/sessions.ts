@@ -158,6 +158,11 @@ export function hasNoFollowUpChannel(details: {
   return !details.linkedin_url && !details.prospect_email;
 }
 
+/** POST /api/sessions/[id]/followup/outcome: how a follow-up ended. */
+export const followupOutcomeSchema = z.object({
+  outcome: z.enum(['replied', 'dropped']),
+});
+
 /** POST /api/cards/batch */
 export const cardBatchSchema = z.object({
   size: z.number().int().min(1).max(500),

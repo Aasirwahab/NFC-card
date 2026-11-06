@@ -1,5 +1,14 @@
 import 'server-only';
 import { serviceClient } from './service';
+import {
+  FOLLOWUP_WINDOW,
+  followupDraft,
+  followupReason,
+  followupState,
+  isActionable,
+  type FollowupState,
+} from '@/lib/followup/state';
+import { followupChannel, type FollowupChannel } from '@/lib/followup/draft';
 import type { Row } from './types';
 
 /**
@@ -168,11 +177,15 @@ export async function getBusinessProfile(userId: string): Promise<Row<'business_
   return data;
 }
 
-/** A no-tap follow-up draft waiting for the rep to send by hand (§19.3). */
-export type FollowupItem = {
+/** One lead on the "Follow up today" list (§19.3). */
+export type FollowupRow = {
   sessionId: string;
-  channel: 'linkedin' | 'email' | 'none';
-  text: string;
+  state: FollowupState;
+  /** Why they are on the list, in plain words. */
+  reason: string;
+  /** The message to send, or null when there is nothing to send. */
+  draft: string | null;
+  channel: FollowupChannel;
   prospectName: string | null;
   prospectCompany: string | null;
   linkedinUrl: string | null;
@@ -181,38 +194,65 @@ export type FollowupItem = {
   colour: string;
 };
 
-/** Unsent drafts for live sessions that still haven't been opened. */
-export async function listFollowups(userId: string): Promise<FollowupItem[]> {
+/** Work first: they clicked, then opened, then never opened. */
+const ACTION_ORDER: FollowupState[] = ['review', 'opened-no-action', 'due-no-tap'];
+
+/**
+ * The rep's follow-ups, worked out now from their sessions, events and bookings
+ * (no cron needed). `actionable` is the queue; `history` is everything already
+ * sent, booked or closed. Both cover the last 30 days.
+ */
+export async function listFollowups(
+  userId: string,
+  now = Date.now(),
+): Promise<{ actionable: FollowupRow[]; history: FollowupRow[] }> {
   const db = serviceClient();
   const { data: sessions } = await db
     .from('sessions')
     .select(
-      'id, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag',
+      'id, status, details_completed_at, registered_at, first_viewed_at, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag',
     )
     .eq('user_id', userId)
     .eq('status', 'active')
-    .is('first_viewed_at', null);
-  if (!sessions?.length) return [];
+    .not('details_completed_at', 'is', null)
+    .gte('registered_at', new Date(now - FOLLOWUP_WINDOW).toISOString())
+    .order('registered_at', { ascending: false });
+  if (!sessions?.length) return { actionable: [], history: [] };
 
-  const { data: drafts } = await db
-    .from('followup_drafts')
-    .select('session_id, channel, draft_text')
-    .in(
-      'session_id',
-      sessions.map((s) => s.id),
-    )
-    .is('sent_at', null)
-    .order('generated_at', { ascending: true });
+  const ids = sessions.map((s) => s.id);
+  const [{ data: events }, { data: bookings }, { data: profile }, { data: business }] =
+    await Promise.all([
+      db
+        .from('session_events')
+        .select('session_id, type')
+        .in('session_id', ids)
+        .eq('type', 'linkedin_opened'),
+      db.from('bookings').select('session_id, status').in('session_id', ids),
+      db.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
+      db.from('business_profiles').select('company_name').eq('user_id', userId).maybeSingle(),
+    ]);
 
-  const byId = new Map(sessions.map((s) => [s.id, s]));
-  return (drafts ?? []).flatMap((d) => {
-    const s = byId.get(d.session_id);
-    if (!s) return [];
+  const rows: FollowupRow[] = sessions.flatMap((s) => {
+    const state = followupState(s, events ?? [], bookings ?? [], now);
+    if (!state) return [];
+    const channel = followupChannel(s);
     return [
       {
-        sessionId: d.session_id,
-        channel: d.channel as FollowupItem['channel'],
-        text: d.draft_text,
+        sessionId: s.id,
+        state,
+        reason: followupReason(state, s, now),
+        draft: followupDraft(
+          s,
+          state,
+          {
+            channel,
+            prospectName: s.prospect_name,
+            repFullName: profile?.full_name?.trim() || 'the team',
+            businessName: business?.company_name ?? null,
+          },
+          now,
+        ),
+        channel,
         prospectName: s.prospect_name,
         prospectCompany: s.prospect_company,
         linkedinUrl: s.linkedin_url,
@@ -222,6 +262,11 @@ export async function listFollowups(userId: string): Promise<FollowupItem[]> {
       },
     ];
   });
+
+  const actionable = rows
+    .filter((r) => isActionable(r.state))
+    .sort((a, b) => ACTION_ORDER.indexOf(a.state) - ACTION_ORDER.indexOf(b.state));
+  return { actionable, history: rows.filter((r) => !isActionable(r.state)) };
 }
 
 export type SetupProgress = {
