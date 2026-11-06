@@ -80,6 +80,8 @@ export type EnrichDeps = {
   researchModel: ModelHandle;
   pitchModel: ModelHandle;
   log(event: string, details: Record<string, unknown>): void;
+  /** One verified company-register fact, or null. Absent when no key is set. */
+  registerFact?(companyName: string | null): Promise<string | null>;
   /** Injected so tests do not wait in real time. */
   sleep?(ms: number): Promise<void>;
 };
@@ -220,7 +222,21 @@ async function withModelSlot<T>(
 
 // ------------------------------------------------------------- step 3
 
+/** Website facts plus, when a register is wired, one fact from the official UK register. */
 async function research(
+  snapshot: Snapshot,
+  resolved: Resolved,
+  site: Site,
+  deps: EnrichDeps,
+  ctx: JobContext,
+): Promise<Research> {
+  const found = await researchSite(snapshot, resolved, site, deps, ctx);
+  const fact = (await deps.registerFact?.(snapshot.session.prospect_company)) ?? null;
+  if (!fact || found.facts.includes(fact)) return found;
+  return { ...found, facts: [...found.facts, fact] };
+}
+
+async function researchSite(
   snapshot: Snapshot,
   resolved: Resolved,
   site: Site,
