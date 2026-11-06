@@ -4,7 +4,7 @@ import { CardCodeLookup } from '@/components/card-code-lookup';
 import { FirstRunChecklist } from '@/components/first-run-checklist';
 import { TapGuide } from '@/components/tap-guide';
 import { SessionRow } from '@/components/session-row';
-import { FollowupCard } from '@/components/followup-card';
+import { FollowupToday } from '@/components/followup-card';
 import {
   getSetupProgress,
   listEvents,
@@ -29,8 +29,9 @@ export const dynamic = 'force-dynamic';
  *                        is explicit that this case is SURFACED, not hidden: it is
  *                        the feedback loop that makes reps capture a LinkedIn URL
  *                        next time (§19.3).
- *   3. FOLLOW UP       — a day on and still not opened: a draft to send by hand
- *                        (§19.3). Never mentions that they haven't opened it.
+ *   3. FOLLOW UP TODAY — who to message now, each with a ready draft to send by
+ *                        hand (§19.3), worked out from what is recorded. A draft
+ *                        never mentions tracking.
  *   4. EVERYTHING ELSE — newest first.
  */
 export default async function DashboardPage({ searchParams }: PageProps<'/dashboard'>) {
@@ -45,7 +46,10 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
     getSetupProgress(rep.userId),
   ]);
   const shown = new Set(sessions.map((s) => s.id));
-  const followups = allFollowups.filter((f) => shown.has(f.sessionId));
+  const followups = {
+    actionable: allFollowups.actionable.filter((f) => shown.has(f.sessionId)),
+    history: allFollowups.history.filter((f) => shown.has(f.sessionId)),
+  };
 
   const needsDetails = sessions.filter((s) => !s.details_completed_at);
   const noChannel = sessions.filter(
@@ -108,19 +112,8 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
             tone="warn"
           />
 
-          {followups.length > 0 ? (
-            <section>
-              <h2 className="text-ink text-base font-semibold">Follow up · {followups.length}</h2>
-              <p className="text-ink-3 mt-1 text-[13px] leading-snug">
-                A day on and they haven&rsquo;t opened their card. A note to send yourself. It
-                follows up on the conversation and says nothing about the card.
-              </p>
-              <div className="mt-2.5 flex flex-col">
-                {followups.map((item) => (
-                  <FollowupCard key={item.sessionId} item={item} />
-                ))}
-              </div>
-            </section>
+          {followups.actionable.length + followups.history.length > 0 ? (
+            <FollowupToday {...followups} />
           ) : null}
 
           <Group title="Everything else" sessions={rest} />
