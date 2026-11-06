@@ -18,20 +18,21 @@ A large beta upgrade sits on stacked branches (PRs #5 to #9, on top of #1 and #2
 
 ## Status
 
-| Phase | What                                                                                        | State                         |
-| ----- | ------------------------------------------------------------------------------------------- | ----------------------------- |
-| 0     | Foundations — repo, env schema, CI gates, auth                                              | **Done**                      |
-| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture                     | **Done**                      |
-| 2     | The landing page, all four states                                                           | **Done**                      |
-| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                       | **Done**                      |
-| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                         | **Done\***                    |
-| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating | **Built†**                    |
-| 5b    | Field pilot — 20 cards at one real event, before Phase 6                                    | Not started                   |
-| 6     | Offline hardening — service worker, outbox, sync badge                                      | Not started                   |
-| 7     | Follow-up and export — plus results for each event                                          | Built, pending review/staging |
-| 8     | Physical production and live test — plus a QR code on every card                            | Not started                   |
-| 9     | _After v1:_ faster capture — business-card photo, voice note                                | Not started                   |
-| 10    | _After v1:_ team accounts and CRM connectors                                                | Not started                   |
+| Phase | What                                                                                                             | State                         |
+| ----- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 0     | Foundations — repo, env schema, CI gates, auth                                                                   | **Done**                      |
+| 1     | Cards and sessions — schema, RLS, `register_card`, `/c/[code]`, capture                                          | **Done**                      |
+| 2     | The landing page, all four states                                                                                | **Done**                      |
+| 3     | The queue — `claim_jobs`, worker routes, cron, reaper                                                            | **Done**                      |
+| 4     | The pipeline — steps 1–7, `safeFetch`, quality gate                                                              | **Done\***                    |
+| 5     | Chat, booking, email — plus rep tap alert, save-the-rep's-contact, pitch preview and rating                      | **Built†**                    |
+| 4b    | Rep capture polish — card scan, lookups, link paste, compact pickers, prospect page "Quiet Note" (2026-10-30/31) | **Live** (main `1635ffe`)     |
+| 5b    | Field pilot — 20 cards at one real event, before Phase 6                                                         | Not started                   |
+| 6     | Offline hardening — service worker, outbox, sync badge                                                           | Not started                   |
+| 7     | Follow-up and export — plus results for each event                                                               | Built, pending review/staging |
+| 8     | Physical production and live test — plus a QR code on every card                                                 | Not started                   |
+| 9     | _After v1:_ faster capture — business-card photo, voice note                                                     | Not started                   |
+| 10    | _After v1:_ team accounts and CRM connectors                                                                     | Not started                   |
 
 \* Phase 4 runs end to end against an offline **mock** model in tests. **Since
 2026-10-29 production runs a real model** (OpenRouter) and the pitch pipeline
