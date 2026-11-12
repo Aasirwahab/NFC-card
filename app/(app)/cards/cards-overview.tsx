@@ -97,7 +97,7 @@ function LostCard() {
         ok: false,
         text:
           caught instanceof Error && caught.message.includes('card_in_use')
-            ? 'That card already has a lead. Open it and void the lead instead.'
+            ? 'That card already has a contact. Open it and void the contact instead.'
             : 'Could not mark that card lost. Check the code.',
       });
     } finally {

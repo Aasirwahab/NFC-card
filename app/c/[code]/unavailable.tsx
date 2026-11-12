@@ -18,7 +18,7 @@ export function Unavailable() {
   return (
     <div className={`${styles.surface} ${styles.publicPage}`}>
       <main className="flex-1 pt-16">
-        <h1 className={styles.headline}>Can&rsquo;t load this right now</h1>
+        <h1 className={`${styles.headline} ${styles.still}`}>Can&rsquo;t load this right now</h1>
         <p className={styles.companyLine}>
           Try again in a minute. If it keeps happening, open the link later.
         </p>

@@ -235,11 +235,6 @@ html.lenis body {
   max-width: 9em;
   text-wrap: balance;
 }
-.ins .hero h1 .w {
-  display: inline-block;
-  will-change: transform;
-}
-.ins[data-m='pre'] .hero h1,
 .ins[data-m='pre'] .fi,
 .ins[data-m='pre'] .hchip,
 .ins[data-m='pre'] .hc {
