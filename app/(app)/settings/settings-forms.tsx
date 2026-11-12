@@ -125,7 +125,7 @@ export function ProfileForm({
 
         <Field
           label="Booking link"
-          hint="Your Cal.com event. Prospects book straight from their page; leave it blank to hide booking."
+          hint="Your booking link. Prospects book straight from their page; leave it blank to hide booking."
           htmlFor="booking_url"
         >
           <Input
@@ -202,7 +202,7 @@ export function PitchVoiceForm({
     <form action={action}>
       <Panel
         title="How your notes sound"
-        hint="Applies to every prospect note the AI writes for you. You can still ask for a change on any one lead, or write your own."
+        hint="Applies to every prospect note the AI writes for you. You can still ask for a change on any one contact, or write your own."
       >
         <fieldset>
           <legend className="text-ink-2 text-sm font-medium">Tone</legend>
@@ -533,7 +533,7 @@ export function PlaybookForm({
 
   return (
     <Panel
-      title="Your playbook"
+      title="Problems you solve"
       hint="For each problem you hear: why it usually happens, three things worth checking, and one link. Your prospect reads it exactly as you write it, so keep it true and short."
     >
       {entries.map((entry) => (

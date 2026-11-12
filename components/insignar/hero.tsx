@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useRef } from 'react';
-import { gsap, MQ, SplitText, useGSAP } from '@/lib/motion/gsap';
+import { gsap, MQ, useGSAP } from '@/lib/motion/gsap';
 import { sfx } from '@/lib/motion/sfx';
 import { hero } from '@/app/(landing)/insignar/copy';
 
@@ -51,7 +51,6 @@ function drawRings(cv: HTMLCanvasElement, origin: HTMLElement, p: number) {
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
-  const h1 = useRef<HTMLHeadingElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const nfc = useRef<HTMLSpanElement>(null);
 
@@ -60,8 +59,7 @@ export function Hero() {
       const el = root.current;
       const canvas = cv.current;
       const origin = nfc.current;
-      const title = h1.current;
-      if (!el || !canvas || !origin || !title) return;
+      if (!el || !canvas || !origin) return;
       const ins = el.closest<HTMLElement>('.ins');
       const ripple = { p: 1 };
       const draw = () => drawRings(canvas, origin, ripple.p);
@@ -78,48 +76,27 @@ export function Hero() {
       mm.add(MQ.ok, () => {
         ripple.p = 0;
         draw();
-        let cancelled = false;
-        let split: SplitText | null = null;
-        let tl: gsap.core.Timeline | null = null;
-        // Split only once the webfonts are in, otherwise line widths are measured with fallback metrics.
-        void document.fonts.ready.then(() => {
-          if (cancelled) return;
-          split = SplitText.create(title, { type: 'words', wordsClass: 'w' });
-          // One staged entrance, plays once, transform + opacity only, about 0.9 s: headline words,
-          // sub and buttons, then the card visual and the example chip.
-          tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-          tl.fromTo(
-            split.words,
-            { y: 40, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.5, stagger: 0.06 },
-            0.05,
+        // The headline is plain text from first paint (it is the LCP and must never wait on a
+        // script). Only the supporting pieces rise in, once, transform + opacity, about 0.9 s.
+        const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+        tl.call(() => sfx.play('thock'), [], 0.05)
+          .fromTo(
+            '.hero .fi',
+            { y: 16, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
+            0.1,
           )
-            .call(() => sfx.play('thock'), [], 0.05)
-            .fromTo(
-              '.hero .fi',
-              { y: 16, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
-              0.3,
-            )
-            .fromTo(
-              '.hero .hc',
-              { y: 40, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.5, stagger: 0.08 },
-              0.3,
-            )
-            .fromTo(
-              '.hero .hchip',
-              { y: 12, opacity: 0 },
-              { y: 0, opacity: 1, duration: 0.35 },
-              0.55,
-            )
-            .to(ripple, { p: 1, duration: 1.4, ease: 'power2.out', onUpdate: draw }, 0.3);
-          if (ins) ins.dataset.m = 'on';
-        });
+          .fromTo(
+            '.hero .hc',
+            { y: 40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.08 },
+            0.1,
+          )
+          .fromTo('.hero .hchip', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35 }, 0.35)
+          .to(ripple, { p: 1, duration: 1.4, ease: 'power2.out', onUpdate: draw }, 0.1);
+        if (ins) ins.dataset.m = 'on';
         return () => {
-          cancelled = true;
-          tl?.kill();
-          split?.revert();
+          tl.kill();
           if (ins) ins.dataset.m = 'pre';
         };
       });
@@ -164,7 +141,7 @@ export function Hero() {
     <section ref={root} className="hero">
       <div className="wrap hero-grid">
         <div>
-          <h1 ref={h1}>{hero.headline}</h1>
+          <h1>{hero.headline}</h1>
           <p className="sub fi">
             {hero.subStrong} <span>{hero.subSoft}</span>
           </p>

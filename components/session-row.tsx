@@ -6,7 +6,7 @@ import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { SessionListItem } from '@/lib/db/rep';
 
 /**
- * One lead in the dashboard list.
+ * One contact in the dashboard list.
  *
  * Leads with "Card 3 (Blue)" because that is how a rep remembers the
  * conversation before a name exists (§10.3) — the colour and number are the
@@ -67,7 +67,7 @@ function describe(session: SessionListItem): { label: string; className: string 
     case 'failed':
       // Not an error to the prospect — they get the template pitch (§16) — so
       // this is informational rather than alarming.
-      return { label: 'template', className: 'bg-surface-2 text-ink-3' };
+      return { label: 'standard note', className: 'bg-surface-2 text-ink-3' };
     case 'queued':
     case 'processing':
       return { label: 'working', className: 'bg-accent-soft text-accent' };
