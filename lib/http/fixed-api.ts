@@ -1,6 +1,6 @@
 /**
  * Calls to a small, FIXED set of third-party APIs (the decision model, the search
- * vendors). Not `safeFetch`: the host is chosen by us in code, never by a user,
+ * vendors, the UK company register). Not `safeFetch`: the host is chosen by us in code, never by a user,
  * so there is no SSRF surface, and the host list below keeps it that way. Lives
  * in lib/http because that is the only place allowed to touch `fetch` (§22.4).
  */
@@ -10,6 +10,7 @@ const ALLOWED_HOSTS = new Set([
   'api.search.brave.com',
   'google.serper.dev',
   'serpapi.com',
+  'api.company-information.service.gov.uk',
 ]);
 
 export class FixedApiError extends Error {

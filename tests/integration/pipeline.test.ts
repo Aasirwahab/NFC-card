@@ -245,6 +245,23 @@ describe('the happy path', () => {
     expect(JSON.stringify(s.research)).not.toMatch(/praise us/);
   });
 
+  it('adds one verified register fact, and still commits when the register has nothing', async () => {
+    const fact = 'Registered with Companies House since 2014';
+    const withRegister = deps(
+      { 'https://buildrite.co.uk/': BUILDRITE_HOME },
+      { registerFact: async () => fact },
+    );
+    const { sessionId } = await prospect({
+      prospect_company: 'BuildRite Plant Hire',
+      prospect_email: 'tom@buildrite.co.uk',
+    });
+    await drain(runner(withRegister), 5);
+    const s = await session(sessionId);
+    expect(s.enrichment_status).toBe('completed');
+    expect(s.research!.facts).toContain(fact);
+    expect(s.research!.facts.filter((f) => f === fact)).toHaveLength(1);
+  });
+
   it('finds the site from the company name when the name really is on it', async () => {
     const web = deps({
       'https://harbourlineshipping.co.uk/':

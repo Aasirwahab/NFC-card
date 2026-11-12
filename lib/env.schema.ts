@@ -88,6 +88,9 @@ export const serverEnvSchema = z
     SEARCH_FALLBACK_PROVIDER: blankAsUnset(z.enum(['brave', 'serper', 'serpapi']).optional()),
     SEARCH_FALLBACK_API_KEY: blankAsUnset(z.string().optional()),
 
+    /** UK Companies House register (free). Unset = the register step is skipped. */
+    COMPANIES_HOUSE_API_KEY: blankAsUnset(z.string().optional()),
+
     // Set by Vercel on every deployment. Absent locally.
     VERCEL_ENV: blankAsUnset(z.enum(['production', 'preview', 'development']).optional()),
 
