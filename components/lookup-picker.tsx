@@ -112,7 +112,6 @@ export function LookupPicker({
           shouldSearchOnBlur({
             enabled: !l.disabled,
             filled: l.filled,
-            busy: l.busy,
             query,
             lastQuery: lastQuery.current,
           })

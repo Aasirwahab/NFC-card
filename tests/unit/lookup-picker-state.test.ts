@@ -50,15 +50,19 @@ describe('withTimeout', () => {
 });
 
 describe('search on leaving a field', () => {
-  const base = { enabled: true, filled: false, busy: false, query: 'Sarah Lee', lastQuery: null };
+  const base = { enabled: true, filled: false, query: 'Sarah Lee', lastQuery: null };
   it('searches a new question once', () => {
     expect(shouldSearchOnBlur(base)).toBe(true);
     expect(shouldSearchOnBlur({ ...base, lastQuery: 'Sarah Lee' })).toBe(false);
   });
-  it('stays quiet when disabled, filled or already searching', () => {
+  it('stays quiet when disabled or filled', () => {
     expect(shouldSearchOnBlur({ ...base, enabled: false })).toBe(false);
     expect(shouldSearchOnBlur({ ...base, filled: true })).toBe(false);
-    expect(shouldSearchOnBlur({ ...base, busy: true })).toBe(false);
+  });
+  it('asks the new question even while an older one is still running', () => {
+    expect(
+      shouldSearchOnBlur({ ...base, query: 'Sarah Lee at Acme', lastQuery: 'Sarah Lee' }),
+    ).toBe(true);
   });
 });
 

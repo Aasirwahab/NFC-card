@@ -249,7 +249,8 @@ export function DetailsForm({
   const searchOnLeave = (which: 'name' | 'company') => {
     if (!lookupEnabled || session.details_completed_at) return;
     if (which === 'company') siteLookup.current?.runIfChanged();
-    profileLookup.current?.runIfChanged();
+    // A name with no company yet is a weak, wasted search: wait for the company box.
+    if (which === 'company' || company.trim()) profileLookup.current?.runIfChanged();
   };
 
   const quickSelect = useMemo(
@@ -608,7 +609,7 @@ export function DetailsForm({
                   (e.nativeEvent as InputEvent).inputType === 'insertFromPaste',
                 )
               }
-              placeholder="or paste their website"
+              placeholder="Their company"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
@@ -660,7 +661,7 @@ export function DetailsForm({
             id="website"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            placeholder="abcservices.co.uk"
+            placeholder="e.g. theircompany.co.uk"
             inputMode="url"
             autoCapitalize="none"
             autoComplete="off"

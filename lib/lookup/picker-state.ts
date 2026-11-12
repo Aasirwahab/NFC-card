@@ -50,15 +50,18 @@ export function emptyText(query: string): string {
   return query ? `Nothing found for ${query}. Type it in.` : 'Nothing found. Type it in.';
 }
 
-/** Search once when the rep leaves a field, and only if what would be asked is new, usable and still unfilled. */
+/**
+ * Search once when the rep leaves a field, and only if what would be asked is new, usable and
+ * still unfilled. A search still running for an OLDER question does not block a new one: the
+ * picker drops the older answer, so skipping here would leave the rep with nothing.
+ */
 export function shouldSearchOnBlur(input: {
   enabled: boolean;
   filled: boolean;
-  busy: boolean;
   query: string;
   lastQuery: string | null;
 }): boolean {
-  return input.enabled && !input.filled && !input.busy && input.query !== input.lastQuery;
+  return input.enabled && !input.filled && input.query !== input.lastQuery;
 }
 
 /** Plain-word badges for a LinkedIn candidate. */
