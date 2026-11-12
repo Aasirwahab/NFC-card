@@ -79,13 +79,17 @@ alter default privileges in schema public grant all on sequences to anon, authen
 
 export type TestDb = PGlite;
 
-/** Boots a fresh database and applies every migration in the repo, in order. */
-export async function createTestDb(): Promise<TestDb> {
+/**
+ * Boots a fresh database and applies every migration in the repo, in order.
+ * `before` stops short of that migration file, so a test can seed old data and
+ * then apply the migration under test.
+ */
+export async function createTestDb(before?: string): Promise<TestDb> {
   const db = new PGlite();
   await db.exec(SUPABASE_SHIM);
 
   const files = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith('.sql'))
+    .filter((f) => f.endsWith('.sql') && (!before || f < before))
     .sort();
 
   if (files.length === 0) {

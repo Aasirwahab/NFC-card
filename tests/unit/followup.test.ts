@@ -7,7 +7,6 @@ import type { Job, JobContext } from '@/lib/jobs/types';
 const base = {
   prospectName: 'Tom Hargreaves',
   repFullName: 'Zaid Zameer',
-  eventName: 'Property Nexus',
   problem: 'Idle machine tracking',
   businessName: 'TMA',
 };
@@ -23,7 +22,6 @@ describe('the no-tap follow-up draft (§19.3)', () => {
     for (const channel of ['linkedin', 'email', 'none'] as const) {
       const draft = composeFollowupDraft({ ...base, channel });
       expect(draft).toContain('Hi Tom,');
-      expect(draft).toContain('Property Nexus');
       expect(draft).toMatch(/idle machine tracking/);
       expect(draft).not.toMatch(/open|tap|card|look|saw|view|track(ed|ing) you/i);
     }
@@ -38,7 +36,6 @@ describe('the no-tap follow-up draft (§19.3)', () => {
       ...base,
       channel: 'email',
       prospectName: null,
-      eventName: null,
       problem: null,
       businessName: null,
     });
@@ -51,11 +48,11 @@ describe('the followup handler', () => {
   const data: FollowupData = {
     status: 'active',
     firstViewedAt: null,
+    followupClosed: false,
     prospectName: 'Tom',
     linkedinUrl: 'https://www.linkedin.com/in/tom',
     prospectEmail: null,
     problem: 'Idle machine tracking',
-    eventName: 'Property Nexus',
     repFullName: 'Zaid',
     businessName: null,
   };
@@ -91,6 +88,10 @@ describe('the followup handler', () => {
     expect(await run({ ...data, status: 'voided' })).toHaveLength(0);
     expect(await run(null)).toHaveLength(0);
   });
+
+  it('skips a lead the rep already followed up, replied to or dropped', async () => {
+    expect(await run({ ...data, followupClosed: true })).toHaveLength(0);
+  });
 });
 
 describe('leads CSV', () => {
@@ -124,5 +125,21 @@ describe('leads CSV', () => {
     expect(row).toBe(
       '3,Blue,Tom,BuildRite,,,,buildrite.co.uk,Idle machine tracking,2026-10-05T18:00:00Z,,yes',
     );
+  });
+});
+
+describe('drafts claim nothing the rep did not do', () => {
+  it('never says the rep has been thinking about it, or that the prospect mentioned it', () => {
+    for (const channel of ['linkedin', 'email'] as const) {
+      const text = composeFollowupDraft({
+        channel,
+        prospectName: 'Tom Smith',
+        repFullName: 'Zaid Zameer',
+        problem: 'Manual timesheets',
+        businessName: 'TMA',
+      });
+      expect(text).not.toMatch(/thinking about|you mentioned|you said/i);
+      expect(text).toContain('Following up on our chat about manual timesheets');
+    }
   });
 });
