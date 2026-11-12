@@ -27,7 +27,18 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
   const rep = await requireRep();
   const { id } = await params;
 
-  const resolved = await previewForRep(rep.userId, id);
+  // Read separately from the prospect loader: research never goes near the
+  // prospect's page, only the rep's question about a guessed site does. Scoped by
+  // user_id, so it can start alongside the ownership-checked load.
+  const [resolved, { data: stored }] = await Promise.all([
+    previewForRep(rep.userId, id),
+    serviceClient()
+      .from('sessions')
+      .select('research')
+      .eq('id', id)
+      .eq('user_id', rep.userId)
+      .maybeSingle(),
+  ]);
   if (!resolved) notFound();
 
   const { session } = resolved;
@@ -46,14 +57,6 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
         .maybeSingle()
     : { data: null };
 
-  // Read separately from the prospect loader: research never goes near the
-  // prospect's page, only the rep's question about a guessed site does.
-  const { data: stored } = await serviceClient()
-    .from('sessions')
-    .select('research')
-    .eq('id', session.id)
-    .eq('user_id', rep.userId)
-    .maybeSingle();
   const research = (stored?.research ?? null) as Partial<Research> | null;
   const guessedSite =
     research?.domainSource === 'guess' && typeof research.domain === 'string'

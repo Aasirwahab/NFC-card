@@ -82,7 +82,7 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
         <p className={styles.headline}>All caught up.</p>
       )}
 
-      <p className="text-ink-2 mt-4 text-sm">Start a capture: tap your card, or type its code.</p>
+      <p className="text-ink-2 mt-4 text-sm">Add a contact: tap your card, or type its code.</p>
       <CardCodeLookup className={styles.cardLookup} />
 
       {!progress.booking ? (
@@ -107,7 +107,7 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
           <Group
             title="Add a way to reach them"
-            hint="Open the lead and add LinkedIn or email so you can follow up."
+            hint="Open the contact and add LinkedIn or email so you can follow up."
             sessions={noChannel}
             tone="warn"
           />
@@ -192,7 +192,7 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
 function EmptyState() {
   return (
     <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6">
-      <p className="text-ink text-center font-medium">No leads yet</p>
+      <p className="text-ink text-center font-medium">No contacts yet</p>
       <p className="text-ink-2 mx-auto mt-1.5 max-w-sm text-center text-sm">
         Hand a card over. Anyone who taps it, and any card you tap yourself, shows up here.
       </p>

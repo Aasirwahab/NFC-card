@@ -67,7 +67,7 @@ export function PitchTools({
   }
 
   async function reset() {
-    if (!confirm('Go back to the pitch INSIGNAR wrote? Your edit will be discarded.')) return;
+    if (!confirm('Restore the original pitch INSIGNAR wrote? Your edit will be discarded.')) return;
     setBusy(true);
     setError(null);
     try {
@@ -75,7 +75,7 @@ export function PitchTools({
       setWarnings(null);
       router.refresh();
     } catch {
-      setError('Could not reset the pitch. Try again.');
+      setError('Could not restore the original. Try again.');
     } finally {
       setBusy(false);
     }
@@ -85,14 +85,14 @@ export function PitchTools({
     <section className="mt-5 flex flex-col gap-3">
       {edited ? (
         <div className="bg-accent-soft text-ink-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm">
-          <span>You edited this pitch. It stays yours, even if the page is regenerated.</span>
+          <span>You edited this pitch. It stays yours, even if the page is rewritten.</span>
           <button
             type="button"
             onClick={reset}
             disabled={busy}
             className="text-accent font-medium underline underline-offset-2"
           >
-            Use INSIGNAR&rsquo;s version
+            Restore original
           </button>
         </div>
       ) : null}
@@ -269,7 +269,7 @@ function RatePitch({ sessionId, initial }: { sessionId: string; initial: Rating 
 const STYLE_CHIPS = ['Shorter', 'Warmer', 'More direct', 'Less formal', 'More formal'] as const;
 
 /**
- * "Try again": another AI draft, optionally steered. The steering is a style request
+ * "Rewrite": another AI draft, optionally steered. The steering is a style request
  * only (length, warmth, directness); it never adds a fact, and the same checks run on
  * the new draft. If the rep has written their own pitch, that stays what the prospect
  * sees; the new draft is kept for them to switch to.
@@ -290,15 +290,15 @@ function TryAgain({ sessionId, edited }: { sessionId: string; edited: boolean })
       await apiSend(`/api/sessions/${sessionId}/re-enrich`, 'POST', guidance ? { guidance } : {});
       setMessage(
         edited
-          ? 'Writing a new version. Your own pitch stays what they see until you switch.'
-          : 'Writing a new version. This page updates in about a minute.',
+          ? 'Rewriting. Your own pitch stays what they see until you switch.'
+          : 'Rewriting. This page updates in about a minute.',
       );
       setOpen(false);
       setChips([]);
       setExtra('');
       router.refresh();
     } catch {
-      setMessage('Could not start a new version. Try again in a moment.');
+      setMessage('Could not start the rewrite. Try again in a moment.');
     } finally {
       setBusy(false);
     }
@@ -308,7 +308,7 @@ function TryAgain({ sessionId, edited }: { sessionId: string; edited: boolean })
     return (
       <div>
         <Button variant="secondary" onClick={() => setOpen(true)}>
-          Try again
+          Rewrite
         </Button>
         {message ? (
           <p className="text-ink-2 mt-2 text-[13px]" role="status">
@@ -355,7 +355,7 @@ function TryAgain({ sessionId, edited }: { sessionId: string; edited: boolean })
       />
       <div className="mt-3 flex gap-2">
         <Button onClick={() => void run()} disabled={busy}>
-          {busy ? 'Starting…' : 'Write a new version'}
+          {busy ? 'Starting…' : 'Rewrite'}
         </Button>
         <Button variant="secondary" onClick={() => setOpen(false)} disabled={busy}>
           Cancel

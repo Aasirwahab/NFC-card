@@ -17,7 +17,7 @@ export default function CardNotFound() {
   return (
     <div className={`${styles.surface} ${styles.publicPage}`}>
       <main className="flex-1 pt-16">
-        <h1 className={styles.headline}>This page isn&rsquo;t available</h1>
+        <h1 className={`${styles.headline} ${styles.still}`}>This page isn&rsquo;t available</h1>
         <p className={styles.companyLine}>
           The link may have been removed, or it is not active. If someone gave you this card, ask
           them to send the link again.

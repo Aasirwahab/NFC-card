@@ -10,7 +10,7 @@ import { Field, Input, Textarea } from '@/components/ui/field';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
 import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
-import { LookupPicker } from '@/components/lookup-picker';
+import { LookupPicker, type LookupPickerApi } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
@@ -34,6 +34,7 @@ import {
   visibleChips,
 } from '@/lib/capture/chips';
 import type { SiteLookup } from '@/lib/lookup/company';
+import { profileBadge } from '@/lib/lookup/picker-state';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
@@ -93,6 +94,14 @@ export function DetailsForm({
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
+  // The "More about the conversation" section starts open when it already holds something.
+  const [moreOpen, setMoreOpen] = useState(
+    () =>
+      parseNicheList(session.niche, niches).length > 0 ||
+      (session.problems ?? []).length > 0 ||
+      !!(session.custom_problems ?? '').trim() ||
+      !!(session.memorable_info ?? '').trim(),
+  );
 
   // After a card scan: fields that agree with the card, and ones that differ (the rep decides).
   const [cardSnap, setCardSnap] = useState<Partial<Record<ReconciledField, string | null>>>({});
@@ -158,6 +167,8 @@ export function DetailsForm({
           (x): x is string => typeof x === 'string' && x.trim() !== '',
         );
         if (kept.length > 0) setCustomProblems(kept.join('\n'));
+        if (d.niche || kept.length > 0 || (Array.isArray(d.problems) && d.problems.length > 0))
+          setMoreOpen(true);
         setRestored(true);
       });
     } catch {
@@ -217,40 +228,30 @@ export function DetailsForm({
     }
   };
 
-  const setSiteApi = useCallback((api: { run: (o?: Record<string, unknown>) => void }) => {
+  const setSiteApi = useCallback((api: LookupPickerApi) => {
     siteLookup.current = api;
   }, []);
-  const setProfileApi = useCallback((api: { run: (o?: Record<string, unknown>) => void }) => {
+  const setProfileApi = useCallback((api: LookupPickerApi) => {
     profileLookup.current = api;
   }, []);
 
-  const siteLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
-  const profileLookup = useRef<{ run: (o?: Record<string, unknown>) => void } | null>(null);
+  const siteLookup = useRef<LookupPickerApi | null>(null);
+  const profileLookup = useRef<LookupPickerApi | null>(null);
 
-  // Start the look-ups while the rep is still talking: once the company (or a full name)
-  // has been still for a moment, ask. The rep only ever taps the right answer; nothing is
-  // filled in. Each distinct value is asked once, so retyping does not spend searches.
+  // Look-ups run only when the rep taps a search button, after a card scan, or once on
+  // leaving the name or company box with something new: never while they are typing, so
+  // half a name never spends a search. The rep only ever taps the right answer; nothing is
+  // filled in.
   // What the rep has picked so far (industry, problems): business text that helps Jev order
   // namesakes. Read from a ref so a lookup that starts later sees the newest ticks.
   const contextRef = useRef<{ niche?: string; problems?: string[] }>({});
   const pickedContext = () => contextRef.current;
-  const autoAsked = useRef<Set<string>>(new Set());
-  useEffect(() => {
+  const searchOnLeave = (which: 'name' | 'company') => {
     if (!lookupEnabled || session.details_completed_at) return;
-    const timer = setTimeout(() => {
-      const c = company.trim();
-      if (c.length >= 3 && !website.trim() && !autoAsked.current.has(`site:${c}`)) {
-        autoAsked.current.add(`site:${c}`);
-        siteLookup.current?.run({ name: c });
-      }
-      const n = name.trim();
-      if (/\S+\s+\S+/.test(n) && !linkedin.trim() && !autoAsked.current.has(`in:${n}|${c}`)) {
-        autoAsked.current.add(`in:${n}|${c}`);
-        profileLookup.current?.run({ name: n, ...(c ? { company: c } : {}), ...pickedContext() });
-      }
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [lookupEnabled, session.details_completed_at, company, name, website, linkedin]);
+    if (which === 'company') siteLookup.current?.runIfChanged();
+    // A name with no company yet is a weak, wasted search: wait for the company box.
+    if (which === 'company' || company.trim()) profileLookup.current?.runIfChanged();
+  };
 
   const quickSelect = useMemo(
     () => chipProblemsForAll(niches, selectedNiches, fallbackProblems),
@@ -381,14 +382,14 @@ export function DetailsForm({
       setSaved(true);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not regenerate the page.');
+      setError(caught instanceof Error ? caught.message : 'Could not rewrite the page.');
     }
   }
 
-  async function voidSession() {
+  async function removeContact() {
     if (
       !confirm(
-        'Void this card and session?\n\nThe card cannot be reused — it may already be in ' +
+        'Remove this contact?\n\nThe card cannot be reused — it may already be in ' +
           'someone’s pocket. Use a fresh card instead.',
       )
     ) {
@@ -399,14 +400,14 @@ export function DetailsForm({
       await apiSend(`/api/sessions/${session.id}/void`, 'POST');
       router.push('/dashboard');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not void the session.');
+      setError(caught instanceof Error ? caught.message : 'Could not remove the contact.');
     }
   }
 
   async function deleteSession() {
     if (
       !confirm(
-        'Delete this lead completely?\n\nTheir details, page, messages and any booking are ' +
+        'Delete this contact completely?\n\nTheir details, page, messages and any booking are ' +
           'removed for good. Use this when someone asks to be forgotten. The card stops working.',
       )
     ) {
@@ -424,7 +425,7 @@ export function DetailsForm({
       router.push('/dashboard');
     } catch (caught) {
       (window as { insignarClosing?: boolean }).insignarClosing = false;
-      setError(caught instanceof Error ? caught.message : 'Could not delete the lead.');
+      setError(caught instanceof Error ? caught.message : 'Could not delete the contact.');
     }
   }
 
@@ -540,126 +541,6 @@ export function DetailsForm({
       />
 
       <div className="mt-4 flex flex-col gap-4">
-        {niches.length > 0 ? (
-          <fieldset>
-            <legend className="text-ink-2 text-sm font-medium">
-              Their area (tick any that fit)
-            </legend>
-            <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
-              {niches.map(({ name }) => {
-                const selected = selectedNiches.includes(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      const next = selected
-                        ? selectedNiches.filter((x) => x !== name)
-                        : [...selectedNiches, name];
-                      // The saved value holds 80 characters: a tick that would be dropped is refused.
-                      if (!selected && !nichesFit(next)) {
-                        setError('That is too many areas to save. Untick one first.');
-                        return;
-                      }
-                      setSelectedNiches(next);
-                      // A tick can only stay while its chip is on screen.
-                      const visible = chipProblemsForAll(niches, next, fallbackProblems);
-                      setProblems((current) => keepVisible(current, visible));
-                    }}
-                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
-                      selected
-                        ? 'border-accent bg-accent-soft text-accent'
-                        : 'border-line bg-surface text-ink-2'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : null}
-
-        {quickSelect.length > 0 ? (
-          <fieldset>
-            <legend className="text-ink-2 w-full text-sm font-medium">
-              What did they raise?
-              <span
-                className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
-                aria-live="polite"
-              >
-                {tickedCount} of {MAX_TICKED_PROBLEMS}
-              </span>
-            </legend>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {problemChips.shown.map((problem) => {
-                const selected = problems.includes(problem);
-                return (
-                  <button
-                    key={problem}
-                    type="button"
-                    onClick={() => {
-                      dismissKeyboard();
-                      toggleProblem(problem);
-                    }}
-                    aria-pressed={selected}
-                    aria-disabled={!selected && atLimit}
-                    className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
-                      selected
-                        ? 'border-accent bg-accent-soft text-accent'
-                        : atLimit
-                          ? 'border-line bg-surface text-ink-3 opacity-50'
-                          : 'border-line bg-surface text-ink-2'
-                    }`}
-                  >
-                    {problem}
-                  </button>
-                );
-              })}
-              {problemChips.hiddenCount > 0 || moreProblems ? (
-                <button
-                  type="button"
-                  onClick={() => setMoreProblems((v) => !v)}
-                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
-                >
-                  {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
-                </button>
-              ) : null}
-            </div>
-          </fieldset>
-        ) : null}
-
-        <NoteBox
-          value={customProblems}
-          setValue={setCustomProblems}
-          niches={noteNiches(niches, fallbackProblems)}
-          onFill={(fill) => {
-            const fillIfEmpty = (value: string) => (current: string) =>
-              current.trim() ? current : value;
-            if (fill.name) setName(fillIfEmpty(fill.name));
-            if (fill.company) setCompany(fillIfEmpty(fill.company));
-            // Never swap a niche the rep already worked in.
-            const swap =
-              fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
-            if (swap) setSelectedNiches([fill.niche!]);
-            // Only problems whose chip will be on screen may be ticked, five at most.
-            const visible = chipProblemsForAll(
-              niches,
-              swap ? [fill.niche!] : latest.current.selectedNiches,
-              fallbackProblems,
-            );
-            if (fill.problems.length > 0) {
-              setProblems((current) =>
-                keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
-                  0,
-                  MAX_TICKED_PROBLEMS,
-                ),
-              );
-            }
-          }}
-        />
-
         {liveConflicts.length > 0 ? (
           <div className="border-accent bg-accent-soft flex flex-col gap-3 rounded-xl border p-3">
             <p className="text-ink text-[13px] font-medium">The card says something different</p>
@@ -702,6 +583,7 @@ export function DetailsForm({
             <Input
               id="name"
               value={name}
+              onBlur={() => searchOnLeave('name')}
               onChange={(e) =>
                 changeText(
                   'name',
@@ -719,6 +601,7 @@ export function DetailsForm({
             <Input
               id="company"
               value={company}
+              onBlur={() => searchOnLeave('company')}
               onChange={(e) =>
                 changeText(
                   'company',
@@ -726,7 +609,7 @@ export function DetailsForm({
                   (e.nativeEvent as InputEvent).inputType === 'insertFromPaste',
                 )
               }
-              placeholder="or paste their website"
+              placeholder="Their company"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
@@ -748,6 +631,8 @@ export function DetailsForm({
               buttonLabel="Search the web for LinkedIn"
               filled={linkedin.trim() !== ''}
               disabled={name.trim().split(/\s+/).length < 2}
+              disabledReason="Needs their first and last name."
+              queryText={(b) => `${b.name}${b.company ? ` at ${b.company}` : ''}`}
               path="/api/lookup/linkedin"
               body={() => ({
                 name: name.trim(),
@@ -760,23 +645,13 @@ export function DetailsForm({
                   checkUrl: c.url,
                   primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
                   secondary: c.snippet || undefined,
-                  badge:
-                    c.url === response.likelyUrl
-                      ? 'Likely'
-                      : c.label === 'exact_match'
-                        ? 'Check'
-                        : c.label === 'ambiguous'
-                          ? 'Unsure'
-                          : c.label === 'namesake'
-                            ? 'Other company'
-                            : undefined,
+                  badge: profileBadge(c.url === response.likelyUrl, c.label),
                   likely: c.url === response.likelyUrl,
                   value: c.url,
                 }))
               }
               onPick={setLinkedin}
               onReady={setProfileApi}
-              emptyText="No profile found. Paste the link if they shared it."
             />
           ) : null}
         </Field>
@@ -786,7 +661,7 @@ export function DetailsForm({
             id="website"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            placeholder="abcservices.co.uk"
+            placeholder="e.g. theircompany.co.uk"
             inputMode="url"
             autoCapitalize="none"
             autoComplete="off"
@@ -796,6 +671,8 @@ export function DetailsForm({
               buttonLabel="Find their website"
               filled={website.trim() !== ''}
               disabled={company.trim().length < 2}
+              disabledReason="Needs the company name."
+              queryText={(b) => String(b.name)}
               path="/api/lookup/company"
               body={() => ({ name: company.trim() })}
               toItems={(response: SiteLookup) =>
@@ -803,14 +680,13 @@ export function DetailsForm({
                   key: c.url,
                   primary: c.domain,
                   secondary: c.title,
-                  badge: c.url === response.likelyUrl ? 'Likely' : undefined,
+                  badge: c.url === response.likelyUrl ? 'Best match' : undefined,
                   likely: c.url === response.likelyUrl,
                   value: c.domain,
                 }))
               }
               onPick={setWebsite}
               onReady={setSiteApi}
-              emptyText="Nothing found. Type the website if you know it."
             />
           ) : null}
         </Field>
@@ -837,12 +713,136 @@ export function DetailsForm({
           </Field>
         </div>
 
-        <details className={styles.optionalDetails}>
+        <details
+          className={styles.optionalDetails}
+          open={moreOpen}
+          onToggle={(e) => setMoreOpen(e.currentTarget.open)}
+        >
           <summary>
-            <span>More details (optional)</span>
+            <span>More about the conversation</span>
             <ChevronDown aria-hidden="true" className="h-5 w-5" />
           </summary>
           <div className="flex flex-col gap-4 pb-4">
+            {niches.length > 0 ? (
+              <fieldset>
+                <legend className="text-ink-2 text-sm font-medium">
+                  Their area (tick any that fit)
+                </legend>
+                <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
+                  {niches.map(({ name }) => {
+                    const selected = selectedNiches.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          const next = selected
+                            ? selectedNiches.filter((x) => x !== name)
+                            : [...selectedNiches, name];
+                          // The saved value holds 80 characters: a tick that would be dropped is refused.
+                          if (!selected && !nichesFit(next)) {
+                            setError('That is too many areas to save. Untick one first.');
+                            return;
+                          }
+                          setSelectedNiches(next);
+                          // A tick can only stay while its chip is on screen.
+                          const visible = chipProblemsForAll(niches, next, fallbackProblems);
+                          setProblems((current) => keepVisible(current, visible));
+                        }}
+                        className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                          selected
+                            ? 'border-accent bg-accent-soft text-accent'
+                            : 'border-line bg-surface text-ink-2'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
+
+            {quickSelect.length > 0 ? (
+              <fieldset>
+                <legend className="text-ink-2 w-full text-sm font-medium">
+                  What did they raise?
+                  <span
+                    className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
+                    aria-live="polite"
+                  >
+                    {tickedCount} of {MAX_TICKED_PROBLEMS}
+                  </span>
+                </legend>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {problemChips.shown.map((problem) => {
+                    const selected = problems.includes(problem);
+                    return (
+                      <button
+                        key={problem}
+                        type="button"
+                        onClick={() => {
+                          dismissKeyboard();
+                          toggleProblem(problem);
+                        }}
+                        aria-pressed={selected}
+                        aria-disabled={!selected && atLimit}
+                        className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
+                          selected
+                            ? 'border-accent bg-accent-soft text-accent'
+                            : atLimit
+                              ? 'border-line bg-surface text-ink-3 opacity-50'
+                              : 'border-line bg-surface text-ink-2'
+                        }`}
+                      >
+                        {problem}
+                      </button>
+                    );
+                  })}
+                  {problemChips.hiddenCount > 0 || moreProblems ? (
+                    <button
+                      type="button"
+                      onClick={() => setMoreProblems((v) => !v)}
+                      className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
+                    >
+                      {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
+                    </button>
+                  ) : null}
+                </div>
+              </fieldset>
+            ) : null}
+
+            <NoteBox
+              value={customProblems}
+              setValue={setCustomProblems}
+              niches={noteNiches(niches, fallbackProblems)}
+              onFill={(fill) => {
+                const fillIfEmpty = (value: string) => (current: string) =>
+                  current.trim() ? current : value;
+                if (fill.name) setName(fillIfEmpty(fill.name));
+                if (fill.company) setCompany(fillIfEmpty(fill.company));
+                // Never swap a niche the rep already worked in.
+                const swap =
+                  fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
+                if (swap) setSelectedNiches([fill.niche!]);
+                // Only problems whose chip will be on screen may be ticked, five at most.
+                const visible = chipProblemsForAll(
+                  niches,
+                  swap ? [fill.niche!] : latest.current.selectedNiches,
+                  fallbackProblems,
+                );
+                if (fill.problems.length > 0) {
+                  setProblems((current) =>
+                    keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
+                      0,
+                      MAX_TICKED_PROBLEMS,
+                    ),
+                  );
+                }
+              }}
+            />
+
             <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
 
             <Field
@@ -862,6 +862,7 @@ export function DetailsForm({
             </Field>
           </div>
         </details>
+
         {noChannel ? (
           <p className="bg-warn-bg text-warn mt-3 rounded-lg px-3 py-2.5 text-[13px] font-medium">
             No way to follow up if they don&rsquo;t tap. Add LinkedIn or email?
@@ -873,34 +874,42 @@ export function DetailsForm({
         ) : null}
 
         {session.rep_pitch ? (
-          <p className="text-ink-3 text-[13px]">
-            You edited their pitch, so saving or regenerating keeps your version. Switch back to
-            INSIGNAR&rsquo;s on the preview.
+          <p className="text-ink-3 mt-3 text-[13px]">
+            You edited their pitch, so saving or rewriting keeps your version. Use Restore original
+            on the preview to switch back.
           </p>
         ) : null}
 
         <Link
           href={`/sessions/${session.id}/preview`}
-          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 mt-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
         >
           Preview their page
         </Link>
 
-        <button
-          type="button"
-          onClick={voidSession}
-          className="text-crit mt-2 self-center text-[13px] underline underline-offset-2"
-        >
-          Wrong card — void this session
-        </button>
+        <details className={styles.optionalDetails}>
+          <summary>
+            <span>Remove this contact</span>
+            <ChevronDown aria-hidden="true" className="h-5 w-5" />
+          </summary>
+          <div className="flex flex-col gap-4 pb-4">
+            <button
+              type="button"
+              onClick={removeContact}
+              className="text-crit mt-2 self-center text-[13px] underline underline-offset-2"
+            >
+              Wrong card — remove this contact
+            </button>
 
-        <button
-          type="button"
-          onClick={deleteSession}
-          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
-        >
-          Delete this lead completely
-        </button>
+            <button
+              type="button"
+              onClick={deleteSession}
+              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
+            >
+              Delete this contact completely
+            </button>
+          </div>
+        </details>
       </div>
 
       {/* Always in reach: pinned just above the tab bar (3.75rem), with the result of Saving beside it,
@@ -957,14 +966,14 @@ function EnrichmentStatus({ status, onRegenerate }: { status: string; onRegenera
           onClick={onRegenerate}
           className="text-accent shrink-0 font-medium underline underline-offset-2"
         >
-          Regenerate
+          Rewrite
         </button>
       ) : null}
     </div>
   );
 }
 
-/** File this lead under a different event. Hidden when there is only one to pick. */
+/** File this contact under a different event. Hidden when there is only one to pick. */
 function EventPicker({
   sessionId,
   eventId,
@@ -988,7 +997,7 @@ function EventPicker({
       await apiSend(`/api/sessions/${sessionId}/event`, 'POST', { event_id: next });
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not move this lead.');
+      setError(caught instanceof Error ? caught.message : 'Could not move this contact.');
     } finally {
       setBusy(false);
     }
@@ -1161,7 +1170,7 @@ function NoteBox({
         Not in the list? Say it in your words
       </label>
       <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
-        Business things only. Private details go in More details.
+        Business things only. Private details go in To remember them by.
       </p>
       <Textarea
         id="quick-note"

@@ -30,7 +30,7 @@ export default async function EditSessionPage({
   const session = await getSessionForRep(rep.userId, id);
   if (!session) notFound();
 
-  const [event, events, { data: card }] = await Promise.all([
+  const [event, events, { data: card }, playbookProblems] = await Promise.all([
     getEvent(rep.userId, session.event_id),
     listEvents(rep.userId),
     serviceClient()
@@ -39,12 +39,13 @@ export default async function EditSessionPage({
       .eq('id', session.card_id)
       .eq('user_id', rep.userId)
       .maybeSingle(),
+    // Fetched alongside the rest rather than after: whether it is needed depends on
+    // the event, and a wasted small query costs less than a second round trip.
+    listPlaybookProblems(rep.userId),
   ]);
 
   // No problems on the event (Unsorted, or none set up): offer the rep's playbook problems instead.
-  const fallbackProblems = eventHasProblems(event?.niches ?? [])
-    ? []
-    : await listPlaybookProblems(rep.userId);
+  const fallbackProblems = eventHasProblems(event?.niches ?? []) ? [] : playbookProblems;
 
   return (
     <div>

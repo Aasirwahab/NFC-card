@@ -10,6 +10,12 @@ Where the live app is, what it needs, and what has already bitten us. Secrets ar
 - Code on `main` as of 2026-10-31: `1635ffe` (PRs #32 to #38: faster capture, LinkedIn/website lookups, card scan and reconcile, prospect page redesign). Rollback points are git tags on the repo: `release-pr26` to `release-pr38` (state after each merge), `rollback-2026-10-31-before-pr34`, `-before-pr35`, `-before-compact-capture`, `-before-pr37`, plus Vercel Instant Rollback on any production deploy. No database migration was applied from PR #26 to #38. Draft PR #39 (review fixes) is open and not merged.
 - Printed cards and QR codes use `NEXT_PUBLIC_APP_URL` (`https://insignar.com/c/<code>`), so treat the domain as permanent.
 
+## Function region (and why)
+
+`vercel.json` pins functions to `hnd1` (Tokyo). The default is `iad1` (Washington), but the Supabase project is in `ap-northeast-1` (Tokyo), so every auth and database round trip from a function crossed the Pacific (about 150 to 200 ms each, several per signed-in page). Putting the functions next to the database removes that; the cost is that a UK user now makes one longer hop to the function instead of several long hops behind it. Cron jobs run in the same region (the `regions` setting applies to all functions; crons are plain HTTP calls to `/api/cron/jobs`). The Upstash Redis region was not checked: if it is not in Tokyo, rate-limit calls pay the same cost.
+
+Long-term fix: move Supabase and Vercel functions to London (`eu-west-2` / `lhr1`), next to the users. That is a database migration and a Vercel setting change, so it needs Aasir.
+
 ## Settings in Vercel (production), names only
 
 `MODEL_PROVIDER=openrouter`, `MODEL_API_KEY`, `MODEL_PITCH`, `MODEL_CHAT`, `MODEL_VISION`, `JEV_ENABLED`, `SEARCH_PROVIDER` and `SEARCH_API_KEY` (SerpApi, free tier about 250 searches a month), `STAFF_EMAILS` (opens `/ops`), `NEXT_PUBLIC_APP_URL`, Supabase and Upstash keys, `WORKER_SECRET`, `CRON_SECRET`, `CHAT_ENABLED`, `JOB_CONCURRENCY`, `JOB_BATCH`. **Not set yet:** `RESEND_API_KEY` and `EMAIL_FROM` (email), `MODEL_RESEARCH` (optional). Settings only reach a deployment built after they were saved: redeploy after changing one.

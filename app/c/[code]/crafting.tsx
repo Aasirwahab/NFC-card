@@ -33,7 +33,8 @@ export function Crafting({ code, fallbackPitch }: { code: string; fallbackPitch:
     let cancelled = false;
 
     const poll = setInterval(async () => {
-      if (cancelled) return;
+      // A backgrounded tab does not need the answer yet; the next tick after it returns will.
+      if (cancelled || document.visibilityState === 'hidden') return;
 
       try {
         // Same-origin, status only: { status: "queued" | "completed" | ... }.

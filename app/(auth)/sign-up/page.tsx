@@ -10,7 +10,7 @@ export default function SignUpPage() {
       <h1 className="font-display text-ink mb-1 text-2xl font-semibold tracking-tight">
         Create an account
       </h1>
-      <p className="text-ink-2 mb-6 text-sm">Two minutes, then print some cards.</p>
+      <p className="text-ink-2 mb-6 text-sm">Three quick steps, then tap your first card.</p>
 
       <AuthForm
         action={signUpAction}

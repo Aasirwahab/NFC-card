@@ -1088,6 +1088,21 @@
   animation-delay: 1300ms;
 }
 
+/*
+ * Status pages (not found, can't load): the headline is the message, so it shows at full
+ * contrast from first paint. No rise-and-fade, which at 8px dropped the pale headline onto
+ * the paragraph below; and room under it so wrapped lines never touch the text after.
+ */
+.publicPage .headline.still {
+  animation: none;
+  color: var(--color-ink);
+  line-height: 1.05;
+}
+
+.publicPage .headline.still + .companyLine {
+  margin-top: 16px;
+}
+
 /* Never hold a focusable control invisible: reduced motion skips the wait, focus reveals at once. */
 @media (prefers-reduced-motion: reduce) {
   .publicPage .arrive,
