@@ -872,26 +872,26 @@ export function DetailsForm({
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
         ) : null}
 
+        {session.rep_pitch ? (
+          <p className="text-ink-3 mt-3 text-[13px]">
+            You edited their pitch, so saving or regenerating keeps your version. Use Restore
+            original on the preview to switch back.
+          </p>
+        ) : null}
+
+        <Link
+          href={`/sessions/${session.id}/preview`}
+          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 mt-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
+        >
+          Preview their page
+        </Link>
+
         <details className={styles.optionalDetails}>
           <summary>
-            <span>Preview and remove</span>
+            <span>Remove this contact</span>
             <ChevronDown aria-hidden="true" className="h-5 w-5" />
           </summary>
           <div className="flex flex-col gap-4 pb-4">
-            {session.rep_pitch ? (
-              <p className="text-ink-3 text-[13px]">
-                You edited their pitch, so saving or regenerating keeps your version. Switch back to
-                INSIGNAR&rsquo;s on the preview.
-              </p>
-            ) : null}
-
-            <Link
-              href={`/sessions/${session.id}/preview`}
-              className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
-            >
-              Preview their page
-            </Link>
-
             <button
               type="button"
               onClick={removeContact}
