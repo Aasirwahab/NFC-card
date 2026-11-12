@@ -181,32 +181,28 @@ export type FollowupItem = {
   colour: string;
 };
 
-/** Unsent drafts for live sessions that still haven't been opened. */
+/**
+ * Unsent drafts for live sessions that still haven't been opened.
+ *
+ * One query, not two: the draft row embeds its session (one-to-one), and the
+ * ownership filter (`user_id`) sits on the embedded session. It used to read the
+ * sessions first and the drafts second, which is a second round trip to the
+ * database on the Today page.
+ */
 export async function listFollowups(userId: string): Promise<FollowupItem[]> {
-  const db = serviceClient();
-  const { data: sessions } = await db
-    .from('sessions')
-    .select(
-      'id, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag',
-    )
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .is('first_viewed_at', null);
-  if (!sessions?.length) return [];
-
-  const { data: drafts } = await db
+  const { data: drafts } = await serviceClient()
     .from('followup_drafts')
-    .select('session_id, channel, draft_text')
-    .in(
-      'session_id',
-      sessions.map((s) => s.id),
+    .select(
+      'session_id, channel, draft_text, sessions!inner(prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag)',
     )
+    .eq('sessions.user_id', userId)
+    .eq('sessions.status', 'active')
+    .is('sessions.first_viewed_at', null)
     .is('sent_at', null)
     .order('generated_at', { ascending: true });
 
-  const byId = new Map(sessions.map((s) => [s.id, s]));
   return (drafts ?? []).flatMap((d) => {
-    const s = byId.get(d.session_id);
+    const s = d.sessions;
     if (!s) return [];
     return [
       {

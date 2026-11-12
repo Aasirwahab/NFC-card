@@ -17,7 +17,7 @@ export function HeldWatcher({ code }: { code: string }) {
   useEffect(() => {
     let cancelled = false;
     const poll = setInterval(async () => {
-      if (cancelled) return;
+      if (cancelled || document.visibilityState === 'hidden') return;
       try {
         // Status only: no prospect data crosses this wire.
         const { status } = await apiGet<{ status: string }>(
