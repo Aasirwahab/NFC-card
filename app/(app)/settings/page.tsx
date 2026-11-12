@@ -88,7 +88,7 @@ export default async function SettingsPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{field.label}</p>
-                <p className="text-ink-3 text-sm">{field.present ? 'Present' : 'Missing'}</p>
+                <p className="text-ink-3 text-sm">{field.present ? 'Added' : 'Missing'}</p>
               </div>
               <Link
                 href={field.href}
