@@ -381,7 +381,7 @@ export function DetailsForm({
       setSaved(true);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not regenerate the page.');
+      setError(caught instanceof Error ? caught.message : 'Could not rewrite the page.');
     }
   }
 
@@ -874,8 +874,8 @@ export function DetailsForm({
 
         {session.rep_pitch ? (
           <p className="text-ink-3 mt-3 text-[13px]">
-            You edited their pitch, so saving or regenerating keeps your version. Use Restore
-            original on the preview to switch back.
+            You edited their pitch, so saving or rewriting keeps your version. Use Restore original
+            on the preview to switch back.
           </p>
         ) : null}
 
@@ -965,7 +965,7 @@ function EnrichmentStatus({ status, onRegenerate }: { status: string; onRegenera
           onClick={onRegenerate}
           className="text-accent shrink-0 font-medium underline underline-offset-2"
         >
-          Regenerate
+          Rewrite
         </button>
       ) : null}
     </div>
