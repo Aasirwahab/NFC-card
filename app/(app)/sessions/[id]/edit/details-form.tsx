@@ -12,6 +12,8 @@ import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
 import { LookupPicker, type LookupPickerApi } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
+import { VoiceNote, VOICE_TIP } from '@/components/voice-note';
+import { appendNote, noteFits } from '@/lib/capture/voice';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import {
@@ -63,6 +65,7 @@ export function DetailsForm({
   events,
   lookupEnabled,
   scanEnabled,
+  voiceEnabled,
   aiEnabled,
   justRegistered,
 }: {
@@ -78,6 +81,8 @@ export function DetailsForm({
   lookupEnabled: boolean;
   /** True when a card-reading model is configured. */
   scanEnabled: boolean;
+  /** True when a transcription model is configured (the mic button). */
+  voiceEnabled: boolean;
   aiEnabled: boolean;
   justRegistered: boolean;
 }) {
@@ -110,6 +115,11 @@ export function DetailsForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Voice note: on while configured and this browser lets us record. `voiceRuns` makes the note box read what was said.
+  const [voice, setVoice] = useState(voiceEnabled);
+  const [voiceRuns, setVoiceRuns] = useState(0);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const voiceOff = useCallback(() => setVoice(false), []);
 
   // The newest field values, for callbacks that finish later (a scan, a lookup): a
   // callback made at click time would otherwise see the form as it was then.
@@ -516,6 +526,19 @@ export function DetailsForm({
           setMoreOpen(true);
         }}
       />
+      {voice ? (
+        <VoiceNote
+          onUnavailable={voiceOff}
+          onBusy={setVoiceBusy}
+          onText={(text) => {
+            if (!noteFits(latest.current.customProblems, text)) return false;
+            setCustomProblems(appendNote(latest.current.customProblems, text));
+            setMoreOpen(true);
+            setVoiceRuns((n) => n + 1);
+            return true;
+          }}
+        />
+      ) : null}
 
       <CardScan
         scanEnabled={scanEnabled}
@@ -830,6 +853,8 @@ export function DetailsForm({
             <NoteBox
               value={customProblems}
               setValue={setCustomProblems}
+              voiceTip={!voice}
+              autoRun={voiceRuns}
               niches={noteNiches(niches, fallbackProblems)}
               onFill={(fill) => {
                 const fillIfEmpty = (value: string) => (current: string) =>
@@ -950,8 +975,8 @@ export function DetailsForm({
             Next card
           </Link>
         ) : null}
-        <Button size="block" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save details'}
+        <Button size="block" onClick={save} disabled={saving || voiceBusy}>
+          {saving ? 'Saving…' : voiceBusy ? 'Finish your voice note first' : 'Save details'}
         </Button>
       </div>
     </div>
@@ -1124,16 +1149,23 @@ function CardScan({
  * The rep's own words about what came up, under the chips. They are saved with the lead as
  * it stands. "Sort it for me" is optional: it ticks chips that already exist and fills a
  * blank name or company, and never changes the words. The keyboard's own microphone does
- * any dictating, so no audio reaches us.
+ * any dictating when the mic button is off; the mic button's audio is discarded after it is
+ * turned into words.
  */
 function NoteBox({
   value,
   setValue,
+  voiceTip,
+  autoRun,
   niches,
   onFill,
 }: {
   value: string;
   setValue: (value: string) => void;
+  /** Voice notes are off: point at the keyboard's own microphone. */
+  voiceTip: boolean;
+  /** Goes up each time a spoken note was added: read the note as if it had been typed. */
+  autoRun: number;
   niches: { name: string; problems: string[] }[];
   onFill: (fill: NoteFill) => void;
 }) {
@@ -1178,6 +1210,14 @@ function NoteBox({
     }
   }
 
+  // A spoken note was just added: read it exactly as if it had been typed.
+  const handledRuns = useRef(autoRun);
+  useEffect(() => {
+    if (autoRun === handledRuns.current) return;
+    handledRuns.current = autoRun;
+    void run();
+  });
+
   return (
     <section className="border-accent/40 bg-accent-soft/40 rounded-xl border p-3">
       <label htmlFor="quick-note" className="text-ink text-sm font-semibold">
@@ -1195,6 +1235,7 @@ function NoteBox({
         maxLength={1000}
         className="mt-1 min-h-0 text-base"
       />
+      {voiceTip ? <p className="text-ink-3 mt-1 text-[13px]">{VOICE_TIP}</p> : null}
       {value.trim().length >= 3 ? (
         <button
           type="button"

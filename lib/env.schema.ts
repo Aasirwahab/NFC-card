@@ -70,6 +70,8 @@ export const serverEnvSchema = z
      * and google/gemini-3.5-flash-lite both read every field exactly and invented nothing.
      */
     MODEL_VISION: blankAsUnset(z.string().optional()),
+    /** Turns a spoken note into text. Optional: with none set, the mic button is hidden. Must accept audio input. */
+    MODEL_TRANSCRIBE: blankAsUnset(z.string().optional()),
 
     /** Fast typed decisions (which website is official, which profile matches...). */
     JEV_ENABLED: blankAsUnset(
@@ -138,9 +140,13 @@ export const serverEnvSchema = z
   .superRefine((vars, ctx) => {
     // A real model id with no key would boot fine and fail on the first job, hours
     // later, at an event. Fail the build instead.
-    const ids = [vars.MODEL_PITCH, vars.MODEL_CHAT, vars.MODEL_RESEARCH, vars.MODEL_VISION].filter(
-      Boolean,
-    );
+    const ids = [
+      vars.MODEL_PITCH,
+      vars.MODEL_CHAT,
+      vars.MODEL_RESEARCH,
+      vars.MODEL_VISION,
+      vars.MODEL_TRANSCRIBE,
+    ].filter(Boolean);
     if (ids.some((id) => id !== 'mock') && !vars.MODEL_API_KEY) {
       ctx.addIssue({
         code: 'custom',
