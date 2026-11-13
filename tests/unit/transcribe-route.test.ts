@@ -48,7 +48,7 @@ describe('POST /api/capture/transcribe', () => {
     const response = await post(wav);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ text: 'Sarah Whitlock, stuck on funding' });
-    const call = mocks.generateText.mock.calls[0][0];
+    const call = mocks.generateText.mock.calls[0]![0];
     expect(call.messages[0].content[1]).toMatchObject({ type: 'file', mediaType: 'audio/wav' });
   });
 
