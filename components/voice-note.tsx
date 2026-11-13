@@ -27,12 +27,14 @@ export function VoiceNote({
   /** True while recording or turning speech into words, so the form can wait to save. */
   onBusy: (busy: boolean) => void;
 }) {
-  const [phase, setPhase] = useState<'idle' | 'recording' | 'sending'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'asking' | 'recording' | 'sending'>('idle');
   const [seconds, setSeconds] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const cancelled = useRef(false);
   const mounted = useRef(false);
+  // Set synchronously, before the permission prompt, so a second tap cannot start a second request.
+  const starting = useRef(false);
   // Kept in memory until it works or the rep drops it, so a failed call loses nothing.
   const held = useRef<Blob | null>(null);
   const [retry, setRetry] = useState(false);
@@ -78,6 +80,9 @@ export function VoiceNote({
   }, [phase]);
 
   async function start() {
+    if (starting.current || recorder.current?.state === 'recording') return;
+    starting.current = true;
+    setPhase('asking');
     setMessage(null);
     held.current = null;
     setRetry(false);
@@ -85,11 +90,16 @@ export function VoiceNote({
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      if (mounted.current) onUnavailable();
+      starting.current = false;
+      if (mounted.current) {
+        setPhase('idle');
+        onUnavailable();
+      }
       return;
     }
     // The rep left while the permission prompt was open: do not record.
-    if (!mounted.current) {
+    if (!mounted.current || recorder.current?.state === 'recording') {
+      starting.current = false;
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
@@ -109,6 +119,7 @@ export function VoiceNote({
     setSeconds(0);
     setPhase('recording');
     rec.start();
+    starting.current = false;
   }
 
   async function send() {
@@ -177,7 +188,7 @@ export function VoiceNote({
       ) : (
         <button
           type="button"
-          disabled={phase === 'sending'}
+          disabled={phase === 'sending' || phase === 'asking'}
           onClick={() => void start()}
           className={styles.scanButton}
         >

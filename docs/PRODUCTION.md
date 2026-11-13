@@ -26,7 +26,7 @@ Add `MODEL_TRANSCRIBE` in Vercel (needs `MODEL_API_KEY`; redeploy after saving).
 
 Candidate ids (checked 2026-11-13 against OpenRouter's public models list, which shows audio input for both): `google/gemini-3.5-flash-lite` (cheapest, already the family used for card scans) or `google/gemini-3.8-flash` (better on noisy rooms, probably). Both appear in OpenRouter's zero-data-retention endpoint list. **Not verified:** that a real audio call to either works through our key with `zdr: true`, how accurate they are in a loud room, the cost per note, or that Vercel AI Gateway mode (the default `MODEL_PROVIDER`) passes WAV audio through; the SDK's OpenRouter provider has no transcription model, so this uses a chat model with audio input rather than a speech-to-text endpoint. If a model rejects the audio, the rep sees "Could not turn that into words" and can type.
 
-Audio is never stored: it is held in memory for one call, not written to storage or the database, and not logged (failures log the error type only). The model call uses the same zero-data-retention routing as every other model call. The privacy page text has not been changed to mention voice notes; that needs Zaid's decision.
+Audio is never stored: it is held in memory for one call, not written to storage or the database, and not logged (failures log the error type only). The model call uses the same zero-data-retention routing as every other model call. The privacy notice is being updated for voice notes in the same release by another worker; this branch does not change it.
 
 ## Known failure modes
 
