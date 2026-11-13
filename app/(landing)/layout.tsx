@@ -32,9 +32,11 @@ export default function LandingLayout({ children }: LayoutProps<'/'>) {
           <span>{footer.line}</span>
           <nav>
             <Link href="/insignar/transcript">{footer.readFilm}</Link>
+            <Link href="/pricing">{footer.pricing}</Link>
             <Link href="/facts">{footer.facts}</Link>
             <Link href="/vs/digital-business-cards">{footer.compare}</Link>
             <Link href="/privacy">{footer.privacy}</Link>
+            <Link href="/terms">{footer.terms}</Link>
           </nav>
         </div>
       </footer>

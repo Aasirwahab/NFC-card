@@ -6,6 +6,8 @@ import '../insignar.css';
 export const metadata: Metadata = {
   title: 'The film, as text',
   description: film.title,
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/insignar/transcript' },
 };
 
 /** Plain-text version of the film for readers who skip video or use assistive tech. */

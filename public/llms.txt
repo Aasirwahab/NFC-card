@@ -4,7 +4,9 @@
 
 ## Pages
 - [Home](/): what it does and how to request a pilot
+- [Pricing](/pricing): what it costs per rep, and the founding offer
 - [Facts](/facts): plain statements about the product and its stage
 - [Digital business card vs introduction software](/vs/digital-business-cards): the difference and when each fits
 - [How it works](/how-it-works): what a prospect sees and what is and is not collected
 - [Privacy](/privacy): data handling
+- [Pilot terms](/terms): the pilot terms in draft, under legal review

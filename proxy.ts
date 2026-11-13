@@ -36,7 +36,16 @@ const AUTH_PREFIXES = ['/sign-in', '/sign-up'];
  * Public marketing pages never read the session, so they skip the auth round trip
  * (it cost signed-in visitors ~0.3–0.5 s on every load of a static page).
  */
-const PUBLIC_PAGES = ['/insignar', '/facts', '/vs', '/privacy', '/how-it-works', '/legacy'];
+const PUBLIC_PAGES = [
+  '/insignar',
+  '/pricing',
+  '/facts',
+  '/vs',
+  '/privacy',
+  '/terms',
+  '/how-it-works',
+  '/legacy',
+];
 
 const isPublicPage = (pathname: string) =>
   pathname === '/' ||
