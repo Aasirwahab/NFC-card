@@ -1,6 +1,13 @@
-export const metadata = {
+import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/site';
+
+export const metadata: Metadata = {
   title: 'How it works',
   description: 'What happens when you tap a INSIGNAR card.',
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/how-it-works' },
+  openGraph: { title: 'How it works · INSIGNAR', url: '/how-it-works', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE] },
 };
 
 /**

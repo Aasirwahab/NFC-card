@@ -229,6 +229,8 @@ export const nav = {
 export const footer = {
   line: 'INSIGNAR. Make every introduction count.',
   privacy: 'Privacy',
+  pricing: 'Pricing',
+  terms: 'Terms',
   readFilm: 'Read the film',
   facts: 'Facts',
   compare: 'vs digital business cards',
