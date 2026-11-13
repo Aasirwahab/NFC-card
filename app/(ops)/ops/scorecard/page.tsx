@@ -63,7 +63,8 @@ function Row({ name, r, href }: { name: string; r: Scorecard; href?: string }) {
         </p>
       ) : null}
       <p className="text-ink-2 mt-1 font-mono text-[12px]">
-        {r.clickedBook} tapped book · {r.booked} booked ·{' '}
+        {r.followedUp} followed up (rep-confirmed) · {r.acted} took an action · {r.clickedBook}{' '}
+        tapped book · {r.booked} booked ·{' '}
         {per10 === null ? '– per 10 opened' : `${per10} per 10 opened`}
       </p>
     </>

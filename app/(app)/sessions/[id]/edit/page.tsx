@@ -7,6 +7,7 @@ import { env } from '@/lib/env';
 import { modelFor } from '@/lib/ai/models';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
+import { WhatTheyDid } from '@/components/what-they-did';
 
 export const metadata = { title: 'Add details' };
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,7 @@ export default async function EditSessionPage({
           justRegistered={registered === '1'}
         />
       </div>
+      <WhatTheyDid userId={rep.userId} session={session} cardCode={card?.code ?? null} />
     </div>
   );
 }
