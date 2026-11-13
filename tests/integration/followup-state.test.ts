@@ -111,6 +111,24 @@ describe('follow-up state in the database', () => {
     ).rejects.toThrow();
   });
 
+  it('leaves an existing draft untouched for another rep or an inactive contact', async () => {
+    const fx = await session(db);
+    await db.query(`select public.save_followup_draft($1, 'linkedin', 'x')`, [fx.sessionId]);
+    expect(await markSent(fx.sessionId, crypto.randomUUID())).toBe(false);
+    let draft = await db.query<{ sent_at: Date | null }>(
+      `select sent_at from public.followup_drafts where session_id = $1`,
+      [fx.sessionId],
+    );
+    expect(draft.rows[0]!.sent_at).toBeNull();
+    await db.query(`update public.sessions set status = 'voided' where id = $1`, [fx.sessionId]);
+    expect(await markSent(fx.sessionId, fx.userId)).toBe(false);
+    draft = await db.query<{ sent_at: Date | null }>(
+      `select sent_at from public.followup_drafts where session_id = $1`,
+      [fx.sessionId],
+    );
+    expect(draft.rows[0]!.sent_at).toBeNull();
+  });
+
   it.each(['replied', 'dropped'])('never queues a draft for a %s lead', async (outcome) => {
     const fx = await session(db);
     await db.query(`update public.sessions set followup_outcome = $1 where id = $2`, [

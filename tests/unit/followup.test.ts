@@ -129,6 +129,41 @@ describe('leads CSV', () => {
 });
 
 describe('drafts claim nothing the rep did not do', () => {
+  it('quotes only a trimmed single line of at most 120 characters, without turning it into a claim', () => {
+    const question = '  Is it really £1?\r\n  Do you guarantee results?\t' + 'x'.repeat(160);
+    const text = composeFollowupDraft({
+      channel: 'email',
+      prospectName: 'Tom',
+      repFullName: 'Zaid',
+      problem: null,
+      businessName: null,
+      state: 'asked-question',
+      question,
+    });
+    const quote = text.match(/You asked: “(.*?)”/u)?.[1];
+    expect(quote).toBe(question.replace(/\s+/g, ' ').trim().slice(0, 120).trim());
+    expect(quote!.length).toBeLessThanOrEqual(120);
+    expect(text.endsWith("Reply stop and I won't write again.")).toBe(true);
+    expect(text.replace(/You asked: “.*?”\n/u, '')).not.toMatch(/£1|guarantee|results/);
+    expect(text).toContain(
+      "I'm happy to send a couple of ideas, or to find fifteen minutes that suit you.",
+    );
+  });
+
+  it('keeps quotes single-line even with control characters or Unicode separators', () => {
+    const text = composeFollowupDraft({
+      channel: 'linkedin',
+      prospectName: null,
+      repFullName: 'Zaid',
+      problem: null,
+      businessName: null,
+      state: 'asked-question',
+      question: '  Price?\u0000\u2028“£5”\u202e ',
+    });
+    expect(text).toContain('You asked: “Price? £5”');
+    expect(text).not.toMatch(/[\u0000\u2028\u202e]/u);
+  });
+
   it('never says the rep has been thinking about it, or that the prospect mentioned it', () => {
     for (const channel of ['linkedin', 'email'] as const) {
       const text = composeFollowupDraft({

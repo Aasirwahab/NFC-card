@@ -9,6 +9,7 @@ import {
   type FollowupState,
 } from '@/lib/followup/state';
 import { followupChannel, type FollowupChannel } from '@/lib/followup/draft';
+import { strongestSignal } from '@/lib/followup/signals';
 import type { Row } from './types';
 
 /**
@@ -159,6 +160,23 @@ export async function getSessionForRep(
   return data;
 }
 
+/**
+ * Ownership is enforced on the parent query before any nested activity can be
+ * returned. The service role bypasses RLS; the user_id AND id filters are the check.
+ */
+export async function getContactActivity(userId: string, sessionId: string) {
+  const { data } = await serviceClient()
+    .from('sessions')
+    .select(
+      'view_count, first_viewed_at, session_events(type, occurred_at), chat_messages(id, role, content, created_at), chat_unanswered(question, created_at), bookings(session_id, status)',
+    )
+    .eq('user_id', userId)
+    .eq('id', sessionId)
+    .maybeSingle()
+    .throwOnError();
+  return data ? { ...data, readAt: Date.now() } : null;
+}
+
 export async function getProfile(userId: string): Promise<Row<'profiles'> | null> {
   const { data } = await serviceClient()
     .from('profiles')
@@ -183,6 +201,8 @@ export type FollowupRow = {
   state: FollowupState;
   /** Why they are on the list, in plain words. */
   reason: string;
+  signal: { label: string; rank: number };
+  pagePath: string | null;
   /** The message to send, or null when there is nothing to send. */
   draft: string | null;
   channel: FollowupChannel;
@@ -193,9 +213,6 @@ export type FollowupRow = {
   sequence: number;
   colour: string;
 };
-
-/** Work first: they clicked, then opened, then never opened. */
-const ACTION_ORDER: FollowupState[] = ['review', 'opened-no-action', 'due-no-tap'];
 
 /**
  * The rep's follow-ups, worked out now from their sessions, events and bookings
@@ -210,30 +227,33 @@ export async function listFollowups(
   const { data: sessions } = await db
     .from('sessions')
     .select(
-      'id, status, details_completed_at, registered_at, first_viewed_at, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag',
+      'id, status, details_completed_at, registered_at, first_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
     )
     .eq('user_id', userId)
     .eq('status', 'active')
     .not('details_completed_at', 'is', null)
     .gte('registered_at', new Date(now - FOLLOWUP_WINDOW).toISOString())
-    .order('registered_at', { ascending: false });
+    .eq('chat_messages.role', 'user')
+    .order('id', { referencedTable: 'chat_messages', ascending: false })
+    .order('registered_at', { ascending: false })
+    .throwOnError();
   if (!sessions?.length) return { actionable: [], history: [] };
 
-  const ids = sessions.map((s) => s.id);
-  const [{ data: events }, { data: bookings }, { data: profile }, { data: business }] =
-    await Promise.all([
-      db
-        .from('session_events')
-        .select('session_id, type')
-        .in('session_id', ids)
-        .eq('type', 'linkedin_opened'),
-      db.from('bookings').select('session_id, status').in('session_id', ids),
-      db.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
-      db.from('business_profiles').select('company_name').eq('user_id', userId).maybeSingle(),
-    ]);
+  const [{ data: profile }, { data: business }] = await Promise.all([
+    db.from('profiles').select('full_name').eq('id', userId).maybeSingle().throwOnError(),
+    db
+      .from('business_profiles')
+      .select('company_name')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .throwOnError(),
+  ]);
 
   const rows: FollowupRow[] = sessions.flatMap((s) => {
-    const state = followupState(s, events ?? [], bookings ?? [], now);
+    const events = s.session_events.map((e) => ({ ...e, session_id: s.id }));
+    const question = s.chat_messages[0]?.content;
+    if (question) events.push({ session_id: s.id, type: 'chat_turn' });
+    const state = followupState(s, events, s.bookings, now);
     if (!state) return [];
     const channel = followupChannel(s);
     return [
@@ -241,6 +261,13 @@ export async function listFollowups(
         sessionId: s.id,
         state,
         reason: followupReason(state, s, now),
+        signal: strongestSignal({
+          viewCount: s.view_count,
+          firstViewedAt: s.first_viewed_at,
+          events: events.map((e) => e.type),
+          questions: s.chat_messages.map((m) => m.content),
+        }),
+        pagePath: s.cards ? `/c/${s.cards.code}` : null,
         draft: followupDraft(
           s,
           state,
@@ -251,6 +278,7 @@ export async function listFollowups(
             businessName: business?.company_name ?? null,
           },
           now,
+          question,
         ),
         channel,
         prospectName: s.prospect_name,
@@ -265,8 +293,13 @@ export async function listFollowups(
 
   const actionable = rows
     .filter((r) => isActionable(r.state))
-    .sort((a, b) => ACTION_ORDER.indexOf(a.state) - ACTION_ORDER.indexOf(b.state));
-  return { actionable, history: rows.filter((r) => !isActionable(r.state)) };
+    .sort((a, b) => b.signal.rank - a.signal.rank);
+  return {
+    actionable,
+    history: rows
+      .filter((r) => !isActionable(r.state))
+      .sort((a, b) => b.signal.rank - a.signal.rank),
+  };
 }
 
 export type SetupProgress = {

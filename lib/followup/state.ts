@@ -10,8 +10,8 @@ import { composeFollowupDraft, type FollowupChannel } from './draft';
  *   dropped / replied  the rep closed it
  *   booked             a confirmed or rescheduled booking
  *   sent               the rep confirmed they followed up
- *   review             opened, clicked LinkedIn, but no booking: never lost
- *   opened-no-action   opened, no booking, no LinkedIn click
+ *   review             a question or button press, but no booking
+ *   opened-no-action   opened, no booking, no recorded action
  *   due-no-tap         a day to 30 days on and never opened
  *
  * The first, second and third stay out of the actionable queue (a "History" list).
@@ -65,10 +65,15 @@ export function followupState(
 
   if (session.followup_sent_at) return 'sent';
 
-  if (session.first_viewed_at) {
-    const clicked = events.some((e) => e.session_id === session.id && e.type === 'linkedin_opened');
-    return clicked ? 'review' : 'opened-no-action';
-  }
+  if (
+    events.some(
+      (e) =>
+        e.session_id === session.id &&
+        ['linkedin_opened', 'booking_opened', 'page_emailed', 'chat_turn'].includes(e.type),
+    )
+  )
+    return 'review';
+  if (session.first_viewed_at) return 'opened-no-action';
 
   const age = now - Date.parse(session.registered_at);
   return age >= DUE_AFTER && age <= FOLLOWUP_WINDOW ? 'due-no-tap' : null;
@@ -88,16 +93,17 @@ export type FollowupIdentity = {
 
 /**
  * The draft for one lead, or null when there should not be one: a dropped lead
- * never gets a message, a review row is for the rep to look at, and the second
- * nudge waits three days after the first. Uses only the problem the rep ticked.
+ * never gets a message, and the second nudge waits three days after the first.
+ * Uses only the problem the rep ticked and an optional quoted prospect question.
  */
 export function followupDraft(
   session: FollowupSession,
   state: FollowupState,
   identity: FollowupIdentity,
   now: number,
+  question?: string | null,
 ): string | null {
-  if (state === 'dropped' || state === 'review') return null;
+  if (state === 'dropped') return null;
   if (state === 'sent' && now - Date.parse(session.followup_sent_at ?? '') < NUDGE_AFTER) {
     return null;
   }
@@ -105,7 +111,13 @@ export function followupDraft(
   return composeFollowupDraft({
     ...identity,
     problem: session.problems.find((p) => p.trim().length > 0) ?? null,
-    state,
+    state:
+      question && (state === 'review' || state === 'opened-no-action' || state === 'due-no-tap')
+        ? 'asked-question'
+        : state === 'review'
+          ? 'opened-no-action'
+          : state,
+    question,
   });
 }
 
@@ -124,7 +136,7 @@ export function followupReason(state: FollowupState, session: FollowupSession, n
     case 'opened-no-action':
       return `Opened their card, no meeting booked, met ${when}`;
     case 'review':
-      return `Opened their card and clicked your LinkedIn, no meeting booked, met ${when}`;
+      return `No meeting booked, met ${when}`;
     case 'booked':
       return 'Meeting booked';
     case 'sent':

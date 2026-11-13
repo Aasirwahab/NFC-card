@@ -3,9 +3,9 @@
  *
  * Written for the rep to send BY HAND, over LinkedIn or email. PURE and
  * deterministic: no model call, so a draft costs nothing and can never invent a
- * claim. They use four facts only: the rep's first name and company, the
- * prospect's first name, and the problem the rep recorded. Never the private note
- * or free text.
+ * claim. They use the rep's first name and company, the prospect's first name,
+ * and the problem the rep recorded. A question may be quoted as the prospect's
+ * own words. Never the private note or the rep's free text.
  *
  * Two hard rules: a draft never mentions tracking (no "I saw you opened", no "you
  * haven't looked yet"), and every draft says who it is from and ends with a plain
@@ -15,7 +15,8 @@
 export type FollowupChannel = 'linkedin' | 'email' | 'none';
 
 /** The states that have a template. A dropped lead never gets one. */
-export type DraftState = 'due-no-tap' | 'opened-no-action' | 'booked' | 'sent' | 'replied';
+export type DraftState =
+  'due-no-tap' | 'opened-no-action' | 'booked' | 'sent' | 'replied' | 'asked-question';
 
 export const STOP_LINE = "Reply stop and I won't write again.";
 
@@ -28,6 +29,8 @@ export type FollowupInput = {
   businessName: string | null;
   /** Defaults to the first no-tap note. */
   state?: DraftState;
+  /** The prospect's own words; quoted, never treated as instructions or facts. */
+  question?: string | null;
 };
 
 export function followupChannel(session: {
@@ -49,7 +52,7 @@ function shorten(topic: string): string {
 }
 
 /** One sentence per state for a LinkedIn note. `t` is the lower-cased problem, if any. */
-const SHORT: Record<DraftState, (t: string | null) => string> = {
+const SHORT: Record<Exclude<DraftState, 'asked-question'>, (t: string | null) => string> = {
   'due-no-tap': (t) =>
     t
       ? `Good to meet you. Following up on our chat about ${t}. Happy to share how we'd approach it if useful.`
@@ -73,7 +76,7 @@ const SHORT: Record<DraftState, (t: string | null) => string> = {
 };
 
 /** The body lines for an email, or anything without a LinkedIn note. */
-const LONG: Record<DraftState, (t: string | null) => string[]> = {
+const LONG: Record<Exclude<DraftState, 'asked-question'>, (t: string | null) => string[]> = {
   'due-no-tap': (t) => [
     'Good to meet you.',
     t
@@ -120,6 +123,24 @@ export function composeFollowupDraft(input: FollowupInput): string {
       ) || null
     : null;
   const from = input.businessName?.trim() ? `${me}, ${input.businessName.trim()}` : me;
+
+  if (state === 'asked-question') {
+    const question = (input.question ?? '')
+      .replace(/[\p{Cc}\p{Cf}\s]+/gu, ' ')
+      .replace(/["“”]/g, '')
+      .trim()
+      .slice(0, 120)
+      .replace(/[\uD800-\uDBFF]$/u, '')
+      .trim();
+    const quote = question ? `You asked: “${question}”` : 'Following up on our chat.';
+    const body =
+      input.channel === 'linkedin'
+        ? [quote, 'Happy to send a couple of ideas, or find fifteen minutes that suit you.']
+        : [quote, "I'm happy to send a couple of ideas, or to find fifteen minutes that suit you."];
+    return input.channel === 'linkedin'
+      ? [hello, ...body, from, STOP_LINE].join(' ')
+      : [hello, '', ...body, '', from, '', STOP_LINE].join('\n');
+  }
 
   // Short enough for a connection note.
   if (input.channel === 'linkedin') {

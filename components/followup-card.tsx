@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import styles from '@/app/ui-slice.module.css';
 import { useRouter } from 'next/navigation';
 import { Button, buttonStyles } from '@/components/ui/button';
 import type { FollowupRow } from '@/lib/db/rep';
 import { apiSend } from '@/lib/http/client';
+import { FollowupSendButton } from '@/components/followup-send-button';
 
 /** How many leads show before "Show all", so Today stays one short list. */
 const FIRST_SHOWN = 4;
@@ -76,7 +78,7 @@ export function FollowupToday({
   );
 }
 
-function FollowupCard({ row }: { row: FollowupRow }) {
+export function FollowupCard({ row }: { row: FollowupRow }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -104,6 +106,7 @@ function FollowupCard({ row }: { row: FollowupRow }) {
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not save. Try again.');
+    } finally {
       setBusy(false);
     }
   }
@@ -111,17 +114,26 @@ function FollowupCard({ row }: { row: FollowupRow }) {
   return (
     <div className={styles.followup}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ink min-w-0 text-base font-semibold wrap-anywhere">{who}</p>
+        <Link
+          href={`/sessions/${row.sessionId}/edit`}
+          className="text-ink min-w-0 text-base font-semibold wrap-anywhere underline-offset-4 hover:underline"
+        >
+          {who}
+        </Link>
         <span className="text-ink-3 max-w-[40%] shrink-0 font-mono text-[11px]">
           Card {row.sequence} · {row.colour}
         </span>
       </div>
+      <p className="text-ink mt-1 text-sm font-medium">{row.signal.label}</p>
       <p className="text-ink-3 mt-1 text-[13px]">{row.reason}</p>
       {row.draft ? (
-        <p className="text-ink-2 mt-2 text-[14px] leading-snug whitespace-pre-line">{row.draft}</p>
+        <p className="text-ink-2 mt-2 text-[14px] leading-snug wrap-anywhere whitespace-pre-line">
+          {row.draft}
+        </p>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <FollowupSendButton draft={row.draft} pagePath={row.pagePath} email={row.prospectEmail} />
         {row.draft ? (
           <Button type="button" variant="secondary" onClick={copy}>
             {copied ? 'Copied' : 'Copy'}
@@ -140,9 +152,9 @@ function FollowupCard({ row }: { row: FollowupRow }) {
             Open email
           </a>
         ) : null}
-        {row.draft && row.channel === 'email' && isPersonalAddress(row.prospectEmail) ? (
+        {row.draft && isPersonalAddress(row.prospectEmail) ? (
           <p className="text-ink-3 basis-full text-[13px]">
-            A personal address: only write if they asked you to hear from you.
+            A personal address: only write if they asked to hear from you.
           </p>
         ) : null}
         {!row.draft && row.linkedinUrl ? (
@@ -185,7 +197,7 @@ function FollowupCard({ row }: { row: FollowupRow }) {
                 disabled={busy}
                 onClick={() => send('outcome', { outcome: 'dropped' })}
               >
-                Drop this lead
+                Drop this contact
               </Button>
             </div>
           </details>

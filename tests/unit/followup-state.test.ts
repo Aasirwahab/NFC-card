@@ -50,13 +50,7 @@ describe('follow-up display precedence', () => {
     ['sent before due', sent, [], [], 'sent'],
     ['opened with LinkedIn click', opened, linkedin, [], 'review'],
     ['opened without action', opened, [], [], 'opened-no-action'],
-    [
-      'booking link alone',
-      opened,
-      [{ session_id: 's1', type: 'booking_opened' }],
-      [],
-      'opened-no-action',
-    ],
+    ['booking link alone', opened, [{ session_id: 's1', type: 'booking_opened' }], [], 'review'],
     ['due', {}, [], [], 'due-no-tap'],
     ['voided', { status: 'voided', ...sent }, [], booked, null],
     ['details incomplete', { details_completed_at: null }, [], [], null],
@@ -128,10 +122,11 @@ describe('safe deterministic drafts', () => {
     expect(draft.length).toBeLessThanOrEqual(300);
   });
 
-  it('has no template for dropped, and none for a review row', () => {
-    for (const state of ['dropped', 'review'] as const) {
-      expect(followupDraft({ ...base, ...opened }, state, identity, now)).toBeNull();
-    }
+  it('has no draft for dropped contacts, and a fixed draft for clicked rows', () => {
+    expect(followupDraft({ ...base, ...opened }, 'dropped', identity, now)).toBeNull();
+    expect(followupDraft({ ...base, ...opened }, 'review', identity, now)).toContain(
+      'Following up on our chat',
+    );
   });
 
   it('thanks a reply, and nudges a sent lead only after three days', () => {

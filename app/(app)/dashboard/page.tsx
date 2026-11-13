@@ -66,7 +66,7 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       <div className="flex items-baseline justify-between gap-3">
         <h1 className={styles.todayTitle}>Today</h1>
         <p className="text-ink-3 font-mono text-[11px]">
-          {sessions.length} lead{sessions.length === 1 ? '' : 's'} · {tapped} tapped
+          {sessions.length} contact{sessions.length === 1 ? '' : 's'} · {tapped} opened
         </p>
       </div>
 

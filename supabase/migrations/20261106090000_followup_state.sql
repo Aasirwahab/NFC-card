@@ -44,7 +44,11 @@ begin
   -- Keep the draft row from the no-tap job in step, if there is one.
   update public.followup_drafts
      set sent_at = coalesce(sent_at, now())
-   where session_id = p_session_id;
+   where session_id = p_session_id
+     and exists (
+       select 1 from public.sessions s
+        where s.id = p_session_id and s.user_id = p_user_id and s.status = 'active'
+     );
 
   return exists (
     select 1 from public.sessions
