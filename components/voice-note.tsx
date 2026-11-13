@@ -19,15 +19,26 @@ export const VOICE_TIP = 'Tip: tap the mic on your keyboard and say it.';
 export function VoiceNote({
   onText,
   onUnavailable,
+  onBusy,
 }: {
-  onText: (text: string) => void;
+  /** Returns false when the note box has no room, so the words are held here instead. */
+  onText: (text: string) => boolean;
   onUnavailable: () => void;
+  /** True while recording or turning speech into words, so the form can wait to save. */
+  onBusy: (busy: boolean) => void;
 }) {
   const [phase, setPhase] = useState<'idle' | 'recording' | 'sending'>('idle');
   const [seconds, setSeconds] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const cancelled = useRef(false);
+  const mounted = useRef(false);
+  // Kept in memory until it works or the rep drops it, so a failed call loses nothing.
+  const held = useRef<Blob | null>(null);
+  const [retry, setRetry] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+
+  useEffect(() => onBusy(phase !== 'idle'), [phase, onBusy]);
 
   useEffect(() => {
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
@@ -36,32 +47,50 @@ export function VoiceNote({
   }, [onUnavailable]);
 
   // Leaving the screen mid-recording must release the microphone.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       cancelled.current = true;
       if (recorder.current?.state === 'recording') recorder.current.stop();
-    },
-    [],
-  );
+    };
+  }, []);
 
   useEffect(() => {
     if (phase !== 'recording') return;
     const started = Date.now();
+    // A suspended tab stops the clock being trustworthy: end the take as the rep leaves.
+    const away = () => {
+      if (document.visibilityState === 'hidden') recorder.current?.stop();
+    };
+    document.addEventListener('visibilitychange', away);
+    window.addEventListener('pagehide', away);
     const tick = setInterval(() => {
       const elapsed = Math.floor((Date.now() - started) / 1000);
       setSeconds(elapsed);
       if (elapsed >= MAX_SECONDS) recorder.current?.stop();
     }, 250);
-    return () => clearInterval(tick);
+    return () => {
+      clearInterval(tick);
+      document.removeEventListener('visibilitychange', away);
+      window.removeEventListener('pagehide', away);
+    };
   }, [phase]);
 
   async function start() {
     setMessage(null);
+    held.current = null;
+    setRetry(false);
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      onUnavailable();
+      if (mounted.current) onUnavailable();
+      return;
+    }
+    // The rep left while the permission prompt was open: do not record.
+    if (!mounted.current) {
+      stream.getTracks().forEach((t) => t.stop());
       return;
     }
     const chunks: Blob[] = [];
@@ -74,32 +103,40 @@ export function VoiceNote({
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       if (cancelled.current) return setPhase('idle');
-      void send(new Blob(chunks, { type: rec.mimeType }));
+      held.current = new Blob(chunks, { type: rec.mimeType });
+      void send();
     };
     setSeconds(0);
     setPhase('recording');
     rec.start();
   }
 
-  async function send(recording: Blob) {
+  async function send() {
+    if (!held.current) return;
     setPhase('sending');
+    setRetry(false);
+    setMessage(null);
     try {
-      const wav = await toWav16kMono(recording);
+      const wav = await toWav16kMono(held.current);
       const { text } = await apiUpload<{ text: string }>(
         '/api/capture/transcribe',
         new Blob([wav as BlobPart], { type: 'audio/wav' }),
       );
-      if (text.trim()) onText(text);
-      else setMessage('Did not catch any words. Try again, a little closer.');
+      held.current = null;
+      if (!text.trim()) setMessage('Did not catch any words. Try again, a little closer.');
+      else if (!onText(text)) setPending(text);
     } catch (error) {
       const code = error instanceof ApiError ? error.message : '';
-      setMessage(
-        code === 'rate_limited'
-          ? 'That is a lot of voice notes. Try again in a few minutes, or type it.'
-          : code === 'model_not_configured'
-            ? VOICE_TIP
-            : 'Could not turn that into words. Type it instead; nothing is lost.',
-      );
+      if (code === 'model_not_configured') {
+        held.current = null;
+        setMessage(VOICE_TIP);
+      } else if (code === 'rate_limited') {
+        setRetry(true);
+        setMessage('That is a lot of voice notes. Wait a few minutes, then tap Try again.');
+      } else {
+        setRetry(true);
+        setMessage('Could not turn that into words. Your recording is kept: tap Try again.');
+      }
     } finally {
       setPhase('idle');
     }
@@ -148,6 +185,50 @@ export function VoiceNote({
           {phase === 'sending' ? 'Writing it down…' : 'Say it once'}
         </button>
       )}
+      {retry && phase === 'idle' ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => void send()} className={styles.scanButton}>
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              held.current = null;
+              setRetry(false);
+              setMessage(null);
+            }}
+            className="text-ink-2 min-h-12 px-3 text-sm font-medium underline underline-offset-2"
+          >
+            Discard
+          </button>
+        </div>
+      ) : null}
+      {pending ? (
+        <div className="border-accent/40 mt-2 rounded-xl border p-3">
+          <p className="text-ink text-[13px] font-semibold">
+            Your note is full. Shorten it, then add this.
+          </p>
+          <p className="text-ink-2 mt-1 text-sm wrap-anywhere">{pending}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (onText(pending)) setPending(null);
+              }}
+              className={styles.scanButton}
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setPending(null)}
+              className="text-ink-2 min-h-12 px-3 text-sm font-medium underline underline-offset-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
       <p className="text-ink-2 mt-2 text-[13px]" role="status">
         {phase === 'recording' ? 'Recording. Say what they told you, then tap Stop.' : message}
       </p>

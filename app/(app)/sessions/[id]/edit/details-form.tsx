@@ -13,7 +13,7 @@ import type { Row } from '@/lib/db/types';
 import { LookupPicker, type LookupPickerApi } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
 import { VoiceNote, VOICE_TIP } from '@/components/voice-note';
-import { appendNote } from '@/lib/capture/voice';
+import { appendNote, noteFits } from '@/lib/capture/voice';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import {
@@ -117,6 +117,7 @@ export function DetailsForm({
   // Voice note: on while configured and this browser lets us record. `voiceRuns` makes the note box read what was said.
   const [voice, setVoice] = useState(voiceEnabled);
   const [voiceRuns, setVoiceRuns] = useState(0);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const voiceOff = useCallback(() => setVoice(false), []);
 
   // The newest field values, for callbacks that finish later (a scan, a lookup): a
@@ -515,10 +516,13 @@ export function DetailsForm({
       {voice ? (
         <VoiceNote
           onUnavailable={voiceOff}
+          onBusy={setVoiceBusy}
           onText={(text) => {
+            if (!noteFits(latest.current.customProblems, text)) return false;
             setCustomProblems(appendNote(latest.current.customProblems, text));
             setMoreOpen(true);
             setVoiceRuns((n) => n + 1);
+            return true;
           }}
         />
       ) : null}
@@ -958,8 +962,8 @@ export function DetailsForm({
             Next card
           </Link>
         ) : null}
-        <Button size="block" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save details'}
+        <Button size="block" onClick={save} disabled={saving || voiceBusy}>
+          {saving ? 'Saving…' : voiceBusy ? 'Finish your voice note first' : 'Save details'}
         </Button>
       </div>
     </div>

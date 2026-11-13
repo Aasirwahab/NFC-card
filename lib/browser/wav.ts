@@ -1,4 +1,4 @@
-import { SAMPLE_RATE } from '@/lib/capture/voice';
+import { MAX_SECONDS, SAMPLE_RATE } from '@/lib/capture/voice';
 
 /** 16-bit PCM mono WAV from samples in -1..1. PURE; the one format every audio model accepts. */
 export function encodeWav(samples: Float32Array, rate = SAMPLE_RATE): Uint8Array {
@@ -26,6 +26,11 @@ export function encodeWav(samples: Float32Array, rate = SAMPLE_RATE): Uint8Array
   return out;
 }
 
+/** An overlong take (a suspended tab keeps the clock running) is cut to the cap, not refused. */
+export function capSamples(samples: Float32Array): Float32Array {
+  return samples.subarray(0, MAX_SECONDS * SAMPLE_RATE);
+}
+
 /**
  * Whatever the browser recorded (webm/opus on Chrome, mp4 on iOS Safari) to 16 kHz
  * mono WAV. The offline context does the resampling and the mix-down. Browser only.
@@ -44,7 +49,7 @@ export async function toWav16kMono(recording: Blob): Promise<Uint8Array> {
     source.connect(offline.destination);
     source.start();
     const rendered = await offline.startRendering();
-    return encodeWav(rendered.getChannelData(0));
+    return encodeWav(capSamples(rendered.getChannelData(0)));
   } finally {
     void context.close();
   }

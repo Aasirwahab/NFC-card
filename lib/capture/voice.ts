@@ -33,10 +33,15 @@ export function isNoteWav(bytes: Uint8Array): boolean {
   );
 }
 
+/** The note box holds NOTE_MAX_CHARS; spoken words are only added whole, never cut. */
+export function noteFits(current: string, spoken: string): boolean {
+  return appendNote(current, spoken).length <= NOTE_MAX_CHARS && spoken.trim().length > 0;
+}
+
 /** Spoken words go after what is already in the note box; typing is never replaced. */
 export function appendNote(current: string, spoken: string): string {
   const words = spoken.trim();
   if (!words) return current;
-  if (!current.trim()) return words.slice(0, NOTE_MAX_CHARS);
-  return `${current.trimEnd()} ${words}`.slice(0, NOTE_MAX_CHARS);
+  if (!current.trim()) return words;
+  return `${current.trimEnd()} ${words}`;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeWav } from '@/lib/browser/wav';
+import { capSamples, encodeWav } from '@/lib/browser/wav';
 import {
   appendNote,
   isNoteWav,
@@ -51,13 +51,24 @@ describe('appendNote', () => {
     expect(appendNote('typed  \n', ' spoken ')).toBe('typed spoken');
   });
 
-  it('fills an empty box, ignores empty speech, and respects the box limit', () => {
+  it('fills an empty box and ignores empty speech', () => {
     expect(appendNote('', ' hello ')).toBe('hello');
     expect(appendNote('   ', 'hello')).toBe('hello');
     expect(appendNote('keep me', '   ')).toBe('keep me');
-    const typed = 'x'.repeat(990);
-    const out = appendNote(typed, 'y'.repeat(50));
-    expect(out).toHaveLength(1000);
-    expect(out.startsWith(typed)).toBe(true);
+  });
+
+  it('never cuts spoken words: if they do not fit, they do not go in', () => {
+    expect(noteFits('x'.repeat(990), 'y'.repeat(50))).toBe(false);
+    expect(noteFits('x'.repeat(1000), 'hi')).toBe(false);
+    expect(noteFits('x'.repeat(900), 'y'.repeat(50))).toBe(true);
+    expect(noteFits('', '   ')).toBe(false);
+  });
+});
+
+describe('capSamples', () => {
+  it('cuts an overlong take to the cap so it is still accepted', () => {
+    const long = capSamples(new Float32Array(SAMPLE_RATE * (MAX_SECONDS + 30)));
+    expect(isNoteWav(encodeWav(long))).toBe(true);
+    expect(capSamples(new Float32Array(100))).toHaveLength(100);
   });
 });
