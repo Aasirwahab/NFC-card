@@ -464,16 +464,6 @@
   overflow-wrap: anywhere;
 }
 
-.captureIcon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--color-ink);
-  border-radius: 50%;
-  color: var(--color-accent);
-}
-
 .followup {
   padding-block: 16px;
   border-bottom: 1px solid var(--color-line);

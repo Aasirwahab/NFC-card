@@ -60,6 +60,7 @@ export default async function EditSessionPage({
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
           scanEnabled={Boolean(env.MODEL_VISION)}
+          voiceEnabled={Boolean(env.MODEL_TRANSCRIBE)}
           aiEnabled={modelFor('chat').id !== 'mock'}
           justRegistered={registered === '1'}
         />

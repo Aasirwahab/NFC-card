@@ -36,6 +36,8 @@ const LIMITS = {
   lookup: { tokens: 30, window: '10 m' },
   /** Photographing a business card: its own budget, so lookups as you type never block a scan. */
   cardScan: { tokens: 20, window: '10 m' },
+  /** A spoken note: each one is a paid audio call. */
+  transcribe: { tokens: 20, window: '10 m' },
   /** GET /api/landing/[code]/status — polled every 3s by the crafting state. */
   landingStatus: { tokens: 60, window: '1 m' },
   /** POST /api/landing/[code]/remove: a prospect deleting their own record. */
