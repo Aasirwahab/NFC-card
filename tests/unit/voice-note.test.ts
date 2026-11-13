@@ -3,6 +3,7 @@ import { capSamples, encodeWav } from '@/lib/browser/wav';
 import {
   appendNote,
   isNoteWav,
+  noteFits,
   MAX_SECONDS,
   MAX_WAV_BYTES,
   SAMPLE_RATE,
