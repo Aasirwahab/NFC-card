@@ -6,6 +6,9 @@ import { publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { serviceClient } from './service';
 import type { Row } from './types';
+import { isProspectHolding } from '@/lib/domain/prospect-answers';
+import { getProspectProblems } from '@/lib/capture/prospect-problems';
+import type { HoldingDetails } from '@/app/c/[code]/holding';
 
 /**
  * Resolving `/c/[code]` (spec §8, §16).
@@ -135,6 +138,7 @@ export type Resolved =
       cardStatus: Row<'cards'>['status'];
       /** A live session with no details yet: the tap counts, the page stays the portfolio. */
       sessionId: string | null;
+      holding?: HoldingDetails | null;
       rep: RepProfile;
       business: BusinessProfile | null;
     }
@@ -217,10 +221,10 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   // -------------------------------------------------------- the prospect
   const { data: session } = await db
     .from('sessions')
-    .select(PROSPECT_SESSION_COLUMNS)
+    .select(`${PROSPECT_SESSION_COLUMNS}, prospect_picked_problems`)
     .eq('card_id', card.id)
     .eq('status', 'active')
-    .maybeSingle<ProspectSession>();
+    .maybeSingle<ProspectSession & { prospect_picked_problems: string[] | null }>();
 
   // A known card with no live session is the rep's own business card (2026-09-25
   // review). This deliberately relaxes §22.2's "byte-identical to an unknown
@@ -240,6 +244,17 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
           ownerId: card.user_id,
           cardStatus: card.status,
           sessionId: session?.id ?? null,
+          holding:
+            (!session && card.status === 'available') || (session && !session.first_viewed_at)
+              ? { ready: false, problems: [], picked: [], expiresAt: null }
+              : session && isProspectHolding(session.details_completed_at, session.first_viewed_at)
+                ? {
+                    ready: true,
+                    problems: await getProspectProblems(session.user_id, session.event_id),
+                    picked: session.prospect_picked_problems ?? [],
+                    expiresAt: Date.parse(session.first_viewed_at!) + 24 * 60 * 60 * 1000,
+                  }
+                : null,
           ...face,
         }
       : // A real card whose owner has no profile yet. Not a miss: a prospect must not

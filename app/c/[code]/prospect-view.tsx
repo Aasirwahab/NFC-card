@@ -18,6 +18,7 @@ import { LinkedInConnect } from './linkedin-connect';
 import { RemoveDetails } from './remove-details';
 import { Crafting } from './crafting';
 import { HeldWatcher } from './held-watcher';
+import { MadeWith } from './made-with';
 
 /**
  * The prospect landing page (spec §16). THIS IS THE PRODUCT — everything else
@@ -95,7 +96,11 @@ export function ProspectView({
             </div>
           </div>
         </main>
-        <Footer removeCode={preview ? undefined : code} />
+        <Footer
+          first={first}
+          eventCode={preview ? undefined : code}
+          removeCode={preview ? undefined : code}
+        />
       </div>
     );
   }
@@ -222,7 +227,11 @@ export function ProspectView({
         </div>
       </main>
 
-      <Footer removeCode={preview ? undefined : code}>
+      <Footer
+        first={first}
+        eventCode={preview ? undefined : code}
+        removeCode={preview ? undefined : code}
+      >
         {emailConfigured() && !preview ? <EmailMe code={code} repFirstName={first} /> : null}
       </Footer>
     </ProspectShell>
@@ -441,7 +450,11 @@ export function SaveContact({
 export function Footer({
   removeCode,
   children,
+  first = 'Your contact',
+  eventCode,
 }: {
+  first?: string;
+  eventCode?: string;
   removeCode?: string;
   children?: React.ReactNode;
 }) {
@@ -470,9 +483,7 @@ export function Footer({
       </div>
       {removeCode ? <RemoveDetails code={removeCode} /> : null}
       <p className="mt-4 w-full basis-full text-[12px]">
-        <Link href="/?ref=card" className="text-ink-3">
-          Made with INSIGNAR
-        </Link>
+        <MadeWith first={first} code={eventCode} />
       </p>
     </footer>
   );

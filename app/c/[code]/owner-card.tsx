@@ -6,6 +6,7 @@ import { linkedinHref } from '@/lib/domain/linkedin';
 import { publicWebsiteHref } from '@/lib/domain/public-profile';
 import { LinkedInConnect } from './linkedin-connect';
 import { Footer, Header, SaveContact } from './prospect-view';
+import { Holding } from './holding';
 
 /**
  * "One card, two jobs" (2026-09-25 review).
@@ -21,7 +22,13 @@ import { Footer, Header, SaveContact } from './prospect-view';
  */
 type OwnerResolved = Extract<Resolved, { audience: 'owner' }>;
 
-export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
+export function OwnerCard({
+  resolved,
+  prospect = false,
+}: {
+  resolved: OwnerResolved;
+  prospect?: boolean;
+}) {
   const { code, rep, business } = resolved;
   const first = rep.fullName.trim().split(/\s+/)[0] || rep.fullName;
   const booking = parseBookingUrl(rep.bookingUrl);
@@ -40,6 +47,14 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
 
       <main className="flex-1">
         <h1 className={styles.headline}>Meet {first}</h1>
+        {prospect && resolved.holding ? (
+          <Holding
+            key={resolved.holding.ready ? 'ready' : 'waiting'}
+            code={code}
+            first={first}
+            details={resolved.holding}
+          />
+        ) : null}
         {tagline ? <p className={`${styles.tagline} mt-3`}>{tagline}</p> : null}
 
         <div className={styles.ownerActions}>
@@ -110,7 +125,11 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
         ) : null}
       </main>
 
-      <Footer />
+      <Footer
+        removeCode={prospect && resolved.sessionId ? code : undefined}
+        first={first}
+        eventCode={prospect ? code : undefined}
+      />
     </div>
   );
 }

@@ -39,6 +39,7 @@ import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
+import { TheyToldUs } from './they-told-us';
 
 /**
  * The capture form (spec §10.2, §21).
@@ -502,6 +503,19 @@ export function DetailsForm({
           AI help is off right now. Type the details; nothing is lost.
         </p>
       ) : null}
+
+      <TheyToldUs
+        session={session}
+        niches={niches}
+        fallbackProblems={fallbackProblems}
+        current={{ email, phone, problems, selectedNiches }}
+        onContact={(field, value) => applyField(field, value)}
+        onProblems={(next) => {
+          setSelectedNiches(next.selectedNiches);
+          setProblems(next.problems);
+          setMoreOpen(true);
+        }}
+      />
 
       <CardScan
         scanEnabled={scanEnabled}
