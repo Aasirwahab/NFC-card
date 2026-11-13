@@ -98,7 +98,7 @@ export function VoiceNote({
       return;
     }
     // The rep left while the permission prompt was open: do not record.
-    if (!mounted.current || recorder.current?.state === 'recording') {
+    if (!mounted.current || (recorder.current as MediaRecorder | null)?.state === 'recording') {
       starting.current = false;
       stream.getTracks().forEach((t) => t.stop());
       return;
