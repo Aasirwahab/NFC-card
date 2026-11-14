@@ -28,7 +28,7 @@ it('rolls back tap first in the documented order and restores the previous follo
   const { rows } = await db.query(`select column_name from information_schema.columns
     where table_schema = 'public' and table_name = 'sessions'
       and (column_name like 'prospect_submitted_%' or column_name in
-        ('prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
+        ('last_viewed_at', 'prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
   expect(rows).toEqual([]);
   const fixture = await seedFixture(db, { cards: 1 });
   const id = crypto.randomUUID();
@@ -46,4 +46,9 @@ it('rolls back tap first in the documented order and restores the previous follo
     [id, fixture.userId],
   );
   expect(sent.rows[0]!.mark_followup_sent).toBe(true);
+  const view = await db.query<{ record_prospect_view: boolean }>(
+    'select public.record_prospect_view($1)',
+    [id],
+  );
+  expect(view.rows[0]!.record_prospect_view).toBe(true);
 });

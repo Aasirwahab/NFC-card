@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { strongestSignal, chatTurns, openingSummary } from '@/lib/followup/signals';
+import { strongestSignal, chatTurns, openingSummary, openedWhen } from '@/lib/followup/signals';
 
 const empty = {
   viewCount: 0,
@@ -73,8 +73,33 @@ describe('recorded contact signals', () => {
       first: '2026-11-06T10:00:00Z',
       last: null,
     });
-    expect(openingSummary(1, '2026-11-06T10:00:00Z').last).toBe('2026-11-06T10:00:00Z');
+    expect(openingSummary(1, '2026-11-06T10:00:00Z').last).toBeNull();
     expect(openingSummary(0, null)).toEqual({ count: 'Not opened yet', first: null, last: null });
+  });
+
+  it('uses the actual latest view without replacing the first view', () => {
+    const first = '2026-11-06T10:00:00Z';
+    const last = '2026-11-13T14:02:00Z';
+    const now = Date.parse('2026-11-13T16:00:00Z');
+    expect(openingSummary(6, first, last)).toEqual({ count: 'Opened 6 times', first, last });
+    expect(
+      strongestSignal({ ...empty, viewCount: 6, firstViewedAt: first, lastViewedAt: last }, now)
+        .label,
+    ).toBe('Opened 6 times, last today');
+    expect(openedWhen(last, now, true)).toBe('today at 14:02');
+  });
+
+  it('uses UK calendar days across midnight and daylight saving time', () => {
+    const now = Date.parse('2026-07-14T23:30:00Z');
+    expect(openedWhen('2026-07-14T23:10:00Z', now, true)).toBe('today at 00:10');
+    expect(openedWhen('2026-07-14T22:50:00Z', now, true)).toBe('yesterday at 23:50');
+    expect(openedWhen('2026-07-12T12:00:00Z', now, true)).toBe('12 Jul 2026 at 13:00');
+  });
+
+  it('recognises yesterday just after midnight following a UK clock change', () => {
+    expect(openedWhen('2026-03-29T12:00:00Z', Date.parse('2026-03-29T23:30:00Z'))).toBe(
+      'yesterday',
+    );
   });
 
   it('pairs answers in id order when timestamps tie, and marks recorded unanswered questions', () => {

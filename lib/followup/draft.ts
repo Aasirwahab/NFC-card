@@ -16,7 +16,13 @@ export type FollowupChannel = 'linkedin' | 'email' | 'none';
 
 /** The states that have a template. A dropped lead never gets one. */
 export type DraftState =
-  'due-no-tap' | 'opened-no-action' | 'booked' | 'sent' | 'replied' | 'asked-question';
+  | 'due-no-tap'
+  | 'opened-no-action'
+  | 'booked'
+  | 'sent'
+  | 'replied'
+  | 'asked-question'
+  | 'requested-note';
 
 export const STOP_LINE = "Reply stop and I won't write again.";
 
@@ -52,7 +58,10 @@ function shorten(topic: string): string {
 }
 
 /** One sentence per state for a LinkedIn note. `t` is the lower-cased problem, if any. */
-const SHORT: Record<Exclude<DraftState, 'asked-question'>, (t: string | null) => string> = {
+const SHORT: Record<
+  Exclude<DraftState, 'asked-question' | 'requested-note'>,
+  (t: string | null) => string
+> = {
   'due-no-tap': (t) =>
     t
       ? `Good to meet you. Following up on our chat about ${t}. Happy to share how we'd approach it if useful.`
@@ -76,7 +85,10 @@ const SHORT: Record<Exclude<DraftState, 'asked-question'>, (t: string | null) =>
 };
 
 /** The body lines for an email, or anything without a LinkedIn note. */
-const LONG: Record<Exclude<DraftState, 'asked-question'>, (t: string | null) => string[]> = {
+const LONG: Record<
+  Exclude<DraftState, 'asked-question' | 'requested-note'>,
+  (t: string | null) => string[]
+> = {
   'due-no-tap': (t) => [
     'Good to meet you.',
     t
@@ -123,6 +135,12 @@ export function composeFollowupDraft(input: FollowupInput): string {
       ) || null
     : null;
   const from = input.businessName?.trim() ? `${me}, ${input.businessName.trim()}` : me;
+
+  if (state === 'requested-note') {
+    return [hello, '', 'Here is your note from our conversation.', '', from, '', STOP_LINE].join(
+      '\n',
+    );
+  }
 
   if (state === 'asked-question') {
     const question = (input.question ?? '')

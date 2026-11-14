@@ -168,7 +168,7 @@ export async function getContactActivity(userId: string, sessionId: string) {
   const { data } = await serviceClient()
     .from('sessions')
     .select(
-      'view_count, first_viewed_at, session_events(type, occurred_at), chat_messages(id, role, content, created_at), chat_unanswered(question, created_at), bookings(session_id, status)',
+      'view_count, first_viewed_at, last_viewed_at, session_events(type, occurred_at), chat_messages(id, role, content, created_at), chat_unanswered(question, created_at), bookings(session_id, status)',
     )
     .eq('user_id', userId)
     .eq('id', sessionId)
@@ -229,7 +229,7 @@ export async function listFollowups(
   const { data: sessions } = await db
     .from('sessions')
     .select(
-      'id, status, details_completed_at, registered_at, first_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, prospect_submitted_email, prospect_submitted_phone, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
+      'id, status, details_completed_at, registered_at, first_viewed_at, last_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, prospect_submitted_email, prospect_submitted_phone, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
     )
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -267,14 +267,18 @@ export async function listFollowups(
         sessionId: s.id,
         state,
         reason: followupReason(state, s, now),
-        signal: strongestSignal({
-          viewCount: s.view_count,
-          firstViewedAt: s.first_viewed_at,
-          events: events.map((e) => e.type),
-          questions: s.chat_messages.map((m) => m.content),
-          submittedEmail: s.prospect_submitted_email,
-          submittedPhone: s.prospect_submitted_phone,
-        }),
+        signal: strongestSignal(
+          {
+            viewCount: s.view_count,
+            firstViewedAt: s.first_viewed_at,
+            lastViewedAt: s.last_viewed_at,
+            events: events.map((e) => e.type),
+            questions: s.chat_messages.map((m) => m.content),
+            submittedEmail: s.prospect_submitted_email,
+            submittedPhone: s.prospect_submitted_phone,
+          },
+          now,
+        ),
         pagePath: s.cards ? `/c/${s.cards.code}` : null,
         draft: followupDraft(
           s,
@@ -287,6 +291,7 @@ export async function listFollowups(
           },
           now,
           question,
+          requestedNote,
         ),
         channel,
         prospectName: s.prospect_name,

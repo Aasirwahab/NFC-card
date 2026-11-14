@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { STOP_LINE } from './draft';
 
 type SendPlatform = {
   share?: (data: ShareData) => Promise<void>;
@@ -20,6 +21,16 @@ export function followupTarget(email: string | null, phone?: string | null) {
       : null;
 }
 
+/** Keep the page link before the sign-off and stop line in a multi-line message. */
+export function followupMessage(draft: string, pageUrl: string): string {
+  const paragraphs = draft.split('\n\n');
+  if (paragraphs.length >= 4 && paragraphs.at(-1) === STOP_LINE) {
+    paragraphs.splice(-2, 0, pageUrl);
+    return paragraphs.join('\n\n');
+  }
+  return `${draft}\n\n${pageUrl}`;
+}
+
 /** Opening a share sheet or email is not confirmation that the rep sent it. */
 export async function sendFollowup(
   message: {
@@ -31,7 +42,7 @@ export async function sendFollowup(
   },
   platform: SendPlatform,
 ): Promise<'shared' | 'email' | 'sms' | 'copied' | 'cancelled'> {
-  const text = `${message.draft}\n\n${message.pageUrl}`;
+  const text = followupMessage(message.draft, message.pageUrl);
   const target = followupTarget(message.email, message.phone);
   function openContact() {
     if (!target) return null;

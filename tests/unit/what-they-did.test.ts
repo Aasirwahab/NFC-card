@@ -37,6 +37,7 @@ const at = '2026-11-11T12:00:00Z';
 const activity = {
   view_count: 3,
   first_viewed_at: at,
+  last_viewed_at: null,
   readAt: Date.parse('2026-11-13T12:00:00Z'),
   session_events: [{ type: 'booking_opened', occurred_at: at }],
   chat_messages: [
@@ -58,7 +59,7 @@ describe('What they did on the contact page', () => {
     );
     expect(mocks.activity).toHaveBeenCalledWith('rep', 'contact');
     expect(html).toContain('Opened 3 times');
-    expect(html).toContain('Last opened: time not recorded.');
+    expect(html).not.toContain('Last opened');
     expect(html).toContain('Opened the booking page');
     expect(html).toContain('Please ask Zaid.');
     expect(html).toContain('Chat could not answer fully.');
@@ -69,6 +70,23 @@ describe('What they did on the contact page', () => {
       signal: { label: 'Asked about pricing' },
       draft: expect.stringContaining('You asked:'),
     });
+  });
+
+  it('shows the recorded last opening in UK time and the follow-up signal', async () => {
+    mocks.activity.mockResolvedValue({
+      ...activity,
+      readAt: Date.parse('2026-11-13T16:00:00Z'),
+      last_viewed_at: '2026-11-13T14:02:00Z',
+      chat_messages: [],
+      session_events: [],
+    });
+    const html = renderToStaticMarkup(
+      await WhatTheyDid({ userId: 'rep', session, cardCode: 'abc' }),
+    );
+    expect(html).toContain(
+      'Last opened <time dateTime="2026-11-13T14:02:00Z">today at 14:02</time>',
+    );
+    expect(mocks.followup.mock.calls[0]![0].row.signal.label).toBe('Opened 3 times, last today');
   });
 
   it('uses the contact they left when they asked for their note', async () => {
@@ -92,6 +110,8 @@ describe('What they did on the contact page', () => {
       prospectPhone: '+447700900123',
       preferContact: true,
       signal: { label: 'Asked you to send their note', rank: 6 },
+      draft:
+        "Hi Tom,\n\nHere is your note from our conversation.\n\nZaid\n\nReply stop and I won't write again.",
     });
   });
 

@@ -27,6 +27,7 @@ async function contact(withAnswers = true) {
               prospect_submitted_email = 'prospect@example.com',
               prospect_submitted_phone = '+447700900123',
               prospect_consent_at = now(),
+              last_viewed_at = now(),
               prospect_answer_token_hash = 'hash'
         where id = $2`,
       [['Idle machine tracking'], sessionId],
@@ -51,6 +52,43 @@ describe('prospect answer storage and privacy', () => {
       prospect_consent_at: null,
       prospect_answer_token_hash: null,
     });
+  });
+
+  it('timestamps every counted prospect view while keeping the first view and source', async () => {
+    const { sessionId } = await contact(false);
+    expect(
+      (await db.query('select last_viewed_at from public.sessions where id = $1', [sessionId]))
+        .rows,
+    ).toEqual([{ last_viewed_at: null }]);
+    await db.query('select public.record_prospect_view($1, $2)', [sessionId, 'qr']);
+    const first = (
+      await db.query<{ first_viewed_at: Date; last_viewed_at: Date }>(
+        'select first_viewed_at, last_viewed_at from public.sessions where id = $1',
+        [sessionId],
+      )
+    ).rows[0]!;
+    expect(first.last_viewed_at).toEqual(first.first_viewed_at);
+    await db.query("update public.sessions set last_viewed_at = '2020-01-01' where id = $1", [
+      sessionId,
+    ]);
+    await db.query('select public.record_prospect_view($1, $2)', [sessionId, 'nfc']);
+    const row = (
+      await db.query<{
+        view_count: number;
+        first_viewed_at: Date;
+        last_viewed_at: Date;
+        first_view_source: string;
+      }>(
+        'select view_count, first_viewed_at, last_viewed_at, first_view_source from public.sessions where id = $1',
+        [sessionId],
+      )
+    ).rows[0]!;
+    expect(row.view_count).toBe(2);
+    expect(row.first_viewed_at).toEqual(first.first_viewed_at);
+    expect(row.first_view_source).toBe('qr');
+    expect(new Date(row.last_viewed_at).getTime()).toBeGreaterThanOrEqual(
+      new Date(first.last_viewed_at).getTime(),
+    );
   });
 
   it('removes every prospect answer through the Remove my details deletion RPC', async () => {

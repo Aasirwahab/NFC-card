@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { sendFollowup } from '@/lib/followup/send';
+import { composeFollowupDraft } from '@/lib/followup/draft';
 
 const message = {
   draft: 'Hi Tom. Reply stop.',
@@ -22,6 +23,42 @@ describe('one-tap send', () => {
     expect(p.copy).not.toHaveBeenCalled();
     expect(p.openMail).not.toHaveBeenCalled();
   });
+
+  it.each(['email', 'share', 'copy'])(
+    'puts the note link before the sign-off and stop line via %s',
+    async (channel) => {
+      const draft = composeFollowupDraft({
+        channel: 'email',
+        state: 'requested-note',
+        prospectName: 'Tom',
+        repFullName: 'Zaid',
+        businessName: 'Example',
+        problem: null,
+        question: 'What does it cost?',
+      });
+      const text =
+        "Hi Tom,\n\nHere is your note from our conversation.\n\nhttps://example.com/c/abc\n\nZaid, Example\n\nReply stop and I won't write again.";
+      const p = {
+        ...platform(),
+        share: channel === 'copy' ? undefined : vi.fn().mockResolvedValue(undefined),
+      };
+      await sendFollowup(
+        {
+          ...message,
+          draft,
+          email: channel === 'email' ? message.email : null,
+          preferContact: channel === 'email',
+        },
+        p,
+      );
+      if (channel === 'email')
+        expect(p.openMail).toHaveBeenCalledWith(
+          `mailto:tom%40example.com?body=${encodeURIComponent(text)}`,
+        );
+      if (channel === 'share') expect(p.share).toHaveBeenCalledWith({ text });
+      if (channel === 'copy') expect(p.copy).toHaveBeenCalledWith(text);
+    },
+  );
 
   it('opens a requested email directly even when sharing is available', async () => {
     const p = platform();

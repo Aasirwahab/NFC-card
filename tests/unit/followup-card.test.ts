@@ -40,14 +40,19 @@ describe('follow-up send control', () => {
     );
     expect(html).toMatch(/>Send to tom@example.com<\/button>/);
   });
-  it('keeps Share beside Send for a requested note', () => {
+  it('keeps Share and Copy inside More for a requested note', () => {
     const html = renderToStaticMarkup(
       createElement(FollowupCard, {
         row: { ...row, state: 'review', draft: 'Hi Tom', preferContact: true },
       }),
     );
     expect(html).toMatch(/>Send to tom@example.com<\/button>/);
-    expect(html).toMatch(/>Share<\/button>/);
+    expect(html).not.toContain('Open email');
+    const [visible, more] = html.split('<details');
+    expect(visible).not.toMatch(/>Share<\/button>|>Copy<\/button>|Open LinkedIn/);
+    expect(visible).toContain('Done');
+    expect(more).toMatch(/>Share<\/button>/);
+    expect(more).toMatch(/>Copy<\/button>/);
   });
   it.each([
     'bad@example.com?bcc=other@example.com',
@@ -60,13 +65,23 @@ describe('follow-up send control', () => {
     expect(html).not.toContain('Open email');
     expect(html).not.toContain('mailto:');
   });
-  it('encodes the validated address in Open email', () => {
+  it('removes the duplicate Open email control', () => {
     const html = renderToStaticMarkup(
       createElement(FollowupCard, {
         row: { ...row, draft: 'Hi', prospectEmail: 'tom+tag@example.com' },
       }),
     );
-    expect(html).toContain('mailto:tom%2Btag%40example.com?body=Hi');
+    expect(html).not.toContain('Open email');
+    expect(html).not.toContain('mailto:');
+  });
+  it('uses Share as the primary action when no recipient is known', () => {
+    const html = renderToStaticMarkup(
+      createElement(FollowupCard, {
+        row: { ...row, state: 'review', draft: 'Hi', prospectEmail: null },
+      }),
+    );
+    expect(html.split('<details')[0]).toMatch(/>Share<\/button>/);
+    expect(html).not.toContain('Send to');
   });
   it('shows the exact SMS recipient on Send', () => {
     const html = renderToStaticMarkup(

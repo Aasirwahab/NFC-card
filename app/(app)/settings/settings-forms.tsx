@@ -530,6 +530,7 @@ export function PlaybookForm({
   draftEnabled: boolean;
 }) {
   const [starting, setStarting] = useState<string | null>(null);
+  const addEntry = useRef<HTMLDetailsElement>(null);
 
   return (
     <Panel
@@ -566,12 +567,19 @@ export function PlaybookForm({
         </div>
       ) : null}
 
-      <details open={starting !== null} className="border-line-soft border-t pt-3">
+      <details ref={addEntry} open={starting !== null} className="border-line-soft border-t pt-3">
         <summary className="text-accent min-h-11 cursor-pointer py-3 text-[15px] font-medium">
           Add an entry
         </summary>
         <PlaybookEntry
           key={starting ?? 'new'}
+          onSaved={() => {
+            setStarting(null);
+            if (addEntry.current) {
+              addEntry.current.open = false;
+              addEntry.current.querySelector('summary')?.focus();
+            }
+          }}
           entry={{ id: '', problem: starting ?? '', why: null, checks: [], resource_url: null }}
           draftEnabled={draftEnabled}
         />
@@ -580,8 +588,20 @@ export function PlaybookForm({
   );
 }
 
-function PlaybookEntry({ entry, draftEnabled }: { entry: PlaybookRow; draftEnabled: boolean }) {
-  const [state, action] = useActionState(savePlaybookAction, {});
+function PlaybookEntry({
+  entry,
+  draftEnabled,
+  onSaved,
+}: {
+  entry: PlaybookRow;
+  draftEnabled: boolean;
+  onSaved?: () => void;
+}) {
+  const [state, action] = useActionState(async (previous: SettingsState, data: FormData) => {
+    const result = await savePlaybookAction(previous, data);
+    if (result.saved) onSaved?.();
+    return result;
+  }, {});
   const [problem, setProblem] = useState(entry.problem);
   const [why, setWhy] = useState(entry.why ?? '');
   const [checks, setChecks] = useState<string[]>([
