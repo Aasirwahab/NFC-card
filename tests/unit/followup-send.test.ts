@@ -29,7 +29,7 @@ describe('one-tap send', () => {
     async (channel) => {
       const draft = composeFollowupDraft({
         channel: 'email',
-        state: 'requested-note',
+        state: 'shared-details',
         prospectName: 'Tom',
         repFullName: 'Zaid',
         businessName: 'Example',
@@ -37,7 +37,7 @@ describe('one-tap send', () => {
         question: 'What does it cost?',
       });
       const text =
-        "Hi Tom,\n\nHere is your note from our conversation.\n\nhttps://example.com/c/abc\n\nZaid, Example\n\nReply stop and I won't write again.";
+        "Hi Tom,\n\nThanks for sharing your details after our conversation.\n\nhttps://example.com/c/abc\n\nZaid, Example\n\nReply stop and I won't write again.";
       const p = {
         ...platform(),
         share: channel === 'copy' ? undefined : vi.fn().mockResolvedValue(undefined),

@@ -21,16 +21,21 @@ describe('tap first prospect content', () => {
     expect(html).toContain(
       'Sam&#x27;s note about your conversation appears here once it&#x27;s written.',
     );
-    expect(html).toContain('Want it sent to you?');
-    expect(html).toContain('Leave your email or mobile and Sam will send you the note.');
+    expect(html).toContain('Share your details with Sam');
+    expect(html).toContain('So Sam can get back to you. Only Sam sees this.');
     expect(html).toContain('What matters most to you right now?');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('aria-describedby="prospect-contact-help prospect-consent"');
     expect(html).toContain(
-      'Sam will use this only to send you this note. You can remove it any time.',
+      'Sam will use this only to get back to you. You can remove it any time.',
     );
     expect(html).toContain('href="/privacy"');
-    expect(html.indexOf('prospect-consent')).toBeLessThan(html.lastIndexOf('Send it to me'));
+    expect(html).toContain('What would you like from');
+    expect(html).toContain('(optional)');
+    expect(html).toContain('maxLength="300"');
+    expect(html).toContain('rows="2"');
+    expect(html).not.toContain('send you the note');
+    expect(html.indexOf('prospect-consent')).toBeLessThan(html.lastIndexOf('Share with Sam'));
   });
   it('says nothing until this browser is known, and never server-renders values or fields', () => {
     const html = renderToStaticMarkup(

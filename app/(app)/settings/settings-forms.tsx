@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { ProspectContactForm } from '@/components/prospect-contact-form';
+import { CONTACT_BUILT_INS, parseContactForm, type ContactForm } from '@/lib/domain/contact-form';
 import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import {
@@ -14,6 +16,7 @@ import {
   saveProfileAction,
   savePitchVoiceAction,
   saveWeeklyDigestAction,
+  saveContactFormAction,
   type SettingsState,
 } from './actions';
 
@@ -278,6 +281,254 @@ export function PitchVoiceForm({
         <SaveButton label="Save voice" />
       </Panel>
     </form>
+  );
+}
+
+export function ContactFormEditor({ config, first }: { config: ContactForm; first: string }) {
+  const [state, action] = useActionState(saveContactFormAction, {});
+  const [draft, setDraft] = useState(config);
+  const focusQuestion = useRef<string | null>(null);
+  const configToSave = {
+    ...draft,
+    questions: draft.questions.map((q) => ({
+      ...q,
+      options: q.type === 'choice' ? q.options.map((option) => option.trim()).filter(Boolean) : [],
+    })),
+  };
+  const labels = { name: 'Name', company: 'Company', jobTitle: 'Job title', message: 'Message' };
+  function updateQuestion(index: number, patch: Partial<ContactForm['questions'][number]>) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)),
+    }));
+  }
+  return (
+    <Panel
+      title="Your contact form"
+      hint="Choose what prospects can share before your note is ready. Filling in the form is optional. Their email or UK mobile is required if they submit it."
+    >
+      <form action={action} className="flex min-w-0 flex-col gap-4">
+        <input type="hidden" name="contact_form" value={JSON.stringify(configToSave)} />
+        <label className="flex min-h-11 items-center gap-3">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={draft.enabled}
+            onChange={(e) => setDraft((c) => ({ ...c, enabled: e.target.checked }))}
+            className="accent-accent h-5 w-5"
+          />
+          <span className="text-ink text-sm font-medium">Show the form</span>
+        </label>
+        <p className="text-ink-3 text-sm">Use {'{first}'} for your first name in the copy.</p>
+        <Field label="Title" htmlFor="form-title">
+          <Input
+            id="form-title"
+            value={draft.title}
+            maxLength={80}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, title: e.target.value }))}
+          />
+        </Field>
+        <Field label="Introduction" htmlFor="form-intro">
+          <Textarea
+            id="form-intro"
+            value={draft.intro}
+            rows={2}
+            maxLength={200}
+            onChange={(e) => setDraft((c) => ({ ...c, intro: e.target.value }))}
+          />
+        </Field>
+        <Field label="Button text" htmlFor="form-button">
+          <Input
+            id="form-button"
+            value={draft.button}
+            maxLength={40}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, button: e.target.value }))}
+          />
+        </Field>
+        <Field label="Contact field label" htmlFor="form-contact-label">
+          <Input
+            id="form-contact-label"
+            value={draft.contactLabel}
+            maxLength={60}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, contactLabel: e.target.value }))}
+          />
+        </Field>
+        <fieldset className="min-w-0">
+          <legend className="text-ink mb-2 text-sm font-semibold">Fields to ask</legend>
+          {CONTACT_BUILT_INS.map((key) => (
+            <div
+              key={key}
+              className="border-line flex flex-wrap items-center justify-between gap-x-4 border-b py-1"
+            >
+              <span className="text-ink text-sm">{labels[key]}</span>
+              <div className="flex gap-4">
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    id={`form-${key}-ask`}
+                    type="checkbox"
+                    checked={draft.fields[key].ask}
+                    aria-label={`Ask for ${labels[key].toLowerCase()}`}
+                    onChange={(e) =>
+                      setDraft((c) => ({
+                        ...c,
+                        fields: {
+                          ...c.fields,
+                          [key]: {
+                            ask: e.target.checked,
+                            required: e.target.checked && c.fields[key].required,
+                          },
+                        },
+                      }))
+                    }
+                    className="accent-accent h-5 w-5"
+                  />
+                  Ask
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    id={`form-${key}-required`}
+                    type="checkbox"
+                    checked={draft.fields[key].required}
+                    disabled={!draft.fields[key].ask}
+                    aria-label={`Require ${labels[key].toLowerCase()}`}
+                    onChange={(e) =>
+                      setDraft((c) => ({
+                        ...c,
+                        fields: {
+                          ...c.fields,
+                          [key]: { ...c.fields[key], required: e.target.checked },
+                        },
+                      }))
+                    }
+                    className="accent-accent h-5 w-5"
+                  />
+                  Required
+                </label>
+              </div>
+            </div>
+          ))}
+        </fieldset>
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="text-ink text-sm font-semibold">Custom questions</legend>
+          {draft.questions.map((q, index) => (
+            <fieldset key={q.id} className="border-line flex min-w-0 flex-col gap-3 border-t pt-4">
+              <legend className="text-ink-2 px-1 text-sm">Question {index + 1}</legend>
+              <Field label="Question label" htmlFor={`question-label-${index}`}>
+                <Input
+                  id={`question-label-${index}`}
+                  ref={(node) => {
+                    if (node && focusQuestion.current === q.id) {
+                      node.focus();
+                      focusQuestion.current = null;
+                    }
+                  }}
+                  value={q.label}
+                  maxLength={80}
+                  required
+                  onChange={(e) => updateQuestion(index, { label: e.target.value })}
+                />
+              </Field>
+              <Field label="Type" htmlFor={`question-type-${index}`}>
+                <select
+                  id={`question-type-${index}`}
+                  value={q.type}
+                  onChange={(e) =>
+                    updateQuestion(index, {
+                      type: e.target.value as 'text' | 'choice',
+                      options: e.target.value === 'text' ? [] : q.options,
+                    })
+                  }
+                  className="border-line bg-surface text-ink h-12 w-full rounded-lg border px-3 text-base"
+                >
+                  <option value="text">Text</option>
+                  <option value="choice">Choice</option>
+                </select>
+              </Field>
+              {q.type === 'choice' ? (
+                <Field
+                  label="Options"
+                  htmlFor={`question-options-${index}`}
+                  hint="One per line. Add two to six different choices, up to 40 characters each."
+                >
+                  <Textarea
+                    id={`question-options-${index}`}
+                    rows={3}
+                    value={q.options.join('\n')}
+                    required
+                    onChange={(e) => updateQuestion(index, { options: e.target.value.split('\n') })}
+                  />
+                </Field>
+              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) => updateQuestion(index, { required: e.target.checked })}
+                    className="accent-accent h-5 w-5"
+                  />
+                  Required
+                </label>
+                <button
+                  type="button"
+                  aria-label={`Remove question ${index + 1}`}
+                  onClick={() => {
+                    setDraft((c) => ({
+                      ...c,
+                      questions: c.questions.filter((_, i) => i !== index),
+                    }));
+                  }}
+                  className="text-crit min-h-11 px-2 text-sm underline underline-offset-2"
+                >
+                  Remove
+                </button>
+              </div>
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            disabled={draft.questions.length >= 3}
+            onClick={() => {
+              if (draft.questions.length >= 3) return;
+              const id = `q-${crypto.randomUUID().slice(0, 16)}`;
+              focusQuestion.current = id;
+              setDraft((c) => ({
+                ...c,
+                questions: [
+                  ...c.questions,
+                  { id, label: '', type: 'text', options: [], required: false },
+                ],
+              }));
+            }}
+            className="border-line text-ink min-h-11 rounded-lg border px-3 text-sm disabled:opacity-50"
+          >
+            Add a question
+          </button>
+        </fieldset>
+        <Status state={state} />
+        <div className="flex flex-wrap items-center gap-3">
+          <SaveButton label="Save contact form" />
+          <button
+            type="button"
+            onClick={() => setDraft(parseContactForm(null))}
+            className="text-accent min-h-11 px-2 text-sm underline underline-offset-2"
+          >
+            Reset to default
+          </button>
+        </div>
+      </form>
+      <div className="border-line min-w-0 border-t pt-4">
+        <h3 className="text-ink mb-3 text-sm font-semibold">Preview</h3>
+        {draft.enabled ? (
+          <ProspectContactForm config={configToSave} first={first} values={{}} preview />
+        ) : (
+          <p className="text-ink-3 text-sm">The contact form is hidden.</p>
+        )}
+      </div>
+    </Panel>
   );
 }
 
