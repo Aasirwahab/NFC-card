@@ -1,10 +1,14 @@
 /** Every string and number on /pricing. */
 
-// PROPOSED 2026-11-13, confirm before merge
+// Confirmed by Zaid 2026-11-14 (pricing council option A). Card packs are priced near cost: the software carries the margin.
 export const PRICE = {
   currency: 'GBP',
   perRepPerMonth: 39,
-  founding: { total: 99, months: 3, cards: 10 },
+  founding: { total: 99, months: 3, cards: 20 },
+  packs: [
+    { cards: 20, price: 39 },
+    { cards: 50, price: 85 },
+  ],
 };
 
 const gbp = (n: number) => `£${n}`;
@@ -24,7 +28,7 @@ export const copy = {
     per: `for your first ${PRICE.founding.months} months`,
     lines: [
       `${PRICE.founding.cards} numbered cards included.`,
-      `${PRICE.founding.months} months at the standard price would be ${gbp(standardOverFounding)}.`,
+      `Paid once, up front. ${PRICE.founding.months} months at the standard price would be ${gbp(standardOverFounding)}.`,
     ],
     cta: 'Request a founding pilot',
   },
@@ -32,7 +36,10 @@ export const copy = {
     label: 'Standard',
     price: gbp(PRICE.perRepPerMonth),
     per: 'per rep, per month',
-    lines: ['The price once the founding offer ends, or if you join after it.'],
+    lines: [
+      'The price once the founding offer ends, or if you join after it.',
+      `More cards: ${PRICE.packs.map((p) => `${p.cards} for ${gbp(p.price)}`).join(', ')}.`,
+    ],
   },
   getTitle: 'What you get',
   get: [
@@ -69,6 +76,10 @@ export const copy = {
     [
       'Do I pay on this website?',
       'No. There is no payment on this site. Request a pilot and we will reply with the details to agree first.',
+    ],
+    [
+      'Why are cards extra?',
+      'Each card goes to one person and stays with them, so cards get used up. We sell them in packs close to what they cost us, and the monthly price covers the software.',
     ],
     [
       'Are the pilot terms final?',
