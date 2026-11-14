@@ -42,6 +42,11 @@ describe('the follow-up state migration', () => {
       [sent.sessionId],
     );
 
+    const { rows: activityBefore } = await db.query<{ id: string; updated_at: Date }>(
+      `select id, updated_at from public.sessions where id = any($1) order by id`,
+      [[sent.sessionId, unsent.sessionId]],
+    );
+
     await db.exec(readFileSync(join(process.cwd(), 'supabase', 'migrations', MIGRATION), 'utf8'));
 
     const { rows } = await db.query<{ id: string; followup_sent_at: Date | null }>(
@@ -51,6 +56,21 @@ describe('the follow-up state migration', () => {
     const byId = new Map(rows.map((r) => [r.id, r.followup_sent_at]));
     expect(byId.get(sent.sessionId)?.getTime()).toBe(new Date(before[0]!.sent_at).getTime());
     expect(byId.get(unsent.sessionId)).toBeNull();
+    const { rows: activityAfter } = await db.query<{ id: string; updated_at: Date }>(
+      `select id, updated_at from public.sessions where id = any($1) order by id`,
+      [[sent.sessionId, unsent.sessionId]],
+    );
+    expect(activityAfter).toEqual(activityBefore);
+    await db.query(`update public.sessions set prospect_name = 'Updated' where id = $1`, [
+      sent.sessionId,
+    ]);
+    const { rows: changed } = await db.query<{ updated_at: Date }>(
+      `select updated_at from public.sessions where id = $1`,
+      [sent.sessionId],
+    );
+    expect(changed[0]!.updated_at.getTime()).toBeGreaterThan(
+      activityBefore.find((row) => row.id === sent.sessionId)!.updated_at.getTime(),
+    );
   });
 });
 
@@ -98,6 +118,27 @@ describe('follow-up state in the database', () => {
     await db.query(`update public.sessions set status = 'voided' where id = $1`, [fx.sessionId]);
     expect(await markSent(fx.sessionId, fx.userId)).toBe(false);
   });
+
+  it.each(['replied', 'dropped'])(
+    'rejects a stale Done for a %s contact without recording a send',
+    async (outcome) => {
+      const fx = await session(db);
+      await db.query(`select public.save_followup_draft($1, 'linkedin', 'x')`, [fx.sessionId]);
+      await db.query(`update public.sessions set followup_outcome = $1 where id = $2`, [
+        outcome,
+        fx.sessionId,
+      ]);
+      expect(await markSent(fx.sessionId, crypto.randomUUID())).toBe(false);
+      await expect(markSent(fx.sessionId, fx.userId)).rejects.toThrow('followup_closed');
+      const { rows } = await db.query<{ followup_sent_at: Date | null; sent_at: Date | null }>(
+        `select s.followup_sent_at, d.sent_at from public.sessions s
+       join public.followup_drafts d on d.session_id = s.id where s.id = $1`,
+        [fx.sessionId],
+      );
+      expect(rows[0]).toEqual({ followup_sent_at: null, sent_at: null });
+      expect(await sentEvents(fx.sessionId)).toBe(0);
+    },
+  );
 
   it('accepts only replied or dropped as an outcome', async () => {
     const fx = await session(db);

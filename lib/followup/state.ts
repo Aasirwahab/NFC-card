@@ -40,8 +40,6 @@ const DAY = 24 * HOUR;
 const DUE_AFTER = DAY;
 /** Sessions older than this predate the feature or have gone cold. */
 export const FOLLOWUP_WINDOW = 30 * DAY;
-/** The second, lighter nudge waits this long after the first message. */
-const NUDGE_AFTER = 3 * DAY;
 
 export function followupState(
   session: FollowupSession,
@@ -92,21 +90,18 @@ export type FollowupIdentity = {
 };
 
 /**
- * The draft for one lead, or null when there should not be one: a dropped lead
- * never gets a message, and the second nudge waits three days after the first.
+ * The draft for one lead, or null when there should not be one: closed and sent contacts
+ * never get another message.
  * Uses only the problem the rep ticked and an optional quoted prospect question.
  */
 export function followupDraft(
   session: FollowupSession,
   state: FollowupState,
   identity: FollowupIdentity,
-  now: number,
+  _now: number,
   question?: string | null,
 ): string | null {
-  if (state === 'dropped') return null;
-  if (state === 'sent' && now - Date.parse(session.followup_sent_at ?? '') < NUDGE_AFTER) {
-    return null;
-  }
+  if (state === 'dropped' || state === 'replied' || state === 'sent') return null;
 
   return composeFollowupDraft({
     ...identity,
