@@ -6,6 +6,7 @@ type SignalInput = {
   questions: string[];
   submittedEmail: string | null;
   submittedPhone: string | null;
+  openRequest?: boolean;
 };
 
 export function openingSummary(count: number, first: string | null, last: string | null = null) {
@@ -51,6 +52,7 @@ export function strongestSignal(
   input: SignalInput,
   now = Date.now(),
 ): { label: string; rank: number } {
+  if (input.openRequest) return { label: 'Asked you to contact them', rank: 7 };
   const emailed = input.events.includes('prospect_note_emailed');
   if ((input.submittedEmail || input.submittedPhone) && !emailed) {
     return { label: 'Asked you to send their note', rank: 6 };

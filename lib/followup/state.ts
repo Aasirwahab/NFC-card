@@ -9,6 +9,8 @@ import { composeFollowupDraft, type FollowupChannel } from './draft';
  *
  *   dropped / replied  the rep closed it
  *   booked             a confirmed or rescheduled booking
+ *   request-open       an explicit request (including holding contacts)
+ *   request-done / request-withdrawn  no further follow-up
  *   sent               the rep confirmed they followed up
  *   review             a question or button press, but no booking
  *   opened-no-action   opened, no booking, no recorded action
@@ -17,7 +19,16 @@ import { composeFollowupDraft, type FollowupChannel } from './draft';
  * The first, second and third stay out of the actionable queue (a "History" list).
  */
 export type FollowupState =
-  'dropped' | 'replied' | 'booked' | 'sent' | 'review' | 'opened-no-action' | 'due-no-tap';
+  | 'dropped'
+  | 'replied'
+  | 'booked'
+  | 'request-open'
+  | 'request-done'
+  | 'request-withdrawn'
+  | 'sent'
+  | 'review'
+  | 'opened-no-action'
+  | 'due-no-tap';
 
 export type FollowupSession = {
   id: string;
@@ -31,6 +42,7 @@ export type FollowupSession = {
   problems: string[];
   prospect_submitted_email: string | null;
   prospect_submitted_phone: string | null;
+  prospect_requests?: { status: string; created_at: string; done_at: string | null }[];
 };
 
 export type FollowupEvent = { session_id: string; type: string };
@@ -49,7 +61,7 @@ export function followupState(
   bookings: FollowupBooking[],
   now: number,
 ): FollowupState | null {
-  if (session.status !== 'active' || !session.details_completed_at) return null;
+  if (session.status !== 'active') return null;
 
   if (session.followup_outcome === 'dropped') return 'dropped';
   if (session.followup_outcome === 'replied') return 'replied';
@@ -63,6 +75,13 @@ export function followupState(
     return 'booked';
   }
 
+  const requests = session.prospect_requests ?? [];
+  if (requests.some((request) => request.status === 'open')) return 'request-open';
+  const latestRequest = [...requests].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  if (latestRequest?.status === 'done') return 'request-done';
+  if (latestRequest?.status === 'withdrawn') return 'request-withdrawn';
+
+  if (!session.details_completed_at) return null;
   if (session.followup_sent_at) return 'sent';
 
   const contactEvents = events.filter((e) => e.session_id === session.id);
@@ -84,7 +103,12 @@ export function followupState(
 
 /** The queue the rep works through. Everything else is History. */
 export function isActionable(state: FollowupState): boolean {
-  return state === 'due-no-tap' || state === 'opened-no-action' || state === 'review';
+  return (
+    state === 'request-open' ||
+    state === 'due-no-tap' ||
+    state === 'opened-no-action' ||
+    state === 'review'
+  );
 }
 
 export type FollowupIdentity = {
@@ -107,7 +131,15 @@ export function followupDraft(
   question?: string | null,
   requestedNote = false,
 ): string | null {
-  if (state === 'dropped' || state === 'replied' || state === 'sent') return null;
+  if (
+    state === 'dropped' ||
+    state === 'replied' ||
+    state === 'sent' ||
+    state === 'request-open' ||
+    state === 'request-done' ||
+    state === 'request-withdrawn'
+  )
+    return null;
 
   return composeFollowupDraft({
     ...identity,
@@ -133,6 +165,12 @@ function met(registeredAt: string, now: number): string {
 export function followupReason(state: FollowupState, session: FollowupSession, now: number) {
   const when = met(session.registered_at, now);
   switch (state) {
+    case 'request-open':
+      return 'They asked you to contact them once';
+    case 'request-done':
+      return 'You completed their request';
+    case 'request-withdrawn':
+      return 'They cancelled their request';
     case 'due-no-tap':
       return `Not opened yet, met ${when}`;
     case 'opened-no-action':
