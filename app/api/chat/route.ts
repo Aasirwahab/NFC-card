@@ -167,7 +167,7 @@ export async function POST(request: Request) {
   }
 
   const actions = availableActions(snapshot, { emailEnabled: emailConfigured() });
-  const context = chatContext(snapshot, actions);
+  const context = chatContext(snapshot, actions, blockedTopics);
   let historyUnavailable = false;
   async function readHistory(): Promise<ChatHistoryTurn[]> {
     if (!session) return [];
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
           }),
         );
       }
-      if (blocked) {
+      if (blocked && remaining > 0) {
         const { error } = await db.from('chat_unanswered').insert({
           session_id: session.id,
           user_id: session.user_id,

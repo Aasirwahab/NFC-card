@@ -27,12 +27,14 @@ export async function isBlockedQuestion(
   topics: string[],
   history: ChatHistoryTurn[] = [],
 ): Promise<boolean> {
+  topics = topics.filter((topic) => normalise(topic));
   if (!topics.length) return false;
   const text = normalise(message);
   if (
-    topics.some(
-      (topic) =>
-        KEYWORDS[topic]?.test(message) || (!KEYWORDS[topic] && text.includes(normalise(topic))),
+    topics.some((topic) =>
+      Object.hasOwn(KEYWORDS, topic)
+        ? KEYWORDS[topic]!.test(message)
+        : ` ${text} `.includes(` ${normalise(topic)} `),
     )
   )
     return true;

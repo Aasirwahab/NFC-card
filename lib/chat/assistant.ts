@@ -42,14 +42,23 @@ export type ChatContext = {
   actions: PageAction[];
 };
 
-export function chatContext(snapshot: Snapshot, actions: PageAction[]): ChatContext {
+export function chatContext(
+  snapshot: Snapshot,
+  actions: PageAction[],
+  blockedTopics: string[] = [],
+): ChatContext {
   const { session } = snapshot;
   const repFullName = snapshot.rep?.full_name?.trim() || 'the team';
 
+  const pricingBlocked = blockedTopics.includes('pricing');
   const pricingParts = snapshot.knowledge
-    .filter((k) => k.topic === 'pricing' && k.content.trim())
+    .filter((k) => !pricingBlocked && k.topic === 'pricing' && k.content.trim())
     .map((k) => k.content.trim());
-  if (snapshot.business?.pricing !== null && snapshot.business?.pricing !== undefined) {
+  if (
+    !pricingBlocked &&
+    snapshot.business?.pricing !== null &&
+    snapshot.business?.pricing !== undefined
+  ) {
     pricingParts.push(JSON.stringify(snapshot.business.pricing));
   }
 

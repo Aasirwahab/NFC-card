@@ -25,6 +25,41 @@ describe('blocked question routing', () => {
     expect(await isBlockedQuestion('What does it cost?', [])).toBe(false);
     expect(mocks.generate).not.toHaveBeenCalled();
   });
+  it.each(['constructor', 'toString', 'valueOf'])(
+    'treats %s as a custom topic, not an inherited keyword rule',
+    async (topic) => {
+      expect(await isBlockedQuestion('What do you offer?', [topic])).toBe(false);
+      mocks.generate.mockClear();
+      expect(await isBlockedQuestion(`Tell me about ${topic}.`, [topic])).toBe(true);
+      expect(mocks.generate).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['???', '-', '🤖'])('skips a topic that normalises to empty: %s', async (topic) => {
+    expect(await isBlockedQuestion('What do you offer?', [topic])).toBe(false);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+  it('omits empty normalised topics from classification alongside valid topics', async () => {
+    expect(await isBlockedQuestion('What do you offer?', ['???', 'pricing'])).toBe(false);
+    expect(JSON.parse(mocks.generate.mock.calls[0]![0].messages[0].content).blockedTopics).toEqual([
+      'pricing',
+    ]);
+  });
+  it.each([
+    ['ai', 'Can you send email?'],
+    ['contract', 'Do you work with subcontractors?'],
+    ['security review', 'Do you provide security reviews?'],
+  ])('does not match %s inside other words', async (topic, message) => {
+    expect(await isBlockedQuestion(message, [topic])).toBe(false);
+  });
+  it.each([
+    ['ai', 'AI tools'],
+    ['contract', 'Who signs the contract?'],
+    ['security review', 'SECURITY—REVIEW'],
+    ['café', 'Tell me about the café.'],
+  ])('matches %s as whole normalised words', async (topic, message) => {
+    expect(await isBlockedQuestion(message, [topic])).toBe(true);
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
   it('uses one bounded classifier for indirect requests with only redacted question and topics', async () => {
     mocks.generate.mockResolvedValue({ output: { blocked: true } });
     expect(

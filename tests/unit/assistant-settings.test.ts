@@ -70,6 +70,9 @@ describe('assistant topic settings', () => {
       expect(blockedTopicsSchema.safeParse(topics).success).toBe(false);
     },
   );
+  it.each(['???', '-', '🤖'])('rejects custom topics that normalise to empty: %s', (topic) => {
+    expect(blockedTopicsSchema.safeParse([topic]).success).toBe(false);
+  });
   it('saves only to the authenticated owner, ignoring a supplied owner', async () => {
     const result = await POST(request({ blockedTopics: ['pricing'], user_id: 'other' }));
     expect(result.status).toBe(200);

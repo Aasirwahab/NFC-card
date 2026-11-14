@@ -427,6 +427,19 @@ describe('assistant studio shared path', () => {
     expect(mocks.generateText.mock.calls[0]![0].instructions).toContain('Classify only.');
     expect(JSON.stringify(mocks.generateText.mock.calls)).not.toContain('We help with setup.');
   });
+  it.each([5, 6])('does not add blocked handoffs after %s answers', async (count) => {
+    mocks.responseCount = count;
+    mocks.blockedTopics = ['pricing'];
+    for (const question of ['What is the price?', 'Can I get a discount?']) {
+      expect(await (await ask(question)).json()).toMatchObject({
+        handedOff: true,
+        remaining: 0,
+        sourceLine: null,
+      });
+    }
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
+  });
   it('fails closed on classifier errors without reaching the answer model', async () => {
     mocks.blockedTopics = ['legal'];
     mocks.generateText.mockRejectedValue(new Error('provider failed'));

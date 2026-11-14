@@ -8,7 +8,17 @@ export const BLOCKED_TOPIC_PRESETS = [
 ] as const;
 
 export const blockedTopicsSchema = z
-  .array(z.string().trim().min(1).max(80))
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .refine(
+        (topic) => /[\p{L}\p{N}]/u.test(topic.normalize('NFKC')),
+        'Enter a topic with at least one letter or number.',
+      ),
+  )
   .max(20)
   .transform((topics) => [...new Set(topics)])
   .refine(
