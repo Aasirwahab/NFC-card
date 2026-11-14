@@ -10,21 +10,32 @@ import { screenQrExpiresAt, type ScreenQr } from '@/lib/cards/screen';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 const requestSchema = z.strictObject({});
+const SCREEN_QR_PER_HOUR = 30; // same as the screenQr limit in lib/security/rate-limit.ts
 
 export const POST = withRep(async (rep, request) => {
   if (!requestSchema.safeParse(await readJson(request)).success)
     return fail('invalid_request', 400);
+  const db = serviceClient();
   const limit = await checkRateLimit('screenQr', rep.userId);
-  // Issuance, unlike reading a prospect page, must not fail open to code farming.
-  if (limit.degraded) return fail('temporarily_unavailable', 503);
-  if (!limit.allowed) {
+  // Without Redis, keep the same cap from the database rather than block a rep mid-event.
+  if (limit.degraded) {
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count, error } = await db
+      .from('cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', rep.userId)
+      .gte('screen_issued_at', since);
+    if (error) return fail('temporarily_unavailable', 503);
+    if ((count ?? 0) >= SCREEN_QR_PER_HOUR) {
+      return json({ error: 'rate_limited' }, { status: 429, headers: { 'retry-after': '600' } });
+    }
+  } else if (!limit.allowed) {
     return json(
       { error: 'rate_limited' },
       { status: 429, headers: { 'retry-after': String(limit.retryAfter) } },
     );
   }
 
-  const db = serviceClient();
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: card, error } = await db
       .from('cards')

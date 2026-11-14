@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   collision: 0,
   dbError: false,
   limits: [] as string[][],
+  recentCount: 0,
 }));
 vi.mock('@/lib/env', () => ({ env: { NEXT_PUBLIC_APP_URL: 'https://insignar.app/' } }));
 vi.mock('@/lib/db/server', () => ({
@@ -40,6 +41,10 @@ vi.mock('@/lib/db/service', () => ({
         eq(key: string, value: unknown) {
           filters.set(key, value);
           return this;
+        },
+        async gte() {
+          if (state.dbError) return { count: null, error: new Error('unavailable') };
+          return { count: state.recentCount, error: null };
         },
         insert(value: Record<string, unknown>) {
           insert = value;
@@ -94,6 +99,7 @@ beforeEach(() => {
     collision: 0,
     dbError: false,
     limits: [],
+    recentCount: 0,
   });
 });
 afterEach(() => vi.useRealTimers());
@@ -122,13 +128,22 @@ describe('rep screen QR API', () => {
     expect((await post({ user_id: 'someone-else' })).status).toBe(400);
     expect(state.inserted).toHaveLength(0);
   });
-  it('refuses issuance when the per-rep budget is exhausted or unavailable', async () => {
+  it('refuses issuance when the per-rep budget is exhausted', async () => {
     state.allowed = false;
     expect((await post()).status).toBe(429);
-    state.allowed = true;
+    expect(state.inserted).toHaveLength(0);
+  });
+  it('without Redis, keeps the hourly cap from the database instead of blocking the rep', async () => {
     state.degraded = true;
+    state.recentCount = 30;
+    expect((await post()).status).toBe(429);
+    state.dbError = true;
     expect((await post()).status).toBe(503);
     expect(state.inserted).toHaveLength(0);
+    state.dbError = false;
+    state.recentCount = 3;
+    expect((await post()).status).toBe(200);
+    expect(state.inserted).toHaveLength(1);
   });
   it('retries a unique-code collision', async () => {
     state.collision = 1;
