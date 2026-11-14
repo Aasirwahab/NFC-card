@@ -121,6 +121,7 @@ describe('follow-up list wiring', () => {
                 ...base,
                 id: 'emailed',
                 prospect_submitted_email: 'tom@example.com',
+                prospect_email: 'saved@example.com',
                 session_events: [{ type: 'prospect_note_emailed' }, { type: 'page_emailed' }],
               },
               { ...base, id: 'opened', first_viewed_at: '2026-11-11T12:00:00Z', view_count: 3 },
@@ -167,10 +168,13 @@ describe('follow-up list wiring', () => {
       prospectPhone: '+447700900123',
     });
     expect(result.actionable.find((r) => r.sessionId === 'saved')!.prospectEmail).toBe(
-      'new@example.com',
+      'old@example.com',
     );
     expect(result.actionable.find((r) => r.sessionId === 'emailed')).toMatchObject({
       state: 'due-no-tap',
+      prospectEmail: 'saved@example.com',
+      prospectPhone: null,
+      preferContact: false,
       signal: { label: 'We emailed them their note', rank: 0 },
     });
     expect(mocks.queries[0]!.columns).toContain('prospect_submitted_email');

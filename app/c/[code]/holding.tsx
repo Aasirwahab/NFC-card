@@ -9,6 +9,7 @@ import { keepVisible } from '@/lib/capture/chips';
 
 export type HoldingDetails = {
   ready: boolean;
+  readOnly?: boolean;
   problems: string[];
   picked: string[];
   expiresAt: number | null;
@@ -33,10 +34,12 @@ export function Holding({
   const [gaveUp, setGaveUp] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [readOnly, setReadOnly] = useState(false);
+  const [readOnly, setReadOnly] = useState(details.readOnly ?? false);
   const [expired, setExpired] = useState(false);
   const [noteReady, setNoteReady] = useState(false);
   const editing = useRef({ contact: '', focused: false, busy: false });
+
+  const recheck = useRef<() => Promise<void>>(async () => {});
 
   const answersUrl = `/api/landing/${encodeURIComponent(code)}/answers`;
   useEffect(() => {
@@ -57,29 +60,55 @@ export function Holding({
   useEffect(() => {
     const remaining =
       details.expiresAt === null ? 600000 : Math.max(0, details.expiresAt - Date.now());
+    let stopped = false;
+    let checking = false;
+    const onStatus = (status: string, afterEditing = false) => {
+      // The first response can arrive before after() has filed the tap.
+      if (
+        details.ready
+          ? status !== 'holding'
+          : ['holding', 'working', 'completed', 'held', 'failed'].includes(status)
+      ) {
+        if (editing.current.busy) return false;
+        if (editing.current.contact) {
+          if (afterEditing && status === 'portfolio') {
+            setExpired(true);
+            setGaveUp(true);
+            setMessage('You can still copy what you typed and send it to them.');
+          } else if (afterEditing) {
+            setGaveUp(false);
+            setNoteReady(true);
+            setMessage(`${first}'s note is ready. You can still copy this and send it to them.`);
+          }
+          return false;
+        }
+        if (editing.current.focused && !afterEditing) return false;
+        setClosed(true);
+        router.refresh();
+        return true;
+      }
+      return false;
+    };
+    recheck.current = async () => {
+      if (!stopped || checking || editing.current.busy) return;
+      checking = true;
+      try {
+        const { status } = await apiGet<{ status: string }>(
+          `/api/landing/${encodeURIComponent(code)}/status`,
+        );
+        onStatus(status, true);
+      } catch {
+        // Keep the draft available if this final check is offline.
+      } finally {
+        checking = false;
+      }
+    };
     return pollLandingStatus(code, {
       intervalMs: 4000,
       timeoutMs: Math.min(600000, remaining),
-      onStatus: (status) => {
-        // The first response can arrive before after() has filed the tap.
-        if (
-          details.ready
-            ? status !== 'holding'
-            : status === 'holding' ||
-              status === 'working' ||
-              status === 'completed' ||
-              status === 'held' ||
-              status === 'failed'
-        ) {
-          if (editing.current.contact || editing.current.focused || editing.current.busy)
-            return false;
-          setClosed(true);
-          router.refresh();
-          return true;
-        }
-        return false;
-      },
+      onStatus,
       onTimeout: () => {
+        stopped = true;
         if (details.expiresAt !== null && Date.now() >= details.expiresAt) {
           if (!editing.current.contact && !editing.current.focused && !editing.current.busy) {
             setClosed(true);
@@ -88,7 +117,7 @@ export function Holding({
         } else setGaveUp(true);
       },
     });
-  }, [code, details.ready, details.expiresAt, router]);
+  }, [code, details.ready, details.expiresAt, first, router]);
 
   async function save(body: { problems: string[] } | { contact: string; consent: true }) {
     editing.current.busy = true;
@@ -136,6 +165,7 @@ export function Holding({
     } finally {
       editing.current.busy = false;
       setBusy(false);
+      void recheck.current();
     }
   }
 
@@ -209,10 +239,12 @@ export function Holding({
                 }}
                 onBlur={() => {
                   editing.current.focused = false;
+                  void recheck.current();
                 }}
                 onChange={(event) => {
                   editing.current.contact = event.target.value;
                   setContact(event.target.value);
+                  if (!event.target.value) void recheck.current();
                 }}
                 className="border-line bg-surface text-ink mt-3 h-11 w-full min-w-0 rounded-md border px-3 text-base"
               />

@@ -12,7 +12,9 @@ export async function sendProspectNoteEmail(sessionId: string): Promise<'held' |
   const db = serviceClient();
   const { data: session, error } = await db
     .from('sessions')
-    .select('card_id, user_id, status, prospect_submitted_email, prospect_consent_at')
+    .select(
+      'card_id, user_id, status, prospect_email, prospect_submitted_email, prospect_consent_at',
+    )
     .eq('id', sessionId)
     .maybeSingle();
   if (error) throw new Error('Could not load prospect delivery');
@@ -20,7 +22,8 @@ export async function sendProspectNoteEmail(sessionId: string): Promise<'held' |
     !session ||
     session.status !== 'active' ||
     !session.prospect_submitted_email ||
-    !session.prospect_consent_at
+    !session.prospect_consent_at ||
+    (session.prospect_email && session.prospect_email !== session.prospect_submitted_email)
   )
     return;
 
@@ -36,13 +39,6 @@ export async function sendProspectNoteEmail(sessionId: string): Promise<'held' |
   if (resolved.session.id !== sessionId) return;
   if (resolved.held) return 'held';
 
-  const { count, error: eventError } = await db
-    .from('session_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('session_id', sessionId)
-    .eq('type', 'prospect_note_emailed');
-  if (eventError) throw new Error('Could not check prospect delivery');
-  if (count) return;
   const { data: profile, error: profileError } = await db
     .from('profiles')
     .select('contact_email')
@@ -50,26 +46,64 @@ export async function sendProspectNoteEmail(sessionId: string): Promise<'held' |
     .maybeSingle();
   if (profileError) throw new Error('Could not load delivery reply address');
 
-  const result = await sendEmail({
-    to: session.prospect_submitted_email,
-    ...pitchEmail({
-      prospectName: resolved.session.prospect_name,
-      repFullName: resolved.rep.fullName,
-      repTitle: resolved.rep.title,
-      businessName: resolved.business?.companyName ?? null,
-      pitch: shownPitch(resolved),
-      pageUrl: new URL(`/c/${card.code}`, env.NEXT_PUBLIC_APP_URL).toString(),
-      hasBooking: Boolean(parseBookingUrl(resolved.rep.bookingUrl)),
-    }),
-    replyTo: profile?.contact_email ?? undefined,
-    // Covers a worker retry between the send and its durable event/checkpoint.
-    idempotencyKey: `prospect_note:${sessionId}`,
+  const { error: claimError } = await db.from('session_events').insert({
+    session_id: sessionId,
+    type: 'prospect_note_emailed',
   });
-  if (result !== 'sent') return;
-  const { error: recordError } = await db.from('session_events').insert([
-    { session_id: sessionId, type: 'prospect_note_emailed' },
-    { session_id: sessionId, type: 'page_emailed' },
-  ]);
-  if (recordError && recordError.code !== '23505')
-    throw new Error('Could not record prospect delivery');
+  if (claimError?.code === '23505') return;
+  if (claimError) throw new Error('Could not claim prospect delivery');
+
+  let delivered = false;
+  try {
+    const live = await resolveCode(card.code, null);
+    if (live.audience !== 'prospect' || live.session.id !== sessionId) return;
+    if (live.held) return 'held';
+    const { data: current, error: recheckError } = await db
+      .from('sessions')
+      .select('status, prospect_email, prospect_submitted_email, prospect_consent_at')
+      .eq('id', sessionId)
+      .maybeSingle();
+    if (recheckError) throw new Error('Could not recheck prospect delivery');
+    if (
+      !current ||
+      current.status !== 'active' ||
+      !current.prospect_consent_at ||
+      current.prospect_submitted_email !== session.prospect_submitted_email ||
+      (current.prospect_email && current.prospect_email !== current.prospect_submitted_email)
+    )
+      return;
+
+    // A removal after the mailer call starts cannot undo delivery.
+    const result = await sendEmail({
+      to: session.prospect_submitted_email,
+      ...pitchEmail({
+        prospectName: live.session.prospect_name,
+        repFullName: live.rep.fullName,
+        repTitle: live.rep.title,
+        businessName: live.business?.companyName ?? null,
+        pitch: shownPitch(live),
+        pageUrl: new URL(`/c/${card.code}`, env.NEXT_PUBLIC_APP_URL).toString(),
+        hasBooking: Boolean(parseBookingUrl(live.rep.bookingUrl)),
+      }),
+      replyTo: profile?.contact_email ?? undefined,
+      // Covers a worker retry between the send and its durable event/checkpoint.
+      idempotencyKey: `prospect_note:${sessionId}`,
+    });
+    if (result !== 'sent') return;
+    delivered = true;
+    const { error: recordError } = await db.from('session_events').insert({
+      session_id: sessionId,
+      type: 'page_emailed',
+    });
+    if (recordError) throw new Error('Could not record prospect delivery');
+  } finally {
+    if (!delivered) {
+      const { error: releaseError } = await db
+        .from('session_events')
+        .delete()
+        .eq('session_id', sessionId)
+        .eq('type', 'prospect_note_emailed');
+      if (releaseError) throw new Error('Could not release prospect delivery');
+    }
+  }
 }

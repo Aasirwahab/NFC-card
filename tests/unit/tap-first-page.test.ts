@@ -32,6 +32,18 @@ describe('tap first prospect content', () => {
     expect(html).toContain('href="/privacy"');
     expect(html.indexOf('prospect-consent')).toBeLessThan(html.lastIndexOf('Send it to me'));
   });
+  it('server-renders already answered without selected values or a contact field', () => {
+    const html = renderToStaticMarkup(
+      createElement(Holding, {
+        code: 'ABCD2345',
+        first: 'Sam',
+        details: { ...details, picked: [], readOnly: true },
+      }),
+    );
+    expect(html).toContain('Answers have already been given on this card.');
+    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain('<input');
+  });
   it('hides the question with no rep problems, and inputs before first-tap registration', () => {
     const noChips = renderToStaticMarkup(
       createElement(Holding, {

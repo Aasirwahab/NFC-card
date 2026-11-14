@@ -38,7 +38,10 @@ vi.mock('react', async (original) => ({
     h.slots[index] = deps;
   },
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: h.refresh }) }));
+vi.mock('next/navigation', () => {
+  const router = { refresh: h.refresh };
+  return { useRouter: () => router };
+});
 vi.mock('@/lib/http/client', async (original) => ({
   ...(await original<typeof import('@/lib/http/client')>()),
   apiGet: (...args: unknown[]) => h.get(...args),
@@ -152,16 +155,54 @@ describe('holding page races', () => {
     ).toBe(true);
     expect(h.refresh).not.toHaveBeenCalled();
   });
-  it('shows existing choices read-only without a contact field to another browser', async () => {
-    h.get.mockResolvedValue({ picked: ['B'], readOnly: true });
+  it('shows no choices read-only without a contact field to another browser', async () => {
+    h.get.mockResolvedValue({ picked: [], readOnly: true });
     render();
     await flush();
     const tree = render();
     expect(nodes(tree, 'input')).toHaveLength(0);
     expect(nodes(tree, 'fieldset')[0]!.props.disabled).toBe(true);
-    expect(
-      nodes(tree, 'button').find((button) => button.props['aria-pressed'] === true)!.props.children,
-    ).toBe('B');
+    expect(nodes(tree, 'button').some((button) => button.props['aria-pressed'] === true)).toBe(
+      false,
+    );
+  });
+  it.each(['blur', 'clear', 'submit'])(
+    'checks once after polling ends on %s, preserving a draft',
+    async (end) => {
+      let tree = render();
+      await flush();
+      event(tree, 'input', 'onFocus');
+      event(tree, 'input', 'onChange', { target: { value: 'me@example.com' } });
+      h.poll!.onTimeout();
+      h.get.mockResolvedValue({ status: 'working' });
+      tree = render();
+      if (end === 'blur') event(tree, 'input', 'onBlur');
+      if (end === 'clear') event(tree, 'input', 'onChange', { target: { value: '' } });
+      if (end === 'submit') event(tree, 'form', 'onSubmit', { preventDefault() {} });
+      await flush();
+      expect(h.get).toHaveBeenCalledWith('/api/landing/ABCDEFGH/status');
+      tree = render();
+      if (end === 'blur') {
+        expect(nodes(tree, 'input')[0]!.props.value).toBe('me@example.com');
+        expect(nodes(tree, 'input')[0]!.props.readOnly).toBe(true);
+        expect(h.refresh).not.toHaveBeenCalled();
+      } else expect(h.refresh).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('does not call an expired portfolio a ready note on the final check', async () => {
+    let tree = render();
+    await flush();
+    event(tree, 'input', 'onChange', { target: { value: 'keep this draft' } });
+    h.poll!.onTimeout();
+    h.get.mockResolvedValue({ status: 'portfolio' });
+    event(tree, 'input', 'onBlur');
+    await flush();
+    tree = render();
+    expect(nodes(tree, 'input')[0]!.props.value).toBe('keep this draft');
+    expect(nodes(tree, 'p').map((p) => p.props.children)).not.toContain(
+      "Sam's note is ready. You can still copy this and send it to them.",
+    );
+    expect(h.refresh).not.toHaveBeenCalled();
   });
   it('stops with honest wording after ten minutes, keeping a typed draft', async () => {
     let tree = render();

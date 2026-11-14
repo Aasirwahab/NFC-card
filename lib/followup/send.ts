@@ -6,6 +6,20 @@ type SendPlatform = {
   openMail: (url: string) => void;
 };
 
+/** One validated target for both the visible recipient and the opened message. */
+export function followupTarget(email: string | null, phone?: string | null) {
+  return email && z.email().safeParse(email).success
+    ? {
+        scheme: 'mailto',
+        address: encodeURIComponent(email),
+        label: `Send to ${email}`,
+        result: 'email' as const,
+      }
+    : phone && /^\+\d{7,15}$/.test(phone) && !/\s/.test(phone)
+      ? { scheme: 'sms', address: phone, label: `Text ${phone}`, result: 'sms' as const }
+      : null;
+}
+
 /** Opening a share sheet or email is not confirmation that the rep sent it. */
 export async function sendFollowup(
   message: {
@@ -18,12 +32,7 @@ export async function sendFollowup(
   platform: SendPlatform,
 ): Promise<'shared' | 'email' | 'sms' | 'copied' | 'cancelled'> {
   const text = `${message.draft}\n\n${message.pageUrl}`;
-  const target =
-    message.email && z.email().safeParse(message.email).success
-      ? { scheme: 'mailto', address: encodeURIComponent(message.email), result: 'email' as const }
-      : message.phone && /^\+\d{7,15}$/.test(message.phone) && !/\s/.test(message.phone)
-        ? { scheme: 'sms', address: message.phone, result: 'sms' as const }
-        : null;
+  const target = followupTarget(message.email, message.phone);
   function openContact() {
     if (!target) return null;
     try {

@@ -71,6 +71,9 @@ export async function WhatTheyDid({
     submittedEmail: session.prospect_submitted_email,
     submittedPhone: session.prospect_submitted_phone,
   });
+  const requestedNote = Boolean(
+    (session.prospect_submitted_email || session.prospect_submitted_phone) && !noteEmailed,
+  );
   const channel = followupChannel(session);
   const now = activity.readAt;
   const state =
@@ -190,11 +193,11 @@ export async function WhatTheyDid({
               pagePath: cardCode ? `/c/${cardCode}` : null,
               prospectName: session.prospect_name,
               prospectCompany: session.prospect_company,
-              prospectEmail: session.prospect_email || session.prospect_submitted_email,
-              prospectPhone: session.prospect_submitted_phone,
-              preferContact: Boolean(
-                session.prospect_submitted_email || session.prospect_submitted_phone,
-              ),
+              prospectEmail: requestedNote
+                ? session.prospect_submitted_email
+                : session.prospect_email,
+              prospectPhone: requestedNote ? session.prospect_submitted_phone : null,
+              preferContact: requestedNote,
               linkedinUrl: session.linkedin_url,
               sequence: session.event_sequence_number,
               colour: session.colour_tag,

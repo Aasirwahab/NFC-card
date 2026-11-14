@@ -4,6 +4,7 @@ import { resolveCode } from '@/lib/db/landing';
 const state = vi.hoisted(() => ({
   firstViewed: null as string | null,
   hasSession: true,
+  completed: false,
   selected: [] as string[],
 }));
 vi.mock('@/lib/capture/prospect-problems', () => ({
@@ -35,9 +36,10 @@ vi.mock('@/lib/db/service', () => ({
                     id: 'contact',
                     user_id: 'owner',
                     event_id: 'event',
-                    details_completed_at: null,
+                    details_completed_at: state.completed ? '2026-11-13T12:00:00Z' : null,
                     first_viewed_at: state.firstViewed,
                     prospect_picked_problems: ['Slow quotes'],
+                    prospect_answer_token_hash: 'private-hash',
                   }
                 : null
               : table === 'profiles'
@@ -52,12 +54,13 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-11-13T12:00:00Z'));
   state.firstViewed = '2026-11-13T11:00:00Z';
   state.hasSession = true;
+  state.completed = false;
   state.selected = [];
 });
 afterEach(() => vi.useRealTimers());
 
 describe('portfolio holding resolution', () => {
-  it('keeps portfolio basics and the recent prospect choices without reading delivery details', async () => {
+  it('keeps portfolio basics but never serializes another browser’s selected topics', async () => {
     const result = await resolveCode('ABCDEFGH', null);
     expect(result.audience).toBe('owner');
     if (result.audience !== 'owner') throw new Error('Expected portfolio');
@@ -65,10 +68,18 @@ describe('portfolio holding resolution', () => {
     expect(result.holding).toEqual({
       ready: true,
       problems: ['Slow quotes'],
-      picked: ['Slow quotes'],
+      picked: [],
+      readOnly: true,
       expiresAt: Date.parse('2026-11-14T11:00:00Z'),
     });
     expect(state.selected.join(',')).not.toMatch(/submitted_email|submitted_phone|memorable_info/);
+  });
+  it('never includes the answer token hash in a completed public page', async () => {
+    state.completed = true;
+    const result = await resolveCode('ABCDEFGH', null);
+    expect(result.audience).toBe('prospect');
+    expect(JSON.stringify(result)).not.toContain('private-hash');
+    expect(JSON.stringify(result)).not.toContain('prospect_answer_token_hash');
   });
   it('drops the promise after exactly 24 hours', async () => {
     state.firstViewed = '2026-11-12T12:00:00Z';

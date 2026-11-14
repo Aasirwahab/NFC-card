@@ -44,9 +44,10 @@ export function VoiceNote({
 
   useEffect(() => {
     if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      onBusy(false);
       onUnavailable();
     }
-  }, [onUnavailable]);
+  }, [onBusy, onUnavailable]);
 
   // Leaving the screen mid-recording must release the microphone.
   useEffect(() => {
@@ -86,40 +87,44 @@ export function VoiceNote({
     setMessage(null);
     held.current = null;
     setRetry(false);
-    let stream: MediaStream;
+    let stream: MediaStream | undefined;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // The rep left while the permission prompt was open: do not record.
+      if (!mounted.current || (recorder.current as MediaRecorder | null)?.state === 'recording') {
+        starting.current = false;
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const activeStream = stream;
+      const chunks: Blob[] = [];
+      const rec = new MediaRecorder(stream);
+      recorder.current = rec;
+      cancelled.current = false;
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      rec.onstop = () => {
+        activeStream.getTracks().forEach((t) => t.stop());
+        if (cancelled.current) return setPhase('idle');
+        held.current = new Blob(chunks, { type: rec.mimeType });
+        void send();
+      };
+      setSeconds(0);
+      setPhase('recording');
+      rec.start();
+      starting.current = false;
     } catch {
       starting.current = false;
+      cancelled.current = true;
+      stream?.getTracks().forEach((track) => track.stop());
+      recorder.current = null;
       if (mounted.current) {
         setPhase('idle');
+        onBusy(false);
         onUnavailable();
       }
-      return;
     }
-    // The rep left while the permission prompt was open: do not record.
-    if (!mounted.current || (recorder.current as MediaRecorder | null)?.state === 'recording') {
-      starting.current = false;
-      stream.getTracks().forEach((t) => t.stop());
-      return;
-    }
-    const chunks: Blob[] = [];
-    const rec = new MediaRecorder(stream);
-    recorder.current = rec;
-    cancelled.current = false;
-    rec.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-    rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      if (cancelled.current) return setPhase('idle');
-      held.current = new Blob(chunks, { type: rec.mimeType });
-      void send();
-    };
-    setSeconds(0);
-    setPhase('recording');
-    rec.start();
-    starting.current = false;
   }
 
   async function send() {

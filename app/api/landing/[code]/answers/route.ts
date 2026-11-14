@@ -82,7 +82,13 @@ async function answers(request: Request, context: Context, write: boolean) {
   );
   if (!write)
     return json(
-      { picked: session.prospect_picked_problems ?? [], readOnly },
+      {
+        picked:
+          hash && hash === session.prospect_answer_token_hash
+            ? (session.prospect_picked_problems ?? [])
+            : [],
+        readOnly,
+      },
       { headers: { 'cache-control': 'no-store' } },
     );
   if (readOnly) return fail('answers_given', 409);

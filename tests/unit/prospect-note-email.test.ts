@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
   held: false,
   send: vi.fn(),
   status: 'active',
+  savedEmail: null as string | null,
+  missing: false,
+  afterClaim: () => {},
   resolve: vi.fn(),
 }));
 vi.mock('@/lib/email/mailer', () => ({
@@ -33,20 +36,32 @@ vi.mock('@/lib/db/service', () => ({
       maybeSingle: async () => ({
         data:
           table === 'sessions'
-            ? {
-                card_id: 'card',
-                user_id: 'owner',
-                status: mocks.status,
-                prospect_submitted_email: mocks.email,
-                prospect_consent_at: mocks.consent,
-              }
+            ? mocks.missing
+              ? null
+              : {
+                  card_id: 'card',
+                  user_id: 'owner',
+                  status: mocks.status,
+                  prospect_email: mocks.savedEmail,
+                  prospect_submitted_email: mocks.email,
+                  prospect_consent_at: mocks.consent,
+                }
             : table === 'cards'
               ? { code: 'ABCDEFGH' }
               : { contact_email: 'rep@example.com' },
       }),
-      insert: async () => {
-        mocks.sent = true;
+      insert: async (rows: { type: string } | { type: string }[]) => {
+        const events = Array.isArray(rows) ? rows : [rows];
+        if (events.some((row) => row.type === 'prospect_note_emailed')) {
+          if (mocks.sent) return { error: { code: '23505' } };
+          mocks.sent = true;
+          mocks.afterClaim();
+        }
         return { error: null };
+      },
+      delete() {
+        mocks.sent = false;
+        return this;
       },
       then(resolve: (value: unknown) => void) {
         resolve({ count: mocks.sent ? 1 : 0, error: null });
@@ -64,6 +79,9 @@ beforeEach(() => {
     sent: false,
     held: false,
     status: 'active',
+    savedEmail: null,
+    missing: false,
+    afterClaim: () => {},
   });
   mocks.send.mockResolvedValue('sent');
   mocks.resolve.mockImplementation(
@@ -93,6 +111,38 @@ describe('automatic prospect note delivery', () => {
         text: expect.stringContaining('https://example.com/c/ABCDEFGH'),
       }),
     );
+  });
+  it('claims before sending so concurrent workers send only once', async () => {
+    mocks.send.mockImplementation(async () => {
+      expect(mocks.sent).toBe(true);
+      return 'sent';
+    });
+    await Promise.all([sendProspectNoteEmail('contact'), sendProspectNoteEmail('contact')]);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+  it.each(['removed', 'inactive', 'email removed', 'email changed', 'rep email changed', 'held'])(
+    'rechecks after claiming when the contact is %s',
+    async (change) => {
+      mocks.afterClaim = () => {
+        if (change === 'removed') mocks.missing = true;
+        if (change === 'inactive') mocks.status = 'void';
+        if (change === 'email removed') mocks.email = null;
+        if (change === 'email changed') mocks.email = 'new@example.com';
+        if (change === 'rep email changed') mocks.savedEmail = 'rep-typed@example.com';
+        if (change === 'held') mocks.held = true;
+      };
+      await sendProspectNoteEmail('contact');
+      expect(mocks.send).not.toHaveBeenCalled();
+      expect(mocks.sent).toBe(false);
+    },
+  );
+  it('never auto-sends when a rep saved a different email', async () => {
+    mocks.savedEmail = 'rep-typed@example.com';
+    await sendProspectNoteEmail('contact');
+    expect(mocks.send).not.toHaveBeenCalled();
+    mocks.savedEmail = mocks.email;
+    await sendProspectNoteEmail('contact');
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ to: mocks.email }));
   });
   it('waits until a held note goes live', async () => {
     mocks.held = true;

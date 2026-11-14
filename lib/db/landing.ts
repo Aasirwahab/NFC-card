@@ -219,12 +219,20 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   }
 
   // -------------------------------------------------------- the prospect
-  const { data: session } = await db
+  const { data: sessionRow } = await db
     .from('sessions')
-    .select(`${PROSPECT_SESSION_COLUMNS}, prospect_picked_problems`)
+    .select(`${PROSPECT_SESSION_COLUMNS}, prospect_answer_token_hash`)
     .eq('card_id', card.id)
     .eq('status', 'active')
-    .maybeSingle<ProspectSession & { prospect_picked_problems: string[] | null }>();
+    .maybeSingle<ProspectSession & { prospect_answer_token_hash: string | null }>();
+
+  let session: ProspectSession | null = null;
+  let answered = false;
+  if (sessionRow) {
+    const { prospect_answer_token_hash, ...publicSession } = sessionRow;
+    answered = Boolean(prospect_answer_token_hash);
+    session = publicSession;
+  }
 
   // A known card with no live session is the rep's own business card (2026-09-25
   // review). This deliberately relaxes §22.2's "byte-identical to an unknown
@@ -251,7 +259,8 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
                 ? {
                     ready: true,
                     problems: await getProspectProblems(session.user_id, session.event_id),
-                    picked: session.prospect_picked_problems ?? [],
+                    picked: [],
+                    readOnly: answered,
                     expiresAt: Date.parse(session.first_viewed_at!) + 24 * 60 * 60 * 1000,
                   }
                 : null,

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, buttonStyles } from '@/components/ui/button';
 import type { FollowupRow } from '@/lib/db/rep';
 import { apiSend } from '@/lib/http/client';
+import { followupTarget } from '@/lib/followup/send';
 import { FollowupSendButton } from '@/components/followup-send-button';
 
 /** How many leads show before "Show all", so Today stays one short list. */
@@ -87,6 +88,7 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
   const who = [row.prospectName, row.prospectCompany].filter(Boolean).join(' · ') || 'No name';
   const waiting = row.state === 'due-no-tap' || row.state === 'opened-no-action';
   const closed = row.state === 'replied' || row.state === 'dropped';
+  const emailTarget = followupTarget(row.prospectEmail);
   const linkClass = buttonStyles({ variant: 'secondary', size: 'md' });
 
   async function copy() {
@@ -152,9 +154,9 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
             Open LinkedIn
           </a>
         ) : null}
-        {row.draft && row.channel === 'email' && row.prospectEmail ? (
+        {row.draft && row.channel === 'email' && emailTarget ? (
           <a
-            href={`mailto:${row.prospectEmail}?body=${encodeURIComponent(row.draft)}`}
+            href={`mailto:${emailTarget.address}?body=${encodeURIComponent(row.draft)}`}
             className={linkClass}
           >
             Open email

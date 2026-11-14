@@ -154,7 +154,7 @@ describe('prospect answer writes', () => {
     );
     expect(mocks.filters).toHaveBeenCalledWith('prospect_answer_token_hash', null);
   });
-  it('refuses another browser and returns only read-only choices', async () => {
+  it('refuses another browser and returns only read-only state without choices', async () => {
     mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
     const response = await submit({ contact: 'other@example.com', consent: true });
     expect(response.status).toBe(409);
@@ -163,7 +163,7 @@ describe('prospect answer writes', () => {
     const read = await GET(new Request('https://example.com'), {
       params: Promise.resolve({ code: 'ABCDEFGH' }),
     });
-    expect(await read.json()).toEqual({ picked: ['Problem A'], readOnly: true });
+    expect(await read.json()).toEqual({ picked: [], readOnly: true });
   });
   it('lets the same browser correct its contact without replacing the token', async () => {
     mocks.tokenCookie = 'first-browser';
@@ -174,6 +174,10 @@ describe('prospect answer writes', () => {
     });
     expect(mocks.filters).toHaveBeenCalledWith('prospect_answer_token_hash', mocks.tokenHash);
     expect(mocks.setCookie).not.toHaveBeenCalled();
+    const read = await GET(new Request('https://example.com'), {
+      params: Promise.resolve({ code: 'ABCDEFGH' }),
+    });
+    expect(await read.json()).toEqual({ picked: ['Problem A'], readOnly: false });
   });
   it('rejects a problem outside this contact event list', async () => {
     expect((await submit({ problems: ['Injected topic'] })).status).toBe(400);

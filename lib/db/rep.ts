@@ -257,6 +257,10 @@ export async function listFollowups(
     if (question) events.push({ session_id: s.id, type: 'chat_turn' });
     const state = followupState(s, events, s.bookings, now);
     if (!state) return [];
+    const requestedNote = Boolean(
+      (s.prospect_submitted_email || s.prospect_submitted_phone) &&
+      !events.some((e) => e.type === 'prospect_note_emailed'),
+    );
     const channel = followupChannel(s);
     return [
       {
@@ -288,9 +292,9 @@ export async function listFollowups(
         prospectName: s.prospect_name,
         prospectCompany: s.prospect_company,
         linkedinUrl: s.linkedin_url,
-        prospectEmail: s.prospect_email || s.prospect_submitted_email,
-        prospectPhone: s.prospect_submitted_phone,
-        preferContact: Boolean(s.prospect_submitted_email || s.prospect_submitted_phone),
+        prospectEmail: requestedNote ? s.prospect_submitted_email : s.prospect_email,
+        prospectPhone: requestedNote ? s.prospect_submitted_phone : null,
+        preferContact: requestedNote,
         sequence: s.event_sequence_number,
         colour: s.colour_tag,
       },

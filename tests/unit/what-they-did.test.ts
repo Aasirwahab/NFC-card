@@ -71,7 +71,7 @@ describe('What they did on the contact page', () => {
     });
   });
 
-  it('shows the contact they left and uses the rep’s saved email for sending', async () => {
+  it('uses the contact they left when they asked for their note', async () => {
     const html = renderToStaticMarkup(
       await WhatTheyDid({
         userId: 'rep',
@@ -88,13 +88,36 @@ describe('What they did on the contact page', () => {
     expect(html).toContain('left@example.com');
     expect(html).toContain('+447700900123');
     expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({
-      prospectEmail: 'saved@example.com',
+      prospectEmail: 'left@example.com',
       prospectPhone: '+447700900123',
       preferContact: true,
       signal: { label: 'Asked you to send their note', rank: 6 },
     });
   });
 
+  it('uses the saved email for ordinary follow-ups after note delivery', async () => {
+    mocks.activity.mockResolvedValue({
+      ...activity,
+      session_events: [{ type: 'prospect_note_emailed', occurred_at: at }],
+    });
+    renderToStaticMarkup(
+      await WhatTheyDid({
+        userId: 'rep',
+        cardCode: 'abc',
+        session: {
+          ...session,
+          prospect_email: 'saved@example.com',
+          prospect_submitted_email: 'left@example.com',
+          prospect_submitted_phone: '+447700900123',
+        },
+      }),
+    );
+    expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({
+      prospectEmail: 'saved@example.com',
+      prospectPhone: null,
+      preferContact: false,
+    });
+  });
   it('shows automatic delivery in the activity block', async () => {
     mocks.activity.mockResolvedValue({
       ...activity,

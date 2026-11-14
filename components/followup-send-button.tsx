@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { sendFollowup } from '@/lib/followup/send';
+import { followupTarget, sendFollowup } from '@/lib/followup/send';
 
 export function FollowupSendButton({
   draft,
@@ -21,6 +21,8 @@ export function FollowupSendButton({
   const [notice, setNotice] = useState('');
   const [failed, setFailed] = useState(false);
 
+  const target = followupTarget(email, phone);
+
   async function send(share = false) {
     if (!draft || !pagePath || busy) return;
     setBusy(true);
@@ -33,7 +35,7 @@ export function FollowupSendButton({
           pageUrl: new URL(pagePath, window.location.origin).href,
           email: share ? null : email,
           phone: share ? null : phone,
-          preferContact: !share && preferContact,
+          preferContact: !share && Boolean(target),
         },
         {
           share: navigator.share ? (data) => navigator.share(data) : undefined,
@@ -58,10 +60,15 @@ export function FollowupSendButton({
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => send()} disabled={busy || !draft || !pagePath}>
-          {busy ? 'Opening…' : 'Send'}
+        <Button
+          type="button"
+          onClick={() => send()}
+          disabled={busy || !draft || !pagePath}
+          className="h-auto min-h-11 min-w-0 break-all whitespace-normal"
+        >
+          {busy ? 'Opening…' : (target?.label ?? 'Share')}
         </Button>
-        {preferContact ? (
+        {preferContact && target ? (
           <Button
             type="button"
             variant="secondary"

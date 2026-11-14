@@ -119,7 +119,12 @@ export function DetailsForm({
   const [voice, setVoice] = useState(voiceEnabled);
   const [voiceRuns, setVoiceRuns] = useState(0);
   const [voiceBusy, setVoiceBusy] = useState(false);
-  const voiceOff = useCallback(() => setVoice(false), []);
+  const [sorting, setSorting] = useState(false);
+  const captureBusy = (voice && voiceBusy) || sorting;
+  const voiceOff = useCallback(() => {
+    setVoiceBusy(false);
+    setVoice(false);
+  }, []);
 
   // The newest field values, for callbacks that finish later (a scan, a lookup): a
   // callback made at click time would otherwise see the form as it was then.
@@ -353,6 +358,7 @@ export function DetailsForm({
   });
 
   async function save() {
+    if (captureBusy) return;
     const sent = formJson;
     setSaving(true);
     setError(null);
@@ -534,6 +540,7 @@ export function DetailsForm({
             if (!noteFits(latest.current.customProblems, text)) return false;
             setCustomProblems(appendNote(latest.current.customProblems, text));
             setMoreOpen(true);
+            setSorting(true);
             setVoiceRuns((n) => n + 1);
             return true;
           }}
@@ -855,6 +862,7 @@ export function DetailsForm({
               setValue={setCustomProblems}
               voiceTip={!voice}
               autoRun={voiceRuns}
+              onBusy={setSorting}
               niches={noteNiches(niches, fallbackProblems)}
               onFill={(fill) => {
                 const fillIfEmpty = (value: string) => (current: string) =>
@@ -975,8 +983,8 @@ export function DetailsForm({
             Next card
           </Link>
         ) : null}
-        <Button size="block" onClick={save} disabled={saving || voiceBusy}>
-          {saving ? 'Saving…' : voiceBusy ? 'Finish your voice note first' : 'Save details'}
+        <Button size="block" onClick={save} disabled={saving || captureBusy}>
+          {saving ? 'Saving…' : captureBusy ? 'Finish your voice note first' : 'Save details'}
         </Button>
       </div>
     </div>
@@ -1157,6 +1165,7 @@ function NoteBox({
   setValue,
   voiceTip,
   autoRun,
+  onBusy,
   niches,
   onFill,
 }: {
@@ -1166,21 +1175,31 @@ function NoteBox({
   voiceTip: boolean;
   /** Goes up each time a spoken note was added: read the note as if it had been typed. */
   autoRun: number;
+  onBusy: (busy: boolean) => void;
   niches: { name: string; problems: string[] }[];
   onFill: (fill: NoteFill) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const running = useRef(0);
   const [message, setMessage] = useState<string | null>(null);
 
   async function run() {
     dismissKeyboard();
+    running.current += 1;
     setBusy(true);
+    onBusy(true);
     setMessage(null);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', {
-        line: value.slice(0, 600),
-        niches,
-      });
+      const fill = await Promise.race([
+        apiSend<NoteFill>('/api/capture/note', 'POST', {
+          line: value.slice(0, 600),
+          niches,
+        }),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error('Sorting timed out')), 30_000);
+        }),
+      ]);
       const parts = [
         fill.name ? 'name' : null,
         fill.company ? 'company' : null,
@@ -1206,7 +1225,12 @@ function NoteBox({
           : 'Could not sort that. Your words are still in the box: tap Save details to keep them.',
       );
     } finally {
-      setBusy(false);
+      clearTimeout(timeout);
+      running.current -= 1;
+      if (running.current === 0) {
+        setBusy(false);
+        onBusy(false);
+      }
     }
   }
 
