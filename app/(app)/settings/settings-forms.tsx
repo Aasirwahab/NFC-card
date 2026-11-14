@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { AnswerChatQuestion, type AnswerQuestion } from '@/components/answer-chat-question';
 import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import {
@@ -407,14 +408,25 @@ function KnowledgeTopic({
 export function UnansweredQuestions({
   questions,
   loadError,
+  repName,
 }: {
-  questions: { id: number; question: string }[];
+  questions: (AnswerQuestion & {
+    sessions?: {
+      status: string;
+      prospect_name: string | null;
+      prospect_email: string | null;
+      prospect_submitted_email: string | null;
+      prospect_submitted_phone: string | null;
+      cards: { code: string } | null;
+    } | null;
+  })[];
   loadError: boolean;
+  repName?: string;
 }) {
   return (
     <Panel
       title="Questions prospects asked that the assistant could not answer"
-      hint="Add an answer to your knowledge base so the assistant can help next time. Showing up to 20 open questions, newest first."
+      hint="Add an answer to your knowledge base so the assistant can help next time. Showing up to 20 open questions, then your five most recently saved answers."
     >
       {loadError ? (
         <p role="alert" className="text-crit text-sm">
@@ -425,7 +437,7 @@ export function UnansweredQuestions({
       ) : (
         <ul className="flex flex-col gap-4">
           {questions.map((question) => (
-            <UnansweredQuestion key={question.id} question={question} />
+            <UnansweredQuestion key={question.id} question={question} repName={repName} />
           ))}
         </ul>
       )}
@@ -433,71 +445,43 @@ export function UnansweredQuestions({
   );
 }
 
-function UnansweredQuestion({ question }: { question: { id: number; question: string } }) {
-  const [answerState, answerAction] = useActionState(saveKnowledgeAction, {});
+function UnansweredQuestion({
+  question,
+  repName,
+}: {
+  question: Parameters<typeof UnansweredQuestions>[0]['questions'][number];
+  repName?: string;
+}) {
   const [dismissState, dismissAction] = useActionState(dismissUnansweredAction, {});
+  const session = question.sessions;
   return (
     <li className="border-line-soft border-t pt-4 first:border-t-0 first:pt-0">
       <p className="text-ink text-sm font-medium [overflow-wrap:anywhere]">{question.question}</p>
-      <details className="mt-2">
-        <summary className="text-accent min-h-11 cursor-pointer py-3 text-sm font-medium">
-          Add an answer
-        </summary>
-        <form action={answerAction} className="flex flex-col gap-3">
+      {question.handed_off ? <p className="text-ink-3 mt-1 text-sm">Passed to you.</p> : null}
+      <AnswerChatQuestion
+        question={question}
+        repName={repName}
+        contact={
+          session
+            ? {
+                name: session.prospect_name,
+                email: session.prospect_submitted_email ?? session.prospect_email,
+                phone: session.prospect_submitted_phone,
+                pagePath:
+                  session.status === 'active' && session.cards?.code
+                    ? `/c/${session.cards.code}`
+                    : null,
+              }
+            : undefined
+        }
+      />
+      {!question.resolved_at ? (
+        <form action={dismissAction} className="mt-2 flex flex-wrap items-center gap-3">
           <input type="hidden" name="unanswered_id" value={question.id} />
-          <Field
-            label="Question, as other prospects may see it"
-            htmlFor={`answer-question-${question.id}`}
-            hint="Rewrite it in general terms, without names, companies or numbers."
-          >
-            <Input
-              id={`answer-question-${question.id}`}
-              name="public_question"
-              required
-              maxLength={300}
-              placeholder="How long does setup take?"
-            />
-          </Field>
-          <Field
-            label="Save under"
-            htmlFor={`answer-topic-${question.id}`}
-            hint="Choose Pricing for answers that include prices."
-          >
-            <select
-              id={`answer-topic-${question.id}`}
-              name="topic"
-              defaultValue="faq"
-              className="border-line bg-surface text-ink focus:border-accent focus:ring-accent/20 h-12 w-full rounded-lg border px-3 text-base focus:ring-2 focus:outline-none"
-            >
-              {TOPICS.map((topic) => (
-                <option key={topic.value} value={topic.value}>
-                  {topic.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
-            label="Your answer"
-            htmlFor={`answer-${question.id}`}
-            hint="Saved with the question in your knowledge base."
-          >
-            <Textarea
-              id={`answer-${question.id}`}
-              name="content"
-              rows={3}
-              maxLength={20_000}
-              required
-            />
-          </Field>
-          <Status state={answerState} />
-          <SaveButton label="Save answer" />
+          <SaveButton label="Dismiss" />
+          <Status state={dismissState} />
         </form>
-      </details>
-      <form action={dismissAction} className="mt-2 flex flex-wrap items-center gap-3">
-        <input type="hidden" name="unanswered_id" value={question.id} />
-        <SaveButton label="Dismiss" />
-        <Status state={dismissState} />
-      </form>
+      ) : null}
     </li>
   );
 }

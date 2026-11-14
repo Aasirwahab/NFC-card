@@ -10,12 +10,14 @@ export function FollowupSendButton({
   email,
   phone,
   shareOnly = false,
+  label,
 }: {
   draft: string | null;
   pagePath: string | null;
   email: string | null;
   phone: string | null;
   shareOnly?: boolean;
+  label?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -67,9 +69,9 @@ export function FollowupSendButton({
           onClick={() => send()}
           disabled={busy || !draft || !pagePath}
           aria-label={target?.label}
-          className="h-auto min-h-12 px-4 py-3 whitespace-nowrap"
+          className="h-auto min-h-12 max-w-full px-4 py-3 whitespace-normal"
         >
-          {busy ? 'Opening…' : target ? 'Send note' : 'Share'}
+          {busy ? 'Opening…' : (label ?? (target ? 'Send note' : 'Share'))}
         </Button>
       </div>
       {recipient ? (

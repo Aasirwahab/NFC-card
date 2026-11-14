@@ -39,7 +39,7 @@ const snapshot = {
     services: ['Plant hire automation'],
     pricing: null,
   },
-  knowledge: [{ topic: 'onboarding', content: 'Setup takes two weeks.' }],
+  knowledge: [{ topic: 'timeline', content: 'Setup takes two weeks.' }],
   event: { name: 'Plant Hire Expo' },
 } as unknown as Snapshot;
 
@@ -120,6 +120,7 @@ describe('checkReply (§18.2)', () => {
     expect(result).toEqual({
       ok: true,
       outcome: 'answered',
+      topics: [],
       text: 'Setup takes about two weeks. Zaid can walk you through it.',
     });
   });

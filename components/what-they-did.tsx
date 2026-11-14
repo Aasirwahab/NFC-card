@@ -1,3 +1,4 @@
+import { AnswerChatQuestion } from '@/components/answer-chat-question';
 import { FollowupCard } from '@/components/followup-card';
 import { getBusinessProfile, getContactActivity, getProfile } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
@@ -184,6 +185,25 @@ export async function WhatTheyDid({
       ) : (
         <p className="text-ink-3 mt-2 text-sm">No chat questions recorded.</p>
       )}
+
+      {activity.chat_unanswered
+        .filter((question) => !question.resolved_at || question.saved_answer)
+        .map((question) => (
+          <div key={question.id} className="border-line-soft mt-3 border-t pt-3">
+            <p className="text-ink text-sm font-medium wrap-anywhere">{question.question}</p>
+            {question.handed_off ? <p className="text-ink-3 mt-1 text-sm">Passed to you.</p> : null}
+            <AnswerChatQuestion
+              question={question}
+              repName={profile?.full_name || 'Your contact'}
+              contact={{
+                name: session.prospect_name,
+                email: session.prospect_submitted_email ?? session.prospect_email,
+                phone: session.prospect_submitted_phone,
+                pagePath: session.status === 'active' && cardCode ? `/c/${cardCode}` : null,
+              }}
+            />
+          </div>
+        ))}
 
       {state ? (
         <div className="mt-5">
