@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, seedFixture, type TestDb } from './harness';
 
@@ -26,6 +27,7 @@ async function contact(withAnswers = true) {
           set prospect_picked_problems = $1,
               prospect_submitted_email = 'prospect@example.com',
               prospect_submitted_phone = '+447700900123',
+              prospect_submitted_message = 'A quote please',
               prospect_consent_at = now(),
               last_viewed_at = now(),
               prospect_answer_token_hash = 'hash'
@@ -41,7 +43,7 @@ describe('prospect answer storage and privacy', () => {
     const { sessionId } = await contact(false);
     const { rows } = await db.query(
       `select prospect_picked_problems, prospect_submitted_email,
-              prospect_submitted_phone, prospect_consent_at, prospect_answer_token_hash
+              prospect_submitted_phone, prospect_submitted_message, prospect_consent_at, prospect_answer_token_hash
          from public.sessions where id = $1`,
       [sessionId],
     );
@@ -49,11 +51,25 @@ describe('prospect answer storage and privacy', () => {
       prospect_picked_problems: null,
       prospect_submitted_email: null,
       prospect_submitted_phone: null,
+      prospect_submitted_message: null,
       prospect_consent_at: null,
       prospect_answer_token_hash: null,
     });
   });
 
+  it('enforces the message length in the database', async () => {
+    const { sessionId } = await contact();
+    await db.query('update public.sessions set prospect_submitted_message = $1 where id = $2', [
+      'x'.repeat(300),
+      sessionId,
+    ]);
+    await expect(
+      db.query('update public.sessions set prospect_submitted_message = $1 where id = $2', [
+        'x'.repeat(301),
+        sessionId,
+      ]),
+    ).rejects.toThrow(/check constraint/);
+  });
   it('timestamps every counted prospect view while keeping the first view and source', async () => {
     const { sessionId } = await contact(false);
     expect(
@@ -190,7 +206,7 @@ describe('prospect answer storage and privacy', () => {
     expect(rows[0]!.problems).toEqual([]);
   });
 
-  it('queues delivery as soon as the fallback note is readable, once per contact', async () => {
+  it('never queues automatic delivery when the note becomes readable', async () => {
     const { sessionId, userId } = await contact();
     await db.query(`select public.save_session_details($1, $2, $3::jsonb)`, [
       sessionId,
@@ -202,14 +218,14 @@ describe('prospect answer storage and privacy', () => {
         `select type from public.jobs where session_id = $1 and type = 'prospect_note_email'`,
         [sessionId],
       );
-    expect((await jobs()).rows).toEqual([{ type: 'prospect_note_email' }]);
+    expect((await jobs()).rows).toEqual([]);
     await db.query(`update public.sessions set enrichment_status = 'completed' where id = $1`, [
       sessionId,
     ]);
-    expect((await jobs()).rows).toHaveLength(1);
+    expect((await jobs()).rows).toHaveLength(0);
   });
 
-  it('waits for review, then queues on approval or when review is disabled', async () => {
+  it('never queues automatic delivery on approval or disabling review', async () => {
     const { sessionId, userId } = await contact();
     await db.query(`update public.profiles set review_before_live = true where id = $1`, [userId]);
     await db.query(`select public.save_session_details($1, $2, $3::jsonb)`, [
@@ -227,7 +243,7 @@ describe('prospect answer storage and privacy', () => {
       `update public.sessions set enrichment_status = 'completed', pitch_approved_revision = details_revision where id = $1`,
       [sessionId],
     );
-    expect((await jobs()).rows).toHaveLength(1);
+    expect((await jobs()).rows).toHaveLength(0);
     await db.query(
       `delete from public.jobs where session_id = $1 and type = 'prospect_note_email'`,
       [sessionId],
@@ -236,10 +252,10 @@ describe('prospect answer storage and privacy', () => {
       sessionId,
     ]);
     await db.query(`update public.profiles set review_before_live = false where id = $1`, [userId]);
-    expect((await jobs()).rows).toHaveLength(1);
+    expect((await jobs()).rows).toHaveLength(0);
   });
 
-  it('queues a rep-written note through a review hold but never messages a mobile-only contact', async () => {
+  it('never queues automatic delivery for rep-written notes or mobile contacts', async () => {
     const { sessionId, userId } = await contact();
     await db.query(`update public.profiles set review_before_live = true where id = $1`, [userId]);
     await db.query(`select public.save_session_details($1, $2, $3::jsonb)`, [
@@ -253,7 +269,7 @@ describe('prospect answer storage and privacy', () => {
         `select id from public.jobs where session_id = $1 and type = 'prospect_note_email'`,
         [sessionId],
       );
-    expect((await jobs()).rows).toHaveLength(1);
+    expect((await jobs()).rows).toHaveLength(0);
     await db.query(
       `delete from public.jobs where session_id = $1 and type = 'prospect_note_email'`,
       [sessionId],
@@ -305,4 +321,47 @@ describe('prospect answer storage and privacy', () => {
     );
     expect(rows[0]!.problems).toEqual(['Manual timesheets']);
   });
+});
+
+it('removes only queued automatic note emails when upgrading', async () => {
+  const previous = await createTestDb('20261113120000_contact_exchange.sql');
+  try {
+    const fixture = await seedFixture(previous, { cards: 1 });
+    for (const [type, status] of [
+      ['prospect_note_email', 'queued'],
+      ['prospect_note_email', 'running'],
+      ['event_digest', 'queued'],
+    ]) {
+      await previous.query('insert into public.jobs(type, user_id, status) values ($1, $2, $3)', [
+        type,
+        fixture.userId,
+        status,
+      ]);
+    }
+    await previous.exec(
+      readFileSync('supabase/migrations/20261113120000_contact_exchange.sql', 'utf8'),
+    );
+    expect(
+      (await previous.query('select type, status from public.jobs order by type')).rows,
+    ).toEqual([
+      { type: 'event_digest', status: 'queued' },
+      { type: 'prospect_note_email', status: 'running' },
+    ]);
+    expect(
+      (
+        await previous.query(
+          "select tgname from pg_trigger where tgname = 'queue_prospect_note_email'",
+        )
+      ).rows,
+    ).toEqual([]);
+    expect(
+      (
+        await previous.query(
+          "select proname from pg_proc where proname = 'queue_prospect_note_email'",
+        )
+      ).rows,
+    ).toEqual([]);
+  } finally {
+    await previous.close();
+  }
 });

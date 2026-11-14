@@ -91,7 +91,7 @@ export async function WhatTheyDid({
     },
     activity.readAt,
   );
-  const requestedNote = Boolean(
+  const sharedDetails = Boolean(
     (session.prospect_submitted_email || session.prospect_submitted_phone) && !noteEmailed,
   );
   const channel = followupChannel(session);
@@ -111,7 +111,7 @@ export async function WhatTheyDid({
         },
         now,
         turns.at(-1)?.question,
-        requestedNote,
+        sharedDetails,
       )
     : null;
 
@@ -135,7 +135,7 @@ export async function WhatTheyDid({
       {session.prospect_submitted_email || session.prospect_submitted_phone ? (
         <div className="mt-5 text-sm wrap-anywhere">
           <h3 className="text-ink font-semibold">
-            {noteEmailed ? 'We emailed them their note' : 'Asked you to send their note'}
+            {noteEmailed ? 'We emailed them their note' : 'Shared their details'}
           </h3>
           {session.prospect_submitted_email ? (
             <p className="text-ink-2 mt-1">{session.prospect_submitted_email}</p>
@@ -203,11 +203,11 @@ export async function WhatTheyDid({
               pagePath: cardCode ? `/c/${cardCode}` : null,
               prospectName: session.prospect_name,
               prospectCompany: session.prospect_company,
-              prospectEmail: requestedNote
+              prospectEmail: sharedDetails
                 ? session.prospect_submitted_email
                 : session.prospect_email,
-              prospectPhone: requestedNote ? session.prospect_submitted_phone : null,
-              preferContact: requestedNote,
+              prospectPhone: sharedDetails ? session.prospect_submitted_phone : null,
+              preferContact: sharedDetails,
               linkedinUrl: session.linkedin_url,
               sequence: session.event_sequence_number,
               colour: session.colour_tag,

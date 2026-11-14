@@ -12,6 +12,7 @@ afterAll(async () => {
 
 it('rolls back tap first in the documented order and restores the previous follow-up functions', async () => {
   for (const migration of [
+    '20261113120000_contact_exchange.sql',
     '20261113000000_prospect_answers.sql',
     '20261106090000_followup_state.sql',
   ]) {
@@ -39,6 +40,9 @@ it('rolls back tap first in the documented order and restores the previous follo
     fixture.userId,
   ]);
   await db.query(`select public.save_session_details($1, $2, '{}'::jsonb)`, [id, fixture.userId]);
+  expect(
+    (await db.query("select id from public.jobs where type = 'prospect_note_email'")).rows,
+  ).toEqual([]);
   await db.query(`select public.queue_no_tap_followups()`);
   await db.query(`select public.save_followup_draft($1, 'email', 'Hi Tom')`, [id]);
   const sent = await db.query<{ mark_followup_sent: boolean }>(

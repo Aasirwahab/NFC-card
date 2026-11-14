@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   staff: false,
   details: null as string | null,
   email: 'bella@example.test' as string | null,
+  message: 'A quick call',
   firstViewed: '2026-11-13T10:00:00Z',
   choices: ['Problem A', 'Problem B'],
   update: vi.fn(),
@@ -85,6 +86,7 @@ vi.mock('@/lib/db/service', () => ({
                   first_viewed_at: mocks.firstViewed,
                   prospect_answer_token_hash: mocks.tokenHash,
                   prospect_picked_problems: ['Problem A'],
+                  prospect_submitted_message: mocks.message,
                   prospect_submitted_email: mocks.email,
                   prospect_submitted_phone: mocks.email ? null : '+447700900123',
                 },
@@ -137,9 +139,34 @@ describe('prospect answer writes', () => {
     expect(mocks.update).toHaveBeenCalledExactlyOnceWith({
       prospect_submitted_email: 'a@example.com',
       prospect_submitted_phone: null,
+      prospect_submitted_message: null,
       prospect_consent_at: '2026-11-13T12:00:00.000Z',
       prospect_answer_token_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+  });
+  it.each([
+    ['  A quote please  ', 'A quote please'],
+    ['   ', null],
+    ['x'.repeat(300), 'x'.repeat(300)],
+  ])('saves a trimmed optional message: %s', async (message, expected) => {
+    expect((await submit({ contact: 'a@example.com', consent: true, message })).status).toBe(200);
+    expect(mocks.update.mock.calls[0]![0].prospect_submitted_message).toBe(expected);
+  });
+  it('rejects overlong messages and messages without a consenting contact', async () => {
+    for (const body of [
+      { contact: 'a@example.com', consent: true, message: 'x'.repeat(301) },
+      { message: 'A call' },
+      { problems: [], message: 'A call' },
+      { contact: 'a@example.com', message: 'A call' },
+    ])
+      expect((await submit(body)).status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it('clears a previous message when correcting contact without one', async () => {
+    mocks.tokenCookie = 'first-browser';
+    mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
+    expect((await submit({ contact: 'fixed@example.com', consent: true })).status).toBe(200);
+    expect(mocks.update.mock.calls[0]![0].prospect_submitted_message).toBeNull();
   });
   it('sets a secure, route-scoped cookie and stores only its hash on the first answer', async () => {
     expect((await submit({ problems: [] })).status).toBe(200);
@@ -167,7 +194,7 @@ describe('prospect answer writes', () => {
     const read = await GET(new Request('https://example.com'), {
       params: Promise.resolve({ code: 'ABCDEFGH' }),
     });
-    expect(await read.json()).toEqual({ picked: [], contact: null, readOnly: true });
+    expect(await read.json()).toEqual({ picked: [], contact: null, message: null, readOnly: true });
   });
   it('lets the same browser correct its contact without replacing the token', async () => {
     mocks.tokenCookie = 'first-browser';
@@ -184,6 +211,7 @@ describe('prospect answer writes', () => {
     expect(await read.json()).toEqual({
       picked: ['Problem A'],
       contact: 'b•••@example.test',
+      message: 'A quick call',
       readOnly: false,
     });
   });

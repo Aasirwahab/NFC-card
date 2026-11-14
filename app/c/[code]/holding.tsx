@@ -16,7 +16,12 @@ export type HoldingDetails = {
   expiresAt: number | null;
 };
 
-type Answers = { picked: string[]; readOnly: boolean; contact?: string | null };
+type Answers = {
+  picked: string[];
+  readOnly: boolean;
+  contact?: string | null;
+  message?: string | null;
+};
 
 export function Holding({
   code,
@@ -35,6 +40,8 @@ export function Holding({
     keepVisible(details.picked, details.problems).slice(0, 2),
   );
   const [contact, setContact] = useState('');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [closed, setClosed] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
@@ -49,12 +56,18 @@ export function Holding({
   const [changing, setChanging] = useState(false);
   const [expired, setExpired] = useState(false);
   const [noteReady, setNoteReady] = useState(false);
-  const editing = useRef({ contact: '', focused: false, busy: false });
+  const editing = useRef({ contact: '', message: '', focused: false, busy: false });
 
-  const pendingSaved = useRef<string | null>(null);
+  const pendingSaved = useRef<Answers | null>(null);
   function applyPendingSaved() {
-    if (!editing.current.focused && !editing.current.contact && pendingSaved.current) {
-      setSaved(pendingSaved.current);
+    if (
+      !editing.current.focused &&
+      !editing.current.contact &&
+      !editing.current.message &&
+      pendingSaved.current
+    ) {
+      setSaved(pendingSaved.current.contact ?? null);
+      setSavedMessage(pendingSaved.current.message ?? null);
       pendingSaved.current = null;
     }
   }
@@ -70,9 +83,12 @@ export function Holding({
           if (cancelled || editing.current.busy) return;
           setPicked(keepVisible(answers.picked, details.problems).slice(0, 2));
           setReadOnly(answers.readOnly);
-          if (editing.current.focused || editing.current.contact) {
-            pendingSaved.current = answers.contact ?? null;
-          } else setSaved(answers.contact ?? null);
+          if (editing.current.focused || editing.current.contact || editing.current.message) {
+            pendingSaved.current = answers;
+          } else {
+            setSaved(answers.contact ?? null);
+            setSavedMessage(answers.message ?? null);
+          }
         })
         .catch(() => {})
         .finally(() => {
@@ -96,7 +112,7 @@ export function Holding({
           : ['holding', 'working', 'completed', 'held', 'failed'].includes(status)
       ) {
         if (editing.current.busy) return false;
-        if (editing.current.contact) {
+        if (editing.current.contact || editing.current.message) {
           if (afterEditing && status === 'portfolio') {
             setExpired(true);
             setGaveUp(true);
@@ -136,7 +152,12 @@ export function Holding({
       onTimeout: () => {
         stopped = true;
         if (details.expiresAt !== null && Date.now() >= details.expiresAt) {
-          if (!editing.current.contact && !editing.current.focused && !editing.current.busy) {
+          if (
+            !editing.current.contact &&
+            !editing.current.message &&
+            !editing.current.focused &&
+            !editing.current.busy
+          ) {
             setClosed(true);
             router.refresh();
           }
@@ -145,7 +166,9 @@ export function Holding({
     });
   }, [code, details.ready, details.expiresAt, first, router]);
 
-  async function save(body: { problems: string[] } | { contact: string; consent: true }) {
+  async function save(
+    body: { problems: string[] } | { contact: string; consent: true; message: string },
+  ) {
     editing.current.busy = true;
     setBusy(true);
     setError('');
@@ -155,10 +178,14 @@ export function Holding({
       else {
         pendingSaved.current = null;
         editing.current.contact = '';
+        editing.current.message = '';
+        setRequestMessage('');
         setContact('');
         setChanging(false);
         try {
-          setSaved((await apiGet<Answers>(answersUrl)).contact ?? null);
+          const answers = await apiGet<Answers>(answersUrl);
+          setSaved(answers.contact ?? null);
+          setSavedMessage(answers.message ?? null);
         } catch {
           setMessage('Saved. You can remove your details below.');
         }
@@ -178,7 +205,7 @@ export function Holding({
           setChecked(true);
         } catch (readError) {
           if (readError instanceof ApiError && readError.status === 409) {
-            if (editing.current.contact) {
+            if (editing.current.contact || editing.current.message) {
               setNoteReady(true);
               setMessage(`${first}'s note is ready. You can still copy this and send it to them.`);
             } else {
@@ -248,9 +275,19 @@ export function Holding({
               <div className={styles.holdBlock} role="status">
                 <p className={styles.holdLabel}>Saved: {saved}</p>
                 <p className={styles.holdHint}>
-                  {first} will send you the note. You can remove it any time below.
+                  {first} has your details and will get back to you. You can remove them any time
+                  below.
                 </p>
-                <button type="button" onClick={() => setChanging(true)} className={styles.holdLink}>
+                {savedMessage ? <p className={styles.holdHint}>{savedMessage}</p> : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChanging(true);
+                    setRequestMessage(savedMessage ?? '');
+                    editing.current.message = savedMessage ?? '';
+                  }}
+                  className={styles.holdLink}
+                >
                   Change
                 </button>
               </div>
@@ -259,14 +296,15 @@ export function Holding({
                 className={styles.holdBlock}
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void save({ contact, consent: true });
+                  void save({ contact, consent: true, message: requestMessage });
                 }}
               >
                 <label htmlFor="prospect-contact" className={styles.holdLabel}>
-                  Want it sent to you?
+                  Share your details with {first}{' '}
+                  <span className={styles.holdHint}>(optional)</span>
                 </label>
                 <p id="prospect-contact-help" className={styles.holdHint}>
-                  Leave your email or mobile and {first} will send you the note.
+                  So {first} can get back to you. Only {first} sees this.
                 </p>
                 <input
                   id="prospect-contact"
@@ -298,13 +336,41 @@ export function Holding({
                   }}
                   className={styles.holdInput}
                 />
+                <label htmlFor="prospect-message" className={styles.holdLabel}>
+                  What would you like from {first}? (optional)
+                </label>
+                <textarea
+                  id="prospect-message"
+                  rows={2}
+                  maxLength={300}
+                  placeholder="For example: connect, a quote, a quick call"
+                  value={requestMessage}
+                  readOnly={noteReady || expired}
+                  onFocus={() => {
+                    editing.current.focused = true;
+                  }}
+                  onBlur={() => {
+                    editing.current.focused = false;
+                    applyPendingSaved();
+                    void recheck.current();
+                  }}
+                  onChange={(event) => {
+                    editing.current.message = event.target.value;
+                    setRequestMessage(event.target.value);
+                    if (!event.target.value) {
+                      applyPendingSaved();
+                      void recheck.current();
+                    }
+                  }}
+                  className={`${styles.holdInput} ${styles.holdTextarea}`}
+                />
                 <p id="prospect-consent" className={styles.holdHint}>
-                  {first} will use this only to send you this note. You can remove it any time.{' '}
+                  {first} will use this only to get back to you. You can remove it any time.{' '}
                   <Link href="/privacy">Privacy</Link>
                 </p>
                 {!noteReady && !expired ? (
                   <button type="submit" disabled={busy} className={styles.holdSubmit}>
-                    {busy ? 'Saving…' : 'Send it to me'}
+                    {busy ? 'Saving…' : `Share with ${first}`}
                   </button>
                 ) : null}
               </form>

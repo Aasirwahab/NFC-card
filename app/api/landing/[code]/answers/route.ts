@@ -23,7 +23,7 @@ type Context = { params: Promise<{ code: string }> };
 export const GET = (request: Request, context: Context) => answers(request, context, false);
 export const POST = (request: Request, context: Context) => answers(request, context, true);
 
-/** Only the first answering browser can edit; no response includes contact details. */
+/** Only the first answering browser can edit; contact is returned only as a masked hint. */
 async function answers(request: Request, context: Context, write: boolean) {
   const parsed = write ? prospectAnswersSchema.safeParse(await readJson(request)) : null;
   if (parsed && !parsed.success) return fail('invalid_request', 400);
@@ -62,7 +62,7 @@ async function answers(request: Request, context: Context, write: boolean) {
   const { data: session, error: sessionError } = await db
     .from('sessions')
     .select(
-      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems, prospect_submitted_email, prospect_submitted_phone',
+      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems, prospect_submitted_email, prospect_submitted_phone, prospect_submitted_message',
     )
     .eq('card_id', card.id)
     .eq('user_id', card.user_id)
@@ -91,6 +91,7 @@ async function answers(request: Request, context: Context, write: boolean) {
         contact: mine
           ? maskContact(session.prospect_submitted_email, session.prospect_submitted_phone)
           : null,
+        message: mine ? (session.prospect_submitted_message ?? null) : null,
         readOnly,
       },
       { headers: { 'cache-control': 'no-store' } },
@@ -113,6 +114,7 @@ async function answers(request: Request, context: Context, write: boolean) {
     const contact = normaliseProspectContact(answers.contact)!;
     update.prospect_submitted_email = contact.email;
     update.prospect_submitted_phone = contact.phone;
+    update.prospect_submitted_message = answers.message || null;
     update.prospect_consent_at = new Date().toISOString();
   }
   let query = db

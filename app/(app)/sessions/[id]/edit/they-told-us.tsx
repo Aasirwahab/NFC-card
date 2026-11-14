@@ -21,6 +21,7 @@ type Answers = {
   prospect_picked_problems?: string[] | null;
   prospect_submitted_email?: string | null;
   prospect_submitted_phone?: string | null;
+  prospect_submitted_message?: string | null;
 };
 
 /** Add the owning area too: a tick whose chip is hidden would be dropped on save. */
@@ -172,6 +173,11 @@ export function TheyToldUs({
           );
         })}
       </ul>
+      {contacts.length > 0 && session.prospect_submitted_message ? (
+        <p className="text-ink-2 mt-2 text-sm wrap-anywhere whitespace-pre-wrap">
+          {session.prospect_submitted_message}
+        </p>
+      ) : null}
     </section>
   );
 }

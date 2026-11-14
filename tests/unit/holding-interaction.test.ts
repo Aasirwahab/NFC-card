@@ -133,9 +133,53 @@ describe('holding page races', () => {
     expect(h.send).toHaveBeenCalledWith('/api/landing/ABCDEFGH/answers', 'POST', {
       contact: 'me@example.com',
       consent: true,
+      message: '',
     });
     expect(h.poll!.onStatus('working')).toBe(true);
     expect(h.refresh).toHaveBeenCalledTimes(1);
+  });
+  it('submits the optional message and shows it with the saved contact', async () => {
+    let tree = render();
+    await flush();
+    event(tree, 'input', 'onChange', { target: { value: 'me@example.com' } });
+    event(tree, 'textarea', 'onChange', { target: { value: 'A quote please' } });
+    h.get.mockResolvedValue({
+      picked: [],
+      readOnly: false,
+      contact: 'm•••@example.com',
+      message: 'A quote please',
+    });
+    tree = render();
+    event(tree, 'form', 'onSubmit', { preventDefault() {} });
+    await flush();
+    expect(h.send).toHaveBeenCalledWith('/api/landing/ABCDEFGH/answers', 'POST', {
+      contact: 'me@example.com',
+      consent: true,
+      message: 'A quote please',
+    });
+    tree = render();
+    expect(JSON.stringify(tree)).toContain('A quote please');
+    expect(JSON.stringify(tree)).toContain('has your details and will get back to you.');
+    expect(nodes(tree, 'textarea')).toHaveLength(0);
+    const change = nodes(tree, 'button').find((button) => button.props.children === 'Change')!;
+    (change.props.onClick as () => void)();
+    expect(nodes(render(), 'textarea')[0]!.props.value).toBe('A quote please');
+  });
+  it('preserves a message-only draft when the rep finishes the note', async () => {
+    let tree = render();
+    await flush();
+    event(tree, 'textarea', 'onChange', { target: { value: 'A quick call' } });
+    expect(h.poll!.onStatus('working')).toBe(false);
+    h.poll!.onTimeout();
+    h.get.mockResolvedValue({ status: 'working' });
+    event(tree, 'textarea', 'onBlur');
+    await flush();
+    tree = render();
+    expect(nodes(tree, 'textarea')[0]!.props).toMatchObject({
+      value: 'A quick call',
+      readOnly: true,
+    });
+    expect(h.refresh).not.toHaveBeenCalled();
   });
   it('keeps the rejected draft copyable until the prospect opens the ready note', async () => {
     let tree = render();

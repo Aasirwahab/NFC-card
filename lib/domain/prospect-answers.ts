@@ -48,9 +48,11 @@ export const prospectAnswersSchema = z
       .max(254)
       .refine((value) => normaliseProspectContact(value) !== null)
       .optional(),
+    message: z.string().trim().max(300).optional(),
     consent: z.boolean().optional(),
   })
   .strict()
+  .refine((data) => data.message === undefined || data.contact !== undefined)
   .refine((data) => data.problems !== undefined || data.contact !== undefined)
   .refine((data) =>
     data.contact === undefined ? data.consent === undefined : data.consent === true,
