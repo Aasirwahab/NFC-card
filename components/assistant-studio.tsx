@@ -80,10 +80,7 @@ export function AssistantStudio({
       className="border-line bg-surface shadow-card min-w-0 rounded-xl border p-4"
       aria-labelledby="assistant-studio-heading"
     >
-      <h2
-        id="assistant-studio-heading"
-        className="font-display text-ink font-semibold tracking-tight"
-      >
+      <h2 id="assistant-studio-heading" className="font-display text-ink font-semibold">
         Your assistant
       </h2>
       <form action={save} className="mt-4 flex flex-col gap-4">
@@ -123,6 +120,8 @@ export function AssistantStudio({
                     id={`assistant-custom-${index}`}
                     value={topic}
                     maxLength={80}
+                    // Only a just-added (empty, last) field mounts here, so focus follows "Add".
+                    autoFocus={topic === '' && index === customTopics.length - 1}
                     onChange={(event) =>
                       setCustomTopics((current) =>
                         current.map((value, position) =>

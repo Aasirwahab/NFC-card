@@ -55,7 +55,7 @@ function Panel({
 }) {
   return (
     <section className="border-line bg-surface shadow-card rounded-xl border p-4">
-      <h2 className="font-display text-ink font-semibold tracking-tight">{title}</h2>
+      <h2 className="font-display text-ink font-semibold">{title}</h2>
       {hint ? <p className="text-ink-2 mt-1 text-[13px] leading-snug">{hint}</p> : null}
       <div className="mt-4 flex flex-col gap-4">{children}</div>
     </section>
