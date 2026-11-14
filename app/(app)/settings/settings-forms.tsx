@@ -5,7 +5,6 @@ import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
-import { PhotoUpload } from './photo-upload';
 import {
   saveBusinessAction,
   deletePlaybookAction,
@@ -98,31 +97,8 @@ export function ProfileForm({
   const [state, action] = useActionState(saveProfileAction, {});
 
   return (
-    <form action={action}>
-      <Panel title="You" hint="This is the face and name on every page your cards open.">
-        <Field label="Full name" htmlFor="full_name">
-          <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ''} required />
-        </Field>
-
-        <Field label="Job title" htmlFor="title">
-          <Input id="title" name="title" defaultValue={profile?.title ?? ''} />
-        </Field>
-
-        <PhotoUpload name={profile?.full_name ?? ''} photoUrl={profile?.photo_url ?? null} />
-
-        <Field label="LinkedIn" htmlFor="linkedin_url">
-          <Input
-            id="linkedin_url"
-            name="linkedin_url"
-            type="url"
-            defaultValue={profile?.linkedin_url ?? ''}
-          />
-        </Field>
-
-        <Field label="Phone" htmlFor="phone">
-          <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
-        </Field>
-
+    <form action={action} className="flex flex-col gap-5">
+      <Panel title="Booking link">
         <Field
           label="Booking link"
           hint="Your booking link. Prospects book straight from their page; leave it blank to hide booking."
@@ -135,6 +111,28 @@ export function ProfileForm({
             placeholder="https://cal.com/you/15min"
             defaultValue={profile?.booking_url ?? ''}
           />
+        </Field>
+      </Panel>
+      <Panel title="You" hint="This is the face and name on every page your cards open.">
+        <Field label="Full name" htmlFor="full_name">
+          <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ''} required />
+        </Field>
+
+        <Field label="Job title" htmlFor="title">
+          <Input id="title" name="title" defaultValue={profile?.title ?? ''} />
+        </Field>
+
+        <Field label="LinkedIn" htmlFor="linkedin_url">
+          <Input
+            id="linkedin_url"
+            name="linkedin_url"
+            type="url"
+            defaultValue={profile?.linkedin_url ?? ''}
+          />
+        </Field>
+
+        <Field label="Phone" htmlFor="phone">
+          <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
         </Field>
 
         <Field

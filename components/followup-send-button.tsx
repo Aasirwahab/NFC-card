@@ -22,6 +22,7 @@ export function FollowupSendButton({
   const [failed, setFailed] = useState(false);
 
   const target = shareOnly ? null : followupTarget(email, phone);
+  const recipient = target ? (target.result === 'email' ? email : phone) : null;
 
   async function send() {
     if (!draft || !pagePath || busy) return;
@@ -58,18 +59,24 @@ export function FollowupSendButton({
   }
 
   return (
-    <div className="min-w-0">
+    <div className="max-w-full min-w-0">
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant={shareOnly ? 'secondary' : 'primary'}
           onClick={() => send()}
           disabled={busy || !draft || !pagePath}
-          className="h-auto min-h-11 min-w-0 break-all whitespace-normal"
+          aria-label={target?.label}
+          className="h-auto min-h-12 px-4 py-3 whitespace-nowrap"
         >
-          {busy ? 'Opening…' : (target?.label ?? 'Share')}
+          {busy ? 'Opening…' : target ? 'Send note' : 'Share'}
         </Button>
       </div>
+      {recipient ? (
+        <p className="text-ink-3 mt-1 max-w-full truncate text-[13px]" title={recipient}>
+          {recipient}
+        </p>
+      ) : null}
       <p role="status" className="text-ink-3 mt-1 max-w-sm text-[13px] wrap-anywhere">
         {notice}
       </p>

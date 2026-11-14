@@ -43,7 +43,7 @@ describe('follow-up send control', () => {
     'renders no Send control for a %s contact without a draft',
     (state) => {
       const html = renderToStaticMarkup(createElement(FollowupCard, { row: { ...row, state } }));
-      expect(html).not.toMatch(/>Send to tom@example.com<\/button>/);
+      expect(html).not.toMatch(/>Send note<\/button>/);
       expect(html).not.toContain('Open email');
     },
   );
@@ -52,7 +52,7 @@ describe('follow-up send control', () => {
     const html = renderToStaticMarkup(
       createElement(FollowupCard, { row: { ...row, state: 'due-no-tap', draft: 'Hi Tom' } }),
     );
-    expect(html).toMatch(/>Send to tom@example.com<\/button>/);
+    expect(html).toMatch(/>Send note<\/button>/);
   });
   it('keeps Share and Copy inside More for a requested note', () => {
     const html = renderToStaticMarkup(
@@ -60,7 +60,7 @@ describe('follow-up send control', () => {
         row: { ...row, state: 'review', draft: 'Hi Tom', preferContact: true },
       }),
     );
-    expect(html).toMatch(/>Send to tom@example.com<\/button>/);
+    expect(html).toMatch(/>Send note<\/button>/);
     expect(html).not.toContain('Open email');
     const [visible, more] = html.split('<details');
     expect(visible).not.toMatch(/>Share<\/button>|>Copy<\/button>|Open LinkedIn/);
@@ -109,6 +109,20 @@ describe('follow-up send control', () => {
         },
       }),
     );
-    expect(html).toContain('Text +447700900123');
+    expect(html).toMatch(/>Send note<\/button>/);
+    expect(html).toContain('+447700900123');
   });
+});
+
+it('clamps the draft and keeps a long recipient outside the send button', () => {
+  const email = 'bartholomew.fitzgerald@northwind-industries-holdings.example.com';
+  const html = renderToStaticMarkup(
+    createElement(FollowupCard, { row: { ...row, draft: 'A long draft', prospectEmail: email } }),
+  );
+  expect(html).toContain('line-clamp-3');
+  expect(html).toContain('Show all');
+  expect(html).toContain('aria-expanded="false"');
+  expect(html).toMatch(/>Send note<\/button>/);
+  expect(html).not.toMatch(/<button[^>]*>[^<]*northwind/);
+  expect(html).toContain(email);
 });
