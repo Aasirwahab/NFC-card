@@ -86,6 +86,46 @@ export type ContactForm = z.infer<typeof contactFormSchema>;
 export type ContactFormAnswer = { label: string; value: string };
 export const DEFAULT_CONTACT_FORM: ContactForm = contactFormSchema.parse({});
 
+export const CONTACT_FORM_PRESETS: { label: string; config: ContactForm }[] = [
+  {
+    label: 'Book a call',
+    config: contactFormSchema.parse({
+      title: 'Book a call with {first}',
+      button: 'Ask {first} to call me',
+      fields: {
+        name: { ask: true, required: true },
+        company: { ask: true, required: false },
+        message: { ask: false, required: false },
+      },
+      questions: [
+        {
+          id: 'call-time',
+          label: 'Best time to call?',
+          type: 'choice',
+          options: ['Morning', 'Afternoon', 'Evening'],
+          required: false,
+        },
+      ],
+    }),
+  },
+  {
+    label: 'Get a quote',
+    config: contactFormSchema.parse({
+      title: 'Get a quote from {first}',
+      button: 'Request a quote',
+      fields: {
+        name: { ask: true, required: true },
+        company: { ask: true, required: true },
+        message: { ask: true, required: false },
+      },
+      questions: [
+        { id: 'quote', label: 'What do you need a quote for?', type: 'text', required: true },
+      ],
+    }),
+  },
+  { label: 'Stay in touch', config: DEFAULT_CONTACT_FORM },
+];
+
 export function parseContactForm(json: unknown): ContactForm {
   const parsed = contactFormSchema.safeParse(json);
   return parsed.success ? parsed.data : contactFormSchema.parse({});

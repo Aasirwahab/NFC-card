@@ -5,6 +5,8 @@ import { createEnrichHandler } from '@/lib/enrich/pipeline';
 import { env } from '@/lib/env';
 import { productionFollowupDeps } from '@/lib/followup/deps';
 import { createFollowupHandler } from '@/lib/followup/handler';
+import { createNotifyContactHandler } from '@/lib/notify/contact';
+import { productionNotifyContactDeps } from '@/lib/notify/contact-deps';
 import { createEventDigestHandler } from '@/lib/notify/digest';
 import { productionEventDigestDeps } from '@/lib/notify/digest-deps';
 import { productionNotifyTapDeps } from '@/lib/notify/deps';
@@ -38,6 +40,9 @@ if (!enrichEnabled) {
  * `notify_tap` — "Tom just opened your card" (Phase 5). Always registered: with
  * no Resend key the send is logged and skipped, so it never needs gating.
  */
+const notifyContact: Handlers[string] = (context) =>
+  createNotifyContactHandler(productionNotifyContactDeps())(context);
+
 const notifyTap: Handlers[string] = (context) =>
   createNotifyTapHandler(productionNotifyTapDeps())(context);
 
@@ -59,11 +64,13 @@ export const handlers: Handlers = enrichEnabled
   ? {
       enrich: (context) => createEnrichHandler(productionEnrichDeps())(context),
       notify_tap: notifyTap,
+      notify_contact: notifyContact,
       event_digest: eventDigest,
       followup,
     }
   : {
       notify_tap: notifyTap,
+      notify_contact: notifyContact,
       event_digest: eventDigest,
       followup,
     };
