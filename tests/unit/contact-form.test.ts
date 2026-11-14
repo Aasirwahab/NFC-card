@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONTACT_FORM_PRESETS,
   DEFAULT_CONTACT_FORM,
   contactFormSchema,
   parseContactForm,
@@ -134,4 +135,45 @@ describe('answerLine', () => {
       'What are you after? Reviews',
     );
   });
+});
+
+// Presets must remain usable by the same prospect form and server validator.
+
+it('provides the three complete, valid preset configurations', () => {
+  expect(CONTACT_FORM_PRESETS.map((p) => p.label)).toEqual([
+    'Book a call',
+    'Get a quote',
+    'Stay in touch',
+  ]);
+  for (const preset of CONTACT_FORM_PRESETS)
+    expect(contactFormSchema.parse(preset.config)).toEqual(preset.config);
+  const [call, quote, stay] = CONTACT_FORM_PRESETS.map((p) => p.config);
+  expect(call).toMatchObject({
+    title: 'Book a call with {first}',
+    button: 'Ask {first} to call me',
+    fields: {
+      name: { ask: true, required: true },
+      company: { ask: true, required: false },
+      message: { ask: false, required: false },
+    },
+    questions: [
+      {
+        label: 'Best time to call?',
+        type: 'choice',
+        options: ['Morning', 'Afternoon', 'Evening'],
+        required: false,
+      },
+    ],
+  });
+  expect(quote).toMatchObject({
+    title: 'Get a quote from {first}',
+    button: 'Request a quote',
+    fields: {
+      name: { ask: true, required: true },
+      company: { ask: true, required: true },
+      message: { ask: true, required: false },
+    },
+    questions: [{ label: 'What do you need a quote for?', type: 'text', required: true }],
+  });
+  expect(stay).toEqual(DEFAULT_CONTACT_FORM);
 });
