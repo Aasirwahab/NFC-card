@@ -258,7 +258,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
               : session && isProspectHolding(session.details_completed_at, session.first_viewed_at)
                 ? {
                     ready: true,
-                    problems: await getProspectProblems(session.user_id, session.event_id),
+                    problems: await getProspectProblems(session.user_id),
                     picked: [],
                     readOnly: answered,
                     expiresAt: Date.parse(session.first_viewed_at!) + 24 * 60 * 60 * 1000,

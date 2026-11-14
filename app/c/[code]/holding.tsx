@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ApiError, apiGet, apiSend } from '@/lib/http/client';
 import { pollLandingStatus } from '@/lib/browser/landing-poll';
 import { keepVisible } from '@/lib/capture/chips';
+import styles from '@/app/ui-slice.module.css';
 
 export type HoldingDetails = {
   ready: boolean;
@@ -15,14 +16,19 @@ export type HoldingDetails = {
   expiresAt: number | null;
 };
 
+type Answers = { picked: string[]; readOnly: boolean; contact?: string | null };
+
 export function Holding({
   code,
   first,
   details,
+  children,
 }: {
   code: string;
   first: string;
   details: HoldingDetails;
+  /** The page's one action and the quiet "About" row, shown under the form. */
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [picked, setPicked] = useState(() =>
@@ -35,6 +41,12 @@ export function Holding({
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [readOnly, setReadOnly] = useState(details.readOnly ?? false);
+  // The page cannot see the answer token (its cookie is scoped to the answers route), so
+  // "answered" on first paint only means "someone answered". Say nothing until the route
+  // has told this browser whether it is the one that answered.
+  const [checked, setChecked] = useState(!details.readOnly);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
   const [expired, setExpired] = useState(false);
   const [noteReady, setNoteReady] = useState(false);
   const editing = useRef({ contact: '', focused: false, busy: false });
@@ -45,13 +57,17 @@ export function Holding({
   useEffect(() => {
     let cancelled = false;
     if (details.ready)
-      void apiGet<{ picked: string[]; readOnly: boolean }>(answersUrl)
+      void apiGet<Answers>(answersUrl)
         .then((answers) => {
           if (cancelled || editing.current.busy) return;
           setPicked(keepVisible(answers.picked, details.problems).slice(0, 2));
           setReadOnly(answers.readOnly);
+          setSaved(answers.contact ?? null);
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setChecked(true);
+        });
     return () => {
       cancelled = true;
     };
@@ -129,7 +145,12 @@ export function Holding({
       else {
         editing.current.contact = '';
         setContact('');
-        setMessage('Saved. You can remove your details below.');
+        setChanging(false);
+        try {
+          setSaved((await apiGet<Answers>(answersUrl)).contact ?? null);
+        } catch {
+          setMessage('Saved. You can remove your details below.');
+        }
       }
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
@@ -140,10 +161,10 @@ export function Holding({
           return;
         }
         try {
-          const answers = await apiGet<{ picked: string[]; readOnly: boolean }>(answersUrl);
+          const answers = await apiGet<Answers>(answersUrl);
           setPicked(keepVisible(answers.picked, details.problems).slice(0, 2));
           setReadOnly(answers.readOnly);
-          if (answers.readOnly) setMessage('Answers have already been given on this card.');
+          setChecked(true);
         } catch (readError) {
           if (readError instanceof ApiError && readError.status === 409) {
             if (editing.current.contact) {
@@ -170,126 +191,128 @@ export function Holding({
   }
 
   return (
-    <section className="border-line mt-5 space-y-6 border-b pb-6" aria-label="Your conversation">
-      <p className="text-ink-2 text-base leading-relaxed" role="status">
+    <section className={styles.holding} aria-label="Your conversation">
+      <h1 className={styles.holdLine} aria-live="polite">
         {gaveUp
           ? 'Not written yet. Keep the card and tap it again later.'
           : `${first}'s note about your conversation appears here once it's written.`}
-      </p>
-      {!closed && details.ready ? (
-        <>
-          {details.problems.length > 0 ? (
-            <fieldset disabled={busy || readOnly || noteReady || expired}>
-              <legend className="text-ink text-base font-medium">
-                What matters most to you right now?
-              </legend>
-              <p className="text-ink-3 mt-1 text-[13px]">Choose up to two.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {details.problems.slice(0, 6).map((problem) => {
-                  const selected = picked.includes(problem);
-                  return (
-                    <button
-                      key={problem}
-                      type="button"
-                      aria-pressed={selected}
-                      disabled={!selected && picked.length >= 2}
-                      onClick={() =>
-                        void save({
-                          problems: selected
-                            ? picked.filter((p) => p !== problem)
-                            : [...picked, problem],
-                        })
-                      }
-                      className={`min-h-11 max-w-full rounded-full border px-4 py-2 text-left text-sm wrap-anywhere disabled:opacity-50 ${selected ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface text-ink-2'}`}
-                    >
-                      {problem}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ) : null}
-          {!readOnly ? (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void save({ contact, consent: true });
-              }}
-            >
-              <label htmlFor="prospect-contact" className="text-ink block text-base font-medium">
-                Want it sent to you?
-              </label>
-              <p id="prospect-contact-help" className="text-ink-3 mt-1 text-[13px]">
-                Leave your email or mobile and {first} will send you the note.
-              </p>
-              <input
-                id="prospect-contact"
-                type="text"
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                maxLength={254}
-                required
-                aria-describedby="prospect-contact-help prospect-consent"
-                placeholder="Email address or UK mobile"
-                value={contact}
-                readOnly={noteReady || expired}
-                onFocus={() => {
-                  editing.current.focused = true;
-                }}
-                onBlur={() => {
-                  editing.current.focused = false;
-                  void recheck.current();
-                }}
-                onChange={(event) => {
-                  editing.current.contact = event.target.value;
-                  setContact(event.target.value);
-                  if (!event.target.value) void recheck.current();
-                }}
-                className="border-line bg-surface text-ink mt-3 h-11 w-full min-w-0 rounded-md border px-3 text-base"
-              />
-              <p id="prospect-consent" className="text-ink-3 mt-2 text-[13px] leading-relaxed">
-                {first} will use this only to send you this note. You can remove it any time.{' '}
-                <Link href="/privacy" className="underline underline-offset-2">
-                  Privacy
-                </Link>
-              </p>
-              {!noteReady && !expired ? (
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="border-line text-ink mt-3 min-h-11 rounded-md border px-4 text-sm font-medium disabled:opacity-50"
-                >
-                  {busy ? 'Saving…' : 'Send it to me'}
+      </h1>
+      {!closed && details.ready && checked ? (
+        readOnly ? (
+          <p className={styles.holdQuiet} role="status">
+            Answers have already been given on this card.
+          </p>
+        ) : (
+          <>
+            {details.problems.length > 0 ? (
+              <fieldset className={styles.holdBlock} disabled={busy || noteReady || expired}>
+                <legend>What matters most to you right now?</legend>
+                <p className={styles.holdHint}>Choose up to two.</p>
+                <div className={styles.chips}>
+                  {details.problems.slice(0, 5).map((problem) => {
+                    const selected = picked.includes(problem);
+                    return (
+                      <button
+                        key={problem}
+                        type="button"
+                        aria-pressed={selected}
+                        disabled={!selected && picked.length >= 2}
+                        onClick={() =>
+                          void save({
+                            problems: selected
+                              ? picked.filter((p) => p !== problem)
+                              : [...picked, problem],
+                          })
+                        }
+                        className={styles.chip}
+                      >
+                        {problem}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
+            {saved && !changing ? (
+              <div className={styles.holdBlock} role="status">
+                <p className={styles.holdLabel}>Saved: {saved}</p>
+                <p className={styles.holdHint}>
+                  {first} will send you the note. You can remove it any time below.
+                </p>
+                <button type="button" onClick={() => setChanging(true)} className={styles.holdLink}>
+                  Change
                 </button>
-              ) : null}
-            </form>
-          ) : (
-            <p className="text-ink-3 text-sm" role="status">
-              Answers have already been given on this card.
-            </p>
-          )}
-        </>
+              </div>
+            ) : (
+              <form
+                className={styles.holdBlock}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void save({ contact, consent: true });
+                }}
+              >
+                <label htmlFor="prospect-contact" className={styles.holdLabel}>
+                  Want it sent to you?
+                </label>
+                <p id="prospect-contact-help" className={styles.holdHint}>
+                  Leave your email or mobile and {first} will send you the note.
+                </p>
+                <input
+                  id="prospect-contact"
+                  type="text"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={254}
+                  required
+                  aria-describedby="prospect-contact-help prospect-consent"
+                  placeholder="Email address or UK mobile"
+                  value={contact}
+                  readOnly={noteReady || expired}
+                  onFocus={() => {
+                    editing.current.focused = true;
+                  }}
+                  onBlur={() => {
+                    editing.current.focused = false;
+                    void recheck.current();
+                  }}
+                  onChange={(event) => {
+                    editing.current.contact = event.target.value;
+                    setContact(event.target.value);
+                    if (!event.target.value) void recheck.current();
+                  }}
+                  className={styles.holdInput}
+                />
+                <p id="prospect-consent" className={styles.holdHint}>
+                  {first} will use this only to send you this note. You can remove it any time.{' '}
+                  <Link href="/privacy">Privacy</Link>
+                </p>
+                {!noteReady && !expired ? (
+                  <button type="submit" disabled={busy} className={styles.holdSubmit}>
+                    {busy ? 'Saving…' : 'Send it to me'}
+                  </button>
+                ) : null}
+              </form>
+            )}
+          </>
+        )
       ) : null}
       {message ? (
-        <p className="text-ink-3 text-sm" role="status">
+        <p className={styles.holdQuiet} role="status">
           {message}
         </p>
       ) : null}
       {noteReady ? (
-        <button
-          type="button"
-          onClick={() => router.refresh()}
-          className="border-line text-ink min-h-11 rounded-md border px-4 text-sm font-medium"
-        >
+        <button type="button" onClick={() => router.refresh()} className={styles.holdSubmit}>
           Read {first}&apos;s note
         </button>
       ) : null}
       {error ? (
-        <p className="text-crit text-sm" role="alert">
+        <p className={styles.holdError} role="alert">
           {error}
         </p>
       ) : null}
+      {children}
     </section>
   );
 }

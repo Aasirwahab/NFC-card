@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   setCookie: vi.fn(),
   staff: false,
   details: null as string | null,
+  email: 'bella@example.test' as string | null,
   firstViewed: '2026-11-13T10:00:00Z',
   choices: ['Problem A', 'Problem B'],
   update: vi.fn(),
@@ -84,6 +85,8 @@ vi.mock('@/lib/db/service', () => ({
                   first_viewed_at: mocks.firstViewed,
                   prospect_answer_token_hash: mocks.tokenHash,
                   prospect_picked_problems: ['Problem A'],
+                  prospect_submitted_email: mocks.email,
+                  prospect_submitted_phone: mocks.email ? null : '+447700900123',
                 },
           error: null,
         }),
@@ -101,6 +104,7 @@ beforeEach(() => {
   mocks.tokenHash = null;
   mocks.staff = false;
   mocks.details = null;
+  mocks.email = 'bella@example.test';
   mocks.firstViewed = '2026-11-13T10:00:00Z';
   mocks.race = false;
   mocks.missing = false;
@@ -163,7 +167,7 @@ describe('prospect answer writes', () => {
     const read = await GET(new Request('https://example.com'), {
       params: Promise.resolve({ code: 'ABCDEFGH' }),
     });
-    expect(await read.json()).toEqual({ picked: [], readOnly: true });
+    expect(await read.json()).toEqual({ picked: [], contact: null, readOnly: true });
   });
   it('lets the same browser correct its contact without replacing the token', async () => {
     mocks.tokenCookie = 'first-browser';
@@ -177,7 +181,22 @@ describe('prospect answer writes', () => {
     const read = await GET(new Request('https://example.com'), {
       params: Promise.resolve({ code: 'ABCDEFGH' }),
     });
-    expect(await read.json()).toEqual({ picked: ['Problem A'], readOnly: false });
+    expect(await read.json()).toEqual({
+      picked: ['Problem A'],
+      contact: 'b•••@example.test',
+      readOnly: false,
+    });
+  });
+  it('masks a mobile number for the answering browser and shows no browser without the token', async () => {
+    mocks.email = null;
+    mocks.tokenCookie = 'first-browser';
+    mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
+    const read = () =>
+      GET(new Request('https://example.com'), { params: Promise.resolve({ code: 'ABCDEFGH' }) });
+    expect((await (await read()).json()).contact).toBe('•••• ••• 123');
+    mocks.tokenCookie = null;
+    const other = JSON.stringify(await (await read()).json());
+    expect(other).not.toMatch(/123|example/);
   });
   it('rejects a problem outside this contact event list', async () => {
     expect((await submit({ problems: ['Injected topic'] })).status).toBe(400);

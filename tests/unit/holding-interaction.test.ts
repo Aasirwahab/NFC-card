@@ -83,7 +83,7 @@ beforeEach(() => {
   h.effects = [];
   h.poll = null;
   vi.clearAllMocks();
-  h.get.mockResolvedValue({ picked: [], readOnly: false });
+  h.get.mockResolvedValue({ picked: [], readOnly: false, contact: null });
   h.send.mockResolvedValue({ saved: true });
 });
 
@@ -144,7 +144,7 @@ describe('holding page races', () => {
       value: 'me@example.com',
       readOnly: true,
     });
-    expect(nodes(tree, 'p')[0]!.props.children).toBe(
+    expect(nodes(tree, 'h1')[0]!.props.children).toBe(
       'Not written yet. Keep the card and tap it again later.',
     );
     expect(
@@ -155,16 +155,54 @@ describe('holding page races', () => {
     ).toBe(true);
     expect(h.refresh).not.toHaveBeenCalled();
   });
-  it('shows no choices read-only without a contact field to another browser', async () => {
-    h.get.mockResolvedValue({ picked: [], readOnly: true });
+  it('shows one quiet line, no chips and no field, to a browser that did not answer', async () => {
+    h.get.mockResolvedValue({ picked: [], readOnly: true, contact: null });
     render();
     await flush();
     const tree = render();
     expect(nodes(tree, 'input')).toHaveLength(0);
-    expect(nodes(tree, 'fieldset')[0]!.props.disabled).toBe(true);
-    expect(nodes(tree, 'button').some((button) => button.props['aria-pressed'] === true)).toBe(
-      false,
+    expect(nodes(tree, 'fieldset')).toHaveLength(0);
+    expect(nodes(tree, 'button')).toHaveLength(0);
+    expect(nodes(tree, 'p').map((p) => p.props.children)).toContain(
+      'Answers have already been given on this card.',
     );
+  });
+  it('shows nothing of the answers while it is still unknown whether this browser answered', () => {
+    const tree = Holding({
+      code: 'ABCDEFGH',
+      first: 'Sam',
+      details: { ...details, readOnly: true },
+    });
+    expect(nodes(tree, 'fieldset')).toHaveLength(0);
+    expect(nodes(tree, 'input')).toHaveLength(0);
+    expect(nodes(tree, 'p')).toHaveLength(0);
+  });
+  it('confirms a saved contact in masked form with Change, and Change reopens the field', async () => {
+    h.get.mockResolvedValue({ picked: [], readOnly: false, contact: 'b•••@example.test' });
+    render();
+    await flush();
+    let tree = render();
+    expect(nodes(tree, 'input')).toHaveLength(0);
+    const text = JSON.stringify(nodes(tree, 'p').map((p) => p.props.children));
+    expect(text).toContain('b•••@example.test');
+    const change = nodes(tree, 'button').find((button) => button.props.children === 'Change')!;
+    (change.props.onClick as () => void)();
+    tree = render();
+    expect(nodes(tree, 'input')).toHaveLength(1);
+  });
+  it('re-reads the masked value after a save instead of echoing what was typed', async () => {
+    let tree = render();
+    await flush();
+    event(tree, 'input', 'onChange', { target: { value: 'me@example.com' } });
+    h.get.mockResolvedValue({ picked: [], readOnly: false, contact: 'm•••@example.com' });
+    tree = render();
+    event(tree, 'form', 'onSubmit', { preventDefault() {} });
+    await flush();
+    tree = render();
+    expect(JSON.stringify(nodes(tree, 'p').map((p) => p.props.children))).toContain(
+      'm•••@example.com',
+    );
+    expect(JSON.stringify(tree)).not.toContain('me@example.com');
   });
   it.each(['blur', 'clear', 'submit'])(
     'checks once after polling ends on %s, preserving a draft',
@@ -210,7 +248,7 @@ describe('holding page races', () => {
     event(tree, 'input', 'onChange', { target: { value: 'me@example.com' } });
     h.poll!.onTimeout();
     tree = render();
-    expect(nodes(tree, 'p')[0]!.props.children).toBe(
+    expect(nodes(tree, 'h1')[0]!.props.children).toBe(
       'Not written yet. Keep the card and tap it again later.',
     );
     expect(nodes(tree, 'input')[0]!.props.value).toBe('me@example.com');

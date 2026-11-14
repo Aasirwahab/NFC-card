@@ -32,7 +32,7 @@ describe('tap first prospect content', () => {
     expect(html).toContain('href="/privacy"');
     expect(html.indexOf('prospect-consent')).toBeLessThan(html.lastIndexOf('Send it to me'));
   });
-  it('server-renders already answered without selected values or a contact field', () => {
+  it('says nothing until this browser is known, and never server-renders values or fields', () => {
     const html = renderToStaticMarkup(
       createElement(Holding, {
         code: 'ABCD2345',
@@ -40,9 +40,9 @@ describe('tap first prospect content', () => {
         details: { ...details, picked: [], readOnly: true },
       }),
     );
-    expect(html).toContain('Answers have already been given on this card.');
-    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain('aria-pressed');
     expect(html).not.toContain('<input');
+    expect(html).not.toContain('Answers have already');
   });
   it('hides the question with no rep problems, and inputs before first-tap registration', () => {
     const noChips = renderToStaticMarkup(
@@ -64,17 +64,17 @@ describe('tap first prospect content', () => {
     expect(bootstrap).toContain('once it&#x27;s written.');
     expect(bootstrap).not.toContain('<input');
   });
-  it('shows no more than six choices and allows unticking at the two-choice limit', () => {
+  it('shows no more than five choices and allows unticking at the two-choice limit', () => {
     const html = renderToStaticMarkup(
       createElement(Holding, {
         code: 'ABCD2345',
         first: 'Sam',
-        details: { ...details, problems: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], picked: ['A', 'B'] },
+        details: { ...details, problems: ['A', 'B', 'C', 'D', 'E', 'F'], picked: ['A', 'B'] },
       }),
     );
-    expect(html.match(/aria-pressed=/g)).toHaveLength(6);
-    expect(html.match(/disabled=""/g)).toHaveLength(4);
-    expect(html).not.toContain('>G</button>');
+    expect(html.match(/aria-pressed=/g)).toHaveLength(5);
+    expect(html.match(/disabled=""/g)).toHaveLength(3);
+    expect(html).not.toContain('>F</button>');
   });
   it('keeps current chips usable when the rep has removed both earlier choices', () => {
     const html = renderToStaticMarkup(

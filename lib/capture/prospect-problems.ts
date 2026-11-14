@@ -1,17 +1,10 @@
 import 'server-only';
-import { chipProblemsForAll } from '@/lib/capture/chips';
-import { getEvent, listPlaybookProblems } from '@/lib/db/rep';
+import { listPlaybookProblems } from '@/lib/db/rep';
 
-/** The prospect chooses from the same rep-owned chips, before choosing any area. */
-export async function getProspectProblems(userId: string, eventId: string): Promise<string[]> {
-  const [event, fallback] = await Promise.all([
-    getEvent(userId, eventId),
-    listPlaybookProblems(userId),
-  ]);
-  const niches = event?.niches ?? [];
-  return chipProblemsForAll(
-    niches,
-    niches.map((niche) => niche.name),
-    fallback,
-  ).slice(0, 6);
+/**
+ * Before the rep has saved details nobody knows the prospect's area, so the only honest
+ * chips are the rep's own general "problems you solve" list. None: the question is hidden.
+ */
+export async function getProspectProblems(userId: string): Promise<string[]> {
+  return (await listPlaybookProblems(userId)).slice(0, 5);
 }

@@ -10,6 +10,7 @@ import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import {
   isProspectHolding,
+  maskContact,
   normaliseProspectContact,
   prospectAnswersSchema,
 } from '@/lib/domain/prospect-answers';
@@ -61,7 +62,7 @@ async function answers(request: Request, context: Context, write: boolean) {
   const { data: session, error: sessionError } = await db
     .from('sessions')
     .select(
-      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems',
+      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems, prospect_submitted_email, prospect_submitted_phone',
     )
     .eq('card_id', card.id)
     .eq('user_id', card.user_id)
@@ -80,23 +81,27 @@ async function answers(request: Request, context: Context, write: boolean) {
   const readOnly = Boolean(
     session.prospect_answer_token_hash && session.prospect_answer_token_hash !== hash,
   );
-  if (!write)
+  if (!write) {
+    // Only the browser holding the answer token ever sees anything of what was left, and
+    // never the full value: a masked hint is enough to know it was saved.
+    const mine = Boolean(hash && hash === session.prospect_answer_token_hash);
     return json(
       {
-        picked:
-          hash && hash === session.prospect_answer_token_hash
-            ? (session.prospect_picked_problems ?? [])
-            : [],
+        picked: mine ? (session.prospect_picked_problems ?? []) : [],
+        contact: mine
+          ? maskContact(session.prospect_submitted_email, session.prospect_submitted_phone)
+          : null,
         readOnly,
       },
       { headers: { 'cache-control': 'no-store' } },
     );
+  }
   if (readOnly) return fail('answers_given', 409);
   if (!parsed?.success) return fail('invalid_request', 400);
 
   const answers = parsed.data;
   if (answers.problems) {
-    const allowed = await getProspectProblems(session.user_id, session.event_id);
+    const allowed = await getProspectProblems(session.user_id);
     if (answers.problems.some((choice) => !allowed.includes(choice)))
       return fail('invalid_problems', 400);
   }

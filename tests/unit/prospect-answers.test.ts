@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isProspectHolding,
+  maskContact,
   prospectAnswersSchema,
   normaliseProspectContact,
 } from '@/lib/domain/prospect-answers';
@@ -64,5 +65,16 @@ describe('prospect answer boundary', () => {
     ]) {
       expect(normaliseProspectContact(phone)).toBeNull();
     }
+  });
+});
+describe('maskContact', () => {
+  it('keeps the first letter and the domain of an email, never the rest', () => {
+    expect(maskContact('bella@example.test', null)).toBe('b•••@example.test');
+  });
+  it('keeps only the last three digits of a mobile', () => {
+    expect(maskContact(null, '+447700900123')).toBe('•••• ••• 123');
+  });
+  it('is null when nothing was left', () => {
+    expect(maskContact(null, null)).toBeNull();
   });
 });
