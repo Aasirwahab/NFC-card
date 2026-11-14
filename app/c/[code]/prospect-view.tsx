@@ -20,6 +20,7 @@ import { RemovalGate } from './removal-gate';
 import { Crafting } from './crafting';
 import { HeldWatcher } from './held-watcher';
 import { MadeWith } from './made-with';
+import { TabTitle } from './tab-title';
 
 /**
  * The prospect landing page (spec §16). THIS IS THE PRODUCT — everything else
@@ -311,6 +312,7 @@ export function Header({
 }) {
   return (
     <header className="flex items-center gap-3.5">
+      <TabTitle name={rep.fullName} />
       {rep.photoUrl ? (
         /*
          * A plain <img> on purpose. photo_url is an arbitrary URL the rep typed,
