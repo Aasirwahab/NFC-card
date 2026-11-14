@@ -55,6 +55,7 @@ export function OwnerCard({
               code={code}
               first={first}
               details={resolved.holding}
+              contactForm={rep.contactForm}
             >
               <div className={styles.holdActions}>
                 <SaveContact code={code} repName={first} primary />

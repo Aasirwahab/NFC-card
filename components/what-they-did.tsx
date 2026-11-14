@@ -1,4 +1,5 @@
 import { AnswerChatQuestion } from '@/components/answer-chat-question';
+import { parseContactFormAnswers, answerLine } from '@/lib/domain/contact-form';
 import { FollowupCard } from '@/components/followup-card';
 import { getBusinessProfile, getContactActivity, getProfile } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
@@ -37,7 +38,8 @@ export async function WhatTheyDid({
       | 'linkedin_url'
       | 'event_sequence_number'
       | 'colour_tag'
-    >;
+    > &
+    Partial<Pick<Row<'sessions'>, 'prospect_form_answers'>>;
   cardCode: string | null;
 }) {
   let loaded;
@@ -92,7 +94,7 @@ export async function WhatTheyDid({
     },
     activity.readAt,
   );
-  const requestedNote = Boolean(
+  const sharedDetails = Boolean(
     (session.prospect_submitted_email || session.prospect_submitted_phone) && !noteEmailed,
   );
   const channel = followupChannel(session);
@@ -112,7 +114,7 @@ export async function WhatTheyDid({
         },
         now,
         turns.at(-1)?.question,
-        requestedNote,
+        sharedDetails,
       )
     : null;
 
@@ -136,7 +138,7 @@ export async function WhatTheyDid({
       {session.prospect_submitted_email || session.prospect_submitted_phone ? (
         <div className="mt-5 text-sm wrap-anywhere">
           <h3 className="text-ink font-semibold">
-            {noteEmailed ? 'We emailed them their note' : 'Asked you to send their note'}
+            {noteEmailed ? 'We emailed them their note' : 'Shared their details'}
           </h3>
           {session.prospect_submitted_email ? (
             <p className="text-ink-2 mt-1">{session.prospect_submitted_email}</p>
@@ -144,6 +146,11 @@ export async function WhatTheyDid({
           {session.prospect_submitted_phone ? (
             <p className="text-ink-2 mt-1">{session.prospect_submitted_phone}</p>
           ) : null}
+          {parseContactFormAnswers(session.prospect_form_answers).map((answer, index) => (
+            <p key={index} className="text-ink-2 mt-2 whitespace-pre-wrap">
+              {answerLine(answer)}
+            </p>
+          ))}
         </div>
       ) : null}
 
@@ -223,11 +230,11 @@ export async function WhatTheyDid({
               pagePath: cardCode ? `/c/${cardCode}` : null,
               prospectName: session.prospect_name,
               prospectCompany: session.prospect_company,
-              prospectEmail: requestedNote
+              prospectEmail: sharedDetails
                 ? session.prospect_submitted_email
                 : session.prospect_email,
-              prospectPhone: requestedNote ? session.prospect_submitted_phone : null,
-              preferContact: requestedNote,
+              prospectPhone: sharedDetails ? session.prospect_submitted_phone : null,
+              preferContact: sharedDetails,
               linkedinUrl: session.linkedin_url,
               sequence: session.event_sequence_number,
               colour: session.colour_tag,

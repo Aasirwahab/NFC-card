@@ -113,21 +113,25 @@ describe('What they did on the contact page', () => {
         session: {
           ...session,
           prospect_email: 'saved@example.com',
+          prospect_form_answers: [{ label: 'Request <b>', value: '<script>A quote</script>' }],
           prospect_submitted_email: 'left@example.com',
           prospect_submitted_phone: '+447700900123',
         },
       }),
     );
-    expect(html).toContain('Asked you to send their note');
+    expect(html).toContain('Shared their details');
+    expect(html).toContain('Request &lt;b&gt;');
+    expect(html).toContain('&lt;script&gt;A quote&lt;/script&gt;');
+    expect(html).not.toContain('<script>A quote');
     expect(html).toContain('left@example.com');
     expect(html).toContain('+447700900123');
     expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({
       prospectEmail: 'left@example.com',
       prospectPhone: '+447700900123',
       preferContact: true,
-      signal: { label: 'Asked you to send their note', rank: 6 },
+      signal: { label: 'Shared their details', rank: 6 },
       draft:
-        "Hi Tom,\n\nHere is your note from our conversation.\n\nZaid\n\nReply stop and I won't write again.",
+        "Hi Tom,\n\nThanks for sharing your details after our conversation.\n\nZaid\n\nReply stop and I won't write again.",
     });
   });
 

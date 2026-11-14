@@ -22,7 +22,7 @@ export type DraftState =
   | 'sent'
   | 'replied'
   | 'asked-question'
-  | 'requested-note';
+  | 'shared-details';
 
 export const STOP_LINE = "Reply stop and I won't write again.";
 
@@ -59,7 +59,7 @@ function shorten(topic: string): string {
 
 /** One sentence per state for a LinkedIn note. `t` is the lower-cased problem, if any. */
 const SHORT: Record<
-  Exclude<DraftState, 'asked-question' | 'requested-note'>,
+  Exclude<DraftState, 'asked-question' | 'shared-details'>,
   (t: string | null) => string
 > = {
   'due-no-tap': (t) =>
@@ -86,7 +86,7 @@ const SHORT: Record<
 
 /** The body lines for an email, or anything without a LinkedIn note. */
 const LONG: Record<
-  Exclude<DraftState, 'asked-question' | 'requested-note'>,
+  Exclude<DraftState, 'asked-question' | 'shared-details'>,
   (t: string | null) => string[]
 > = {
   'due-no-tap': (t) => [
@@ -147,10 +147,16 @@ export function composeFollowupDraft(input: FollowupInput): string {
     : null;
   const from = input.businessName?.trim() ? `${me}, ${input.businessName.trim()}` : me;
 
-  if (state === 'requested-note') {
-    return [hello, '', 'Here is your note from our conversation.', '', from, '', STOP_LINE].join(
-      '\n',
-    );
+  if (state === 'shared-details') {
+    return [
+      hello,
+      '',
+      'Thanks for sharing your details after our conversation.',
+      '',
+      from,
+      '',
+      STOP_LINE,
+    ].join('\n');
   }
 
   if (state === 'asked-question') {

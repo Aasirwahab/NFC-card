@@ -226,28 +226,28 @@ export type Database = {
       };
       chat_messages: {
         Row: {
-          source_topics: string[];
           id: number;
           session_id: string;
           role: string;
           content: string;
           created_at: string;
+          source_topics: string[];
         };
         Insert: {
-          source_topics?: string[];
           id?: number;
           session_id: string;
           role: string;
           content: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Update: {
-          source_topics?: string[];
           id?: number;
           session_id?: string;
           role?: string;
           content?: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Relationships: [
           {
@@ -261,34 +261,34 @@ export type Database = {
       };
       chat_unanswered: {
         Row: {
-          handed_off: boolean;
-          saved_answer: string | null;
           id: number;
           session_id: string;
           user_id: string;
           question: string;
           created_at: string;
           resolved_at: string | null;
+          handed_off: boolean;
+          saved_answer: string | null;
         };
         Insert: {
-          handed_off?: boolean;
-          saved_answer?: string | null;
           id?: number;
           session_id: string;
           user_id: string;
           question: string;
           created_at?: string;
           resolved_at?: string | null;
-        };
-        Update: {
           handed_off?: boolean;
           saved_answer?: string | null;
+        };
+        Update: {
           id?: number;
           session_id?: string;
           user_id?: string;
           question?: string;
           created_at?: string;
           resolved_at?: string | null;
+          handed_off?: boolean;
+          saved_answer?: string | null;
         };
         Relationships: [
           {
@@ -646,7 +646,6 @@ export type Database = {
       };
       profiles: {
         Row: {
-          assistant_blocked_topics: string[];
           id: string;
           full_name: string;
           title: string | null;
@@ -665,9 +664,10 @@ export type Database = {
           pitch_hook: string | null;
           pitch_avoid: string | null;
           review_before_live: boolean;
+          contact_form: Json | null;
+          assistant_blocked_topics: string[];
         };
         Insert: {
-          assistant_blocked_topics?: string[];
           id: string;
           full_name: string;
           title?: string | null;
@@ -686,9 +686,10 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
         };
         Update: {
-          assistant_blocked_topics?: string[];
           id?: string;
           full_name?: string;
           title?: string | null;
@@ -707,6 +708,8 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
         };
         Relationships: [
           {
@@ -801,6 +804,7 @@ export type Database = {
           prospect_submitted_phone: string | null;
           prospect_consent_at: string | null;
           prospect_answer_token_hash: string | null;
+          prospect_form_answers: Json | null;
         };
         Insert: {
           id: string;
@@ -852,6 +856,7 @@ export type Database = {
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
           prospect_answer_token_hash?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Update: {
           id?: string;
@@ -903,6 +908,7 @@ export type Database = {
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
           prospect_answer_token_hash?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Relationships: [
           {
@@ -1119,6 +1125,16 @@ export type Database = {
         Args: { p_session_id: string; p_question: string; p_answer: string };
         Returns: undefined;
       };
+      answer_assistant_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
+        Returns: undefined;
+      };
       record_assistant_turn: {
         Args: {
           p_session_id: string;
@@ -1129,16 +1145,6 @@ export type Database = {
         Returns: undefined;
       };
       answer_chat_question: {
-        Args: {
-          p_id: number;
-          p_user_id: string;
-          p_public_question: string;
-          p_answer: string;
-          p_topic?: string;
-        };
-        Returns: undefined;
-      };
-      answer_assistant_question: {
         Args: {
           p_id: number;
           p_user_id: string;

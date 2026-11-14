@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { parseContactForm } from '@/lib/domain/contact-form';
 import { Check } from 'lucide-react';
 import styles from '@/app/ui-slice.module.css';
 import { publicProfileCheck } from '@/lib/domain/public-profile';
@@ -14,6 +15,7 @@ import { suggestedAssistantQuestions } from '@/lib/chat/settings';
 import { AssistantStudio } from '@/components/assistant-studio';
 import {
   BusinessForm,
+  ContactFormEditor,
   KnowledgeForm,
   PitchVoiceForm,
   PlaybookForm,
@@ -104,6 +106,10 @@ export default async function SettingsPage() {
       </div>
       <ProfileForm profile={profile} />
       <PitchVoiceForm profile={profile} />
+      <ContactFormEditor
+        config={parseContactForm(profile?.contact_form)}
+        first={profile?.full_name.trim().split(/\s+/)[0] || 'you'}
+      />
       <section className={styles.profileCheck} aria-labelledby="public-profile-heading">
         <h2 id="public-profile-heading" className={styles.sectionLabel}>
           Public profile check

@@ -105,15 +105,15 @@ export function followupDraft(
   identity: FollowupIdentity,
   _now: number,
   question?: string | null,
-  requestedNote = false,
+  sharedDetails = false,
 ): string | null {
   if (state === 'dropped' || state === 'replied' || state === 'sent') return null;
 
   return composeFollowupDraft({
     ...identity,
     problem: session.problems.find((p) => p.trim().length > 0) ?? null,
-    state: requestedNote
-      ? 'requested-note'
+    state: sharedDetails
+      ? 'shared-details'
       : question && (state === 'review' || state === 'opened-no-action' || state === 'due-no-tap')
         ? 'asked-question'
         : state === 'review'

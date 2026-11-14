@@ -6,6 +6,7 @@ import { getProspectProblems } from '@/lib/capture/prospect-problems';
 import { getRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
 import type { Update } from '@/lib/db/types';
+import { parseContactForm, validateContactFormAnswers } from '@/lib/domain/contact-form';
 import { REP_DEVICE_COOKIE } from '@/lib/domain/audience';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import {
@@ -23,7 +24,7 @@ type Context = { params: Promise<{ code: string }> };
 export const GET = (request: Request, context: Context) => answers(request, context, false);
 export const POST = (request: Request, context: Context) => answers(request, context, true);
 
-/** Only the first answering browser can edit; no response includes contact details. */
+/** Only the first answering browser can edit; contact is returned only as a masked hint. */
 async function answers(request: Request, context: Context, write: boolean) {
   const parsed = write ? prospectAnswersSchema.safeParse(await readJson(request)) : null;
   if (parsed && !parsed.success) return fail('invalid_request', 400);
@@ -62,7 +63,7 @@ async function answers(request: Request, context: Context, write: boolean) {
   const { data: session, error: sessionError } = await db
     .from('sessions')
     .select(
-      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems, prospect_submitted_email, prospect_submitted_phone',
+      'id, user_id, event_id, details_completed_at, first_viewed_at, prospect_answer_token_hash, prospect_picked_problems, prospect_submitted_email, prospect_submitted_phone, prospect_form_answers',
     )
     .eq('card_id', card.id)
     .eq('user_id', card.user_id)
@@ -82,8 +83,7 @@ async function answers(request: Request, context: Context, write: boolean) {
     session.prospect_answer_token_hash && session.prospect_answer_token_hash !== hash,
   );
   if (!write) {
-    // Only the browser holding the answer token ever sees anything of what was left, and
-    // never the full value: a masked hint is enough to know it was saved.
+    // Only the answering browser can read the snapshots. Contact stays masked.
     const mine = Boolean(hash && hash === session.prospect_answer_token_hash);
     return json(
       {
@@ -91,6 +91,7 @@ async function answers(request: Request, context: Context, write: boolean) {
         contact: mine
           ? maskContact(session.prospect_submitted_email, session.prospect_submitted_phone)
           : null,
+        answers: mine ? (session.prospect_form_answers ?? null) : null,
         readOnly,
       },
       { headers: { 'cache-control': 'no-store' } },
@@ -110,9 +111,23 @@ async function answers(request: Request, context: Context, write: boolean) {
   if (token) update.prospect_answer_token_hash = createHash('sha256').update(token).digest('hex');
   if (answers.problems !== undefined) update.prospect_picked_problems = answers.problems;
   if (answers.contact !== undefined) {
+    const { data: profile, error: profileError } = await db
+      .from('profiles')
+      .select('full_name, contact_form')
+      .eq('id', card.user_id)
+      .maybeSingle();
+    if (profileError || !profile) return fail('unavailable', 503);
+    const first = profile.full_name.trim().split(/\s+/)[0] || profile.full_name;
+    const validated = validateContactFormAnswers(
+      parseContactForm(profile.contact_form),
+      answers.answers ?? {},
+      first,
+    );
+    if (!validated.success) return fail('invalid_request', 400);
     const contact = normaliseProspectContact(answers.contact)!;
     update.prospect_submitted_email = contact.email;
     update.prospect_submitted_phone = contact.phone;
+    update.prospect_form_answers = validated.answers.length ? validated.answers : null;
     update.prospect_consent_at = new Date().toISOString();
   }
   let query = db
