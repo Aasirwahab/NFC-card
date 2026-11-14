@@ -101,12 +101,16 @@ describe('What they did on the contact page', () => {
         session: {
           ...session,
           prospect_email: 'saved@example.com',
+          prospect_form_answers: [{ label: 'Request <b>', value: '<script>A quote</script>' }],
           prospect_submitted_email: 'left@example.com',
           prospect_submitted_phone: '+447700900123',
         },
       }),
     );
     expect(html).toContain('Shared their details');
+    expect(html).toContain('Request &lt;b&gt;');
+    expect(html).toContain('&lt;script&gt;A quote&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
     expect(html).toContain('left@example.com');
     expect(html).toContain('+447700900123');
     expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({

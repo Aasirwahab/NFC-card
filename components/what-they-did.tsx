@@ -1,3 +1,4 @@
+import { parseContactFormAnswers, answerLine } from '@/lib/domain/contact-form';
 import { FollowupCard } from '@/components/followup-card';
 import { getBusinessProfile, getContactActivity, getProfile } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
@@ -36,7 +37,8 @@ export async function WhatTheyDid({
       | 'linkedin_url'
       | 'event_sequence_number'
       | 'colour_tag'
-    >;
+    > &
+    Partial<Pick<Row<'sessions'>, 'prospect_form_answers'>>;
   cardCode: string | null;
 }) {
   let loaded;
@@ -143,6 +145,11 @@ export async function WhatTheyDid({
           {session.prospect_submitted_phone ? (
             <p className="text-ink-2 mt-1">{session.prospect_submitted_phone}</p>
           ) : null}
+          {parseContactFormAnswers(session.prospect_form_answers).map((answer, index) => (
+            <p key={index} className="text-ink-2 mt-2 whitespace-pre-wrap">
+              {answerLine(answer)}
+            </p>
+          ))}
         </div>
       ) : null}
 

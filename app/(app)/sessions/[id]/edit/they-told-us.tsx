@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { parseContactFormAnswers, answerLine } from '@/lib/domain/contact-form';
+import type { Json } from '@/lib/db/types';
 import type { Niche } from '@/lib/db/rep';
 import {
   chipProblemsForAll,
@@ -21,7 +23,7 @@ type Answers = {
   prospect_picked_problems?: string[] | null;
   prospect_submitted_email?: string | null;
   prospect_submitted_phone?: string | null;
-  prospect_submitted_message?: string | null;
+  prospect_form_answers?: Json;
 };
 
 /** Add the owning area too: a tick whose chip is hidden would be dropped on save. */
@@ -173,11 +175,13 @@ export function TheyToldUs({
           );
         })}
       </ul>
-      {contacts.length > 0 && session.prospect_submitted_message ? (
-        <p className="text-ink-2 mt-2 text-sm wrap-anywhere whitespace-pre-wrap">
-          {session.prospect_submitted_message}
-        </p>
-      ) : null}
+      {contacts.length > 0
+        ? parseContactFormAnswers(session.prospect_form_answers).map((answer, index) => (
+            <p key={index} className="text-ink-2 mt-2 text-sm wrap-anywhere whitespace-pre-wrap">
+              {answerLine(answer)}
+            </p>
+          ))
+        : null}
     </section>
   );
 }

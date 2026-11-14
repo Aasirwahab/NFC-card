@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ProspectContactForm } from '@/components/prospect-contact-form';
+import { parseContactForm, type ContactForm } from '@/lib/domain/contact-form';
 import { Holding } from '@/app/c/[code]/holding';
 import { ApiError } from '@/lib/http/client';
 
@@ -54,9 +56,9 @@ vi.mock('@/lib/browser/landing-poll', () => ({
   },
 }));
 const details = { ready: true, problems: ['A', 'B'], picked: [], expiresAt: null };
-function render() {
+function render(contactForm?: ContactForm) {
   h.cursor = 0;
-  const tree = Holding({ code: 'ABCDEFGH', first: 'Sam', details });
+  const tree = Holding({ code: 'ABCDEFGH', first: 'Sam', details, contactForm });
   h.effects.splice(0).forEach((effect) => effect());
   return tree;
 }
@@ -64,6 +66,11 @@ function nodes(tree: unknown, type: string): ReactElement<Record<string, unknown
   if (!tree || typeof tree !== 'object') return [];
   if (Array.isArray(tree)) return tree.flatMap((child) => nodes(child, type));
   const element = tree as ReactElement<{ children?: unknown }>;
+  if (element.type === ProspectContactForm)
+    return nodes(
+      ProspectContactForm(element.props as Parameters<typeof ProspectContactForm>[0]),
+      type,
+    );
   return [
     ...(element.type === type ? [element as ReactElement<Record<string, unknown>>] : []),
     ...nodes(element.props?.children, type),
@@ -133,7 +140,7 @@ describe('holding page races', () => {
     expect(h.send).toHaveBeenCalledWith('/api/landing/ABCDEFGH/answers', 'POST', {
       contact: 'me@example.com',
       consent: true,
-      message: '',
+      answers: {},
     });
     expect(h.poll!.onStatus('working')).toBe(true);
     expect(h.refresh).toHaveBeenCalledTimes(1);
@@ -147,7 +154,7 @@ describe('holding page races', () => {
       picked: [],
       readOnly: false,
       contact: 'm•••@example.com',
-      message: 'A quote please',
+      answers: [{ label: 'What would you like from Sam?', value: 'A quote please' }],
     });
     tree = render();
     event(tree, 'form', 'onSubmit', { preventDefault() {} });
@@ -155,7 +162,7 @@ describe('holding page races', () => {
     expect(h.send).toHaveBeenCalledWith('/api/landing/ABCDEFGH/answers', 'POST', {
       contact: 'me@example.com',
       consent: true,
-      message: 'A quote please',
+      answers: { message: 'A quote please' },
     });
     tree = render();
     expect(JSON.stringify(tree)).toContain('A quote please');
@@ -180,6 +187,123 @@ describe('holding page races', () => {
       readOnly: true,
     });
     expect(h.refresh).not.toHaveBeenCalled();
+  });
+  it.each(['name', 'company', 'jobTitle', 'question:when'])(
+    'keeps a %s draft through polling and late saved answers',
+    async (key) => {
+      const config = parseContactForm({
+        fields: {
+          name: { ask: true, required: false },
+          company: { ask: true, required: false },
+          jobTitle: { ask: true, required: false },
+        },
+        questions: [
+          {
+            id: 'when',
+            label: 'When?',
+            type: 'choice',
+            options: ['Now', 'Later'],
+            required: false,
+          },
+        ],
+      });
+      let resolve!: (answers: unknown) => void;
+      h.get.mockReturnValueOnce(
+        new Promise((done) => {
+          resolve = done;
+        }),
+      );
+      let tree = render(config);
+      const input = nodes(tree, 'input').find((el) => el.props.name === key)!;
+      (input.props.onChange as (e: unknown) => void)({
+        target: { value: key === 'question:when' ? 'Now' : 'Alex' },
+      });
+      resolve({ picked: [], readOnly: false, contact: 'b•••@example.test', answers: [] });
+      await flush();
+      expect(h.poll!.onStatus('working')).toBe(false);
+      h.poll!.onTimeout();
+      tree = render(config);
+      expect(nodes(tree, 'input').some((el) => el.props.name === key)).toBe(true);
+      expect(h.refresh).not.toHaveBeenCalled();
+    },
+  );
+  it('hides the contact box when disabled while retaining problem chips', async () => {
+    render({ ...parseContactForm(null), enabled: false });
+    await flush();
+    const tree = render({ ...parseContactForm(null), enabled: false });
+    expect(nodes(tree, 'form')).toHaveLength(0);
+    expect(nodes(tree, 'fieldset')).toHaveLength(1);
+  });
+  it('does not copy one saved answer into multiple questions with the same label on Change', async () => {
+    const config = parseContactForm({
+      questions: ['a', 'b'].map((id) => ({
+        id,
+        label: 'Same label',
+        type: 'text',
+        options: [],
+        required: false,
+      })),
+    });
+    h.get.mockResolvedValue({
+      picked: [],
+      readOnly: false,
+      contact: 'b•••@example.test',
+      answers: [
+        { label: 'Same label', value: 'First' },
+        { label: 'Same label', value: 'Second' },
+      ],
+    });
+    render(config);
+    await flush();
+    const change = nodes(render(config), 'button').find((b) => b.props.children === 'Change')!;
+    (change.props.onClick as () => void)();
+    const inputs = nodes(render(config), 'input').filter((el) =>
+      String(el.props.name).startsWith('question:'),
+    );
+    expect(inputs.map((el) => el.props.value)).toEqual(['', '']);
+  });
+  it('clears an optional choice draft and lets polling refresh afterwards', async () => {
+    const config = parseContactForm({
+      questions: [
+        { id: 'when', label: 'When?', type: 'choice', options: ['Now', 'Later'], required: false },
+      ],
+    });
+    let tree = render(config);
+    await flush();
+    const radio = nodes(tree, 'input').find((el) => el.props.type === 'radio')!;
+    (radio.props.onChange as () => void)();
+    tree = render(config);
+    expect(h.poll!.onStatus('working')).toBe(false);
+    const clear = nodes(tree, 'button').find((el) => el.props.children === 'Clear answer')!;
+    (clear.props.onClick as () => void)();
+    expect(h.poll!.onStatus('working')).toBe(true);
+  });
+  it('restores a saved choice whose display text includes the rep name', async () => {
+    const config = parseContactForm({
+      questions: [
+        {
+          id: 'reply',
+          label: 'Reply?',
+          type: 'choice',
+          options: ['Ask {first}', 'No thanks'],
+          required: false,
+        },
+      ],
+    });
+    h.get.mockResolvedValue({
+      picked: [],
+      readOnly: false,
+      contact: 'b•••@example.test',
+      answers: [{ label: 'Reply?', value: 'Ask Sam' }],
+    });
+    render(config);
+    await flush();
+    const change = nodes(render(config), 'button').find((b) => b.props.children === 'Change')!;
+    (change.props.onClick as () => void)();
+    const selected = nodes(render(config), 'input').find(
+      (el) => el.props.type === 'radio' && el.props.checked,
+    )!;
+    expect(selected.props.value).toBe('Ask {first}');
   });
   it('keeps the rejected draft copyable until the prospect opens the ready note', async () => {
     let tree = render();

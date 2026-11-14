@@ -52,7 +52,10 @@ describe('using what the prospect told us', () => {
         session: {
           prospect_picked_problems: ['Missed calls'],
           prospect_submitted_email: 'person@example.test',
-          prospect_submitted_message: '<script>A quote</script>',
+          prospect_form_answers: [
+            { label: 'Request <b>', value: '<script>A quote</script>' },
+            { label: 'Timing', value: 'Next week' },
+          ],
         },
         niches,
         fallbackProblems: [],
@@ -62,6 +65,9 @@ describe('using what the prospect told us', () => {
       }),
     );
     expect(html).toContain('&lt;script&gt;A quote&lt;/script&gt;');
+    expect(html).toContain('Request &lt;b&gt;');
+    expect(html).toContain('Timing');
+    expect(html).toContain('Next week');
     expect(html).not.toContain('<script>');
     expect(html).toContain('They told us');
     expect(html).toContain('Missed calls');

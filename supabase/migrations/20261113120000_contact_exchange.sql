@@ -1,5 +1,6 @@
 -- Rollback: restore automatic delivery only with the matching application rollback.
--- alter table public.sessions drop column prospect_submitted_message;
+-- alter table public.sessions drop column prospect_form_answers;
+-- alter table public.profiles drop column contact_form;
 -- create function public.queue_prospect_note_email() returns trigger
 -- language plpgsql
 -- security definer
@@ -44,12 +45,17 @@
 --   after update of review_before_live on public.profiles
 --   for each row execute function public.queue_prospect_note_email();
 
+-- Rep-configurable contact forms keep immutable answer label snapshots.
 -- Sharing contact details is optional and authorises a reply from the rep, not an
 -- automatic email of their note. Keep explicit Email me this page requests separate.
--- Rollback cannot recover deleted queued jobs or messages.
+-- Rollback cannot recover deleted queued jobs, form configurations or answers.
+alter table public.profiles
+  add column contact_form jsonb
+  check (jsonb_typeof(contact_form) = 'object' and pg_column_size(contact_form) < 8192);
+
 alter table public.sessions
-  add column prospect_submitted_message text
-  check (char_length(prospect_submitted_message) <= 300);
+  add column prospect_form_answers jsonb
+  check (jsonb_typeof(prospect_form_answers) = 'array' and pg_column_size(prospect_form_answers) < 8192);
 
 drop trigger if exists queue_prospect_note_email on public.sessions;
 drop trigger if exists queue_prospect_note_email on public.profiles;

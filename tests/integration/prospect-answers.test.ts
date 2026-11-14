@@ -27,7 +27,7 @@ async function contact(withAnswers = true) {
           set prospect_picked_problems = $1,
               prospect_submitted_email = 'prospect@example.com',
               prospect_submitted_phone = '+447700900123',
-              prospect_submitted_message = 'A quote please',
+              prospect_form_answers = '[{"label":"Request","value":"A quote please"}]'::jsonb,
               prospect_consent_at = now(),
               last_viewed_at = now(),
               prospect_answer_token_hash = 'hash'
@@ -43,7 +43,7 @@ describe('prospect answer storage and privacy', () => {
     const { sessionId } = await contact(false);
     const { rows } = await db.query(
       `select prospect_picked_problems, prospect_submitted_email,
-              prospect_submitted_phone, prospect_submitted_message, prospect_consent_at, prospect_answer_token_hash
+              prospect_submitted_phone, prospect_form_answers, prospect_consent_at, prospect_answer_token_hash
          from public.sessions where id = $1`,
       [sessionId],
     );
@@ -51,24 +51,42 @@ describe('prospect answer storage and privacy', () => {
       prospect_picked_problems: null,
       prospect_submitted_email: null,
       prospect_submitted_phone: null,
-      prospect_submitted_message: null,
+      prospect_form_answers: null,
       prospect_consent_at: null,
       prospect_answer_token_hash: null,
     });
   });
 
-  it('enforces the message length in the database', async () => {
-    const { sessionId } = await contact();
-    await db.query('update public.sessions set prospect_submitted_message = $1 where id = $2', [
-      'x'.repeat(300),
-      sessionId,
+  it('keeps profile config nullable and enforces JSON shapes and size guards', async () => {
+    const { sessionId, userId } = await contact();
+    expect(
+      (await db.query('select contact_form from public.profiles where id = $1', [userId])).rows,
+    ).toEqual([{ contact_form: null }]);
+    await db.query('update public.profiles set contact_form = $1::jsonb where id = $2', [
+      JSON.stringify({ enabled: true }),
+      userId,
     ]);
-    await expect(
-      db.query('update public.sessions set prospect_submitted_message = $1 where id = $2', [
-        'x'.repeat(301),
-        sessionId,
-      ]),
-    ).rejects.toThrow(/check constraint/);
+    for (const [table, column, id] of [
+      ['profiles', 'contact_form', userId],
+      ['sessions', 'prospect_form_answers', sessionId],
+    ]) {
+      const invalidShape = table === 'profiles' ? [] : {};
+      await expect(
+        db.query(`update public.${table} set ${column} = $1::jsonb where id = $2`, [
+          JSON.stringify(invalidShape),
+          id,
+        ]),
+      ).rejects.toThrow(/check constraint/);
+      const large = Array.from({ length: 1000 }, () => crypto.randomUUID()).join('');
+      const oversized =
+        table === 'profiles' ? { title: large } : [{ label: 'Request', value: large }];
+      await expect(
+        db.query(`update public.${table} set ${column} = $1::jsonb where id = $2`, [
+          JSON.stringify(oversized),
+          id,
+        ]),
+      ).rejects.toThrow(/check constraint/);
+    }
   });
   it('timestamps every counted prospect view while keeping the first view and source', async () => {
     const { sessionId } = await contact(false);

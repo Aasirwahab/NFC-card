@@ -655,6 +655,7 @@ export type Database = {
           pitch_hook: string | null;
           pitch_avoid: string | null;
           review_before_live: boolean;
+          contact_form: Json | null;
         };
         Insert: {
           id: string;
@@ -675,6 +676,7 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
         };
         Update: {
           id?: string;
@@ -695,6 +697,7 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
         };
         Relationships: [
           {
@@ -789,7 +792,7 @@ export type Database = {
           prospect_submitted_phone: string | null;
           prospect_consent_at: string | null;
           prospect_answer_token_hash: string | null;
-          prospect_submitted_message: string | null;
+          prospect_form_answers: Json | null;
         };
         Insert: {
           id: string;
@@ -841,7 +844,7 @@ export type Database = {
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
           prospect_answer_token_hash?: string | null;
-          prospect_submitted_message?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Update: {
           id?: string;
@@ -893,7 +896,7 @@ export type Database = {
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
           prospect_answer_token_hash?: string | null;
-          prospect_submitted_message?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Relationships: [
           {

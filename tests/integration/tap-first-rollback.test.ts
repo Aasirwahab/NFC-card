@@ -29,8 +29,15 @@ it('rolls back tap first in the documented order and restores the previous follo
   const { rows } = await db.query(`select column_name from information_schema.columns
     where table_schema = 'public' and table_name = 'sessions'
       and (column_name like 'prospect_submitted_%' or column_name in
-        ('last_viewed_at', 'prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
+        ('prospect_form_answers', 'last_viewed_at', 'prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
   expect(rows).toEqual([]);
+  expect(
+    (
+      await db.query(
+        "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'contact_form'",
+      )
+    ).rows,
+  ).toEqual([]);
   const fixture = await seedFixture(db, { cards: 1 });
   const id = crypto.randomUUID();
   await db.query(`select * from public.register_card($1, $2, $3, $4, 'Tom', null)`, [

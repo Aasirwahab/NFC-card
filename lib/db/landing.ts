@@ -1,4 +1,5 @@
 import 'server-only';
+import { parseContactForm, type ContactForm } from '@/lib/domain/contact-form';
 import { decideAudience } from '@/lib/domain/audience';
 import { heldForReview, viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
@@ -93,6 +94,7 @@ export type RepSession = Pick<
 
 export type RepProfile = {
   fullName: string;
+  contactForm?: ContactForm;
   title: string | null;
   photoUrl: string | null;
   /** The rep's Cal.com event (§19.1). Null: no booking embed, and no dead button. */
@@ -345,7 +347,9 @@ async function repFace(
   const [{ data: profile }, { data: business }] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, title, photo_url, booking_url, linkedin_url, review_before_live')
+      .select(
+        'full_name, title, photo_url, booking_url, linkedin_url, review_before_live, contact_form',
+      )
       .eq('id', userId)
       .maybeSingle(),
     db
@@ -360,6 +364,7 @@ async function repFace(
   return {
     rep: {
       fullName: profile.full_name,
+      contactForm: parseContactForm(profile.contact_form),
       title: profile.title,
       photoUrl: profile.photo_url,
       bookingUrl: profile.booking_url,

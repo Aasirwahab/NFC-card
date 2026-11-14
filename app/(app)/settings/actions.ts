@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { contactFormSchema } from '@/lib/domain/contact-form';
 import { requireRep } from '@/lib/db/server';
 import { blank, profileSchema } from '@/lib/schemas/profile';
 import { checkBookingLink } from '@/lib/booking/check';
@@ -54,6 +55,31 @@ export async function savePitchVoiceAction(
   if (error) return { error: 'Could not save your pitch voice.' };
   if (!data?.length) return { error: 'Save your name first, then set your voice.' };
 
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
+/** Each rep owns the optional form shown before their note is ready. */
+export async function saveContactFormAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  let config: unknown;
+  try {
+    config = JSON.parse(String(formData.get('contact_form') ?? ''));
+  } catch {
+    return { error: 'Check your contact form and try again.' };
+  }
+  const parsed = contactFormSchema.safeParse(config);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { data, error } = await serviceClient()
+    .from('profiles')
+    .update({ contact_form: parsed.data })
+    .eq('id', rep.userId)
+    .select('id');
+  if (error) return { error: 'Could not save your contact form.' };
+  if (!data?.length) return { error: 'Save your name first, then set your contact form.' };
   revalidatePath('/settings');
   return { saved: true };
 }
