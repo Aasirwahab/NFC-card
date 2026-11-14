@@ -68,4 +68,28 @@ describe('prospect contact form rendering', () => {
       ),
     ).toBe('');
   });
+
+  it('lets phones autofill name, company and job title, but not the combined contact field', () => {
+    const config = parseContactForm({
+      fields: {
+        name: { ask: true, required: false },
+        company: { ask: true, required: false },
+        jobTitle: { ask: true, required: false },
+        message: { ask: false, required: false },
+      },
+    });
+    const html = renderToStaticMarkup(
+      createElement(ProspectContactForm, { config, first: 'Sam', values: {} }),
+    );
+    expect(html).toContain('autoComplete="name"');
+    expect(html).toContain('autoComplete="organization"');
+    expect(html).toContain('autoComplete="organization-title"');
+    expect(html).toMatch(
+      /id="prospect-contact"[^>]*autoComplete="off"|autoComplete="off"[^>]*id="prospect-contact"/,
+    );
+    const preview = renderToStaticMarkup(
+      createElement(ProspectContactForm, { config, first: 'Sam', values: {}, preview: true }),
+    );
+    expect(preview).not.toContain('autoComplete="name"');
+  });
 });

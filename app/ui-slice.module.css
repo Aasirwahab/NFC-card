@@ -1479,7 +1479,8 @@
   height: 52px;
   margin-top: 8px;
   padding: 0 16px;
-  border: 1.5px solid var(--color-line);
+  /* WCAG 1.4.11: a field's outline needs 3:1; --color-line alone is about 1.5:1. */
+  border: 1.5px solid color-mix(in srgb, var(--color-ink-3) 70%, var(--color-line));
   border-radius: 14px;
   background: var(--color-surface);
   color: var(--color-ink);
