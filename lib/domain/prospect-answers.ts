@@ -26,13 +26,13 @@ export function normaliseProspectContact(
   return { email: null, phone: `+44${comparable('phone', phone)}` };
 }
 
-/** "b•••@example.test" or "•••• ••• 123": enough to recognise it, never enough to read it. PURE. */
+/** "b•••@example.test" or "•••• ••• 23": enough to recognise it, never enough to read it. PURE. */
 export function maskContact(email: string | null, phone: string | null): string | null {
   if (email) {
     const at = email.lastIndexOf('@');
-    return at > 0 ? `${email[0]}•••${email.slice(at)}` : null;
+    return at > 0 ? `${at > 2 ? email[0] : ''}•••${email.slice(at)}` : null;
   }
-  return phone && phone.length >= 3 ? `•••• ••• ${phone.slice(-3)}` : null;
+  return phone && phone.length >= 3 ? `•••• ••• ${phone.slice(-2)}` : null;
 }
 
 export const prospectAnswersSchema = z

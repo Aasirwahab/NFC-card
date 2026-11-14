@@ -71,8 +71,14 @@ describe('maskContact', () => {
   it('keeps the first letter and the domain of an email, never the rest', () => {
     expect(maskContact('bella@example.test', null)).toBe('b•••@example.test');
   });
-  it('keeps only the last three digits of a mobile', () => {
-    expect(maskContact(null, '+447700900123')).toBe('•••• ••• 123');
+  it.each(['a@example.com', 'ab@example.com'])(
+    'hides the entire short local part in %s',
+    (email) => {
+      expect(maskContact(email, null)).toBe('•••@example.com');
+    },
+  );
+  it('keeps only the last two digits of a mobile', () => {
+    expect(maskContact(null, '+447700900123')).toBe('•••• ••• 23');
   });
   it('is null when nothing was left', () => {
     expect(maskContact(null, null)).toBeNull();

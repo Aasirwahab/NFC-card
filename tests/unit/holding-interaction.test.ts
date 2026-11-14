@@ -88,6 +88,35 @@ beforeEach(() => {
 });
 
 describe('holding page races', () => {
+  it.each(['', 'draft@example.com'])(
+    'defers a late saved answer while focused with %s, until blurred and empty',
+    async (draft) => {
+      let resolve!: (answers: unknown) => void;
+      h.get.mockReturnValueOnce(
+        new Promise((done) => {
+          resolve = done;
+        }),
+      );
+      let tree = render();
+      event(tree, 'input', 'onFocus');
+      event(tree, 'input', 'onChange', { target: { value: draft } });
+      resolve({ picked: [], readOnly: false, contact: 'b•••@example.test' });
+      await flush();
+      tree = render();
+      expect(nodes(tree, 'input')[0]?.props.value).toBe(draft);
+      event(tree, 'input', 'onBlur');
+      tree = render();
+      if (draft) {
+        expect(nodes(tree, 'input')[0]?.props.value).toBe(draft);
+        event(tree, 'input', 'onChange', { target: { value: '' } });
+        tree = render();
+      }
+      expect(nodes(tree, 'input')).toHaveLength(0);
+      expect(JSON.stringify(nodes(tree, 'p').map((p) => p.props.children))).toContain(
+        'b•••@example.test',
+      );
+    },
+  );
   it('keeps focused or unsent contact text when the rep saves, then permits submission', async () => {
     let tree = render();
     await flush();

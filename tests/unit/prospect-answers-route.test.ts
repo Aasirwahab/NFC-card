@@ -193,10 +193,10 @@ describe('prospect answer writes', () => {
     mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
     const read = () =>
       GET(new Request('https://example.com'), { params: Promise.resolve({ code: 'ABCDEFGH' }) });
-    expect((await (await read()).json()).contact).toBe('•••• ••• 123');
+    expect((await (await read()).json()).contact).toBe('•••• ••• 23');
     mocks.tokenCookie = null;
     const other = JSON.stringify(await (await read()).json());
-    expect(other).not.toMatch(/123|example/);
+    expect(other).not.toMatch(/23|example/);
   });
   it('rejects a problem outside this contact event list', async () => {
     expect((await submit({ problems: ['Injected topic'] })).status).toBe(400);

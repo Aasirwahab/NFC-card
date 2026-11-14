@@ -51,6 +51,14 @@ export function Holding({
   const [noteReady, setNoteReady] = useState(false);
   const editing = useRef({ contact: '', focused: false, busy: false });
 
+  const pendingSaved = useRef<string | null>(null);
+  function applyPendingSaved() {
+    if (!editing.current.focused && !editing.current.contact && pendingSaved.current) {
+      setSaved(pendingSaved.current);
+      pendingSaved.current = null;
+    }
+  }
+
   const recheck = useRef<() => Promise<void>>(async () => {});
 
   const answersUrl = `/api/landing/${encodeURIComponent(code)}/answers`;
@@ -62,7 +70,9 @@ export function Holding({
           if (cancelled || editing.current.busy) return;
           setPicked(keepVisible(answers.picked, details.problems).slice(0, 2));
           setReadOnly(answers.readOnly);
-          setSaved(answers.contact ?? null);
+          if (editing.current.focused || editing.current.contact) {
+            pendingSaved.current = answers.contact ?? null;
+          } else setSaved(answers.contact ?? null);
         })
         .catch(() => {})
         .finally(() => {
@@ -143,6 +153,7 @@ export function Holding({
       await apiSend(`/api/landing/${encodeURIComponent(code)}/answers`, 'POST', body);
       if ('problems' in body) setPicked(body.problems);
       else {
+        pendingSaved.current = null;
         editing.current.contact = '';
         setContact('');
         setChanging(false);
@@ -274,12 +285,16 @@ export function Holding({
                   }}
                   onBlur={() => {
                     editing.current.focused = false;
+                    applyPendingSaved();
                     void recheck.current();
                   }}
                   onChange={(event) => {
                     editing.current.contact = event.target.value;
                     setContact(event.target.value);
-                    if (!event.target.value) void recheck.current();
+                    if (!event.target.value) {
+                      applyPendingSaved();
+                      void recheck.current();
+                    }
                   }}
                   className={styles.holdInput}
                 />

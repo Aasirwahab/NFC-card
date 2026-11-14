@@ -25,6 +25,20 @@ const row: FollowupRow = {
 };
 
 describe('follow-up send control', () => {
+  it('shows repeat opens alongside the follow-up reason', () => {
+    const html = renderToStaticMarkup(
+      createElement(FollowupCard, {
+        row: {
+          ...row,
+          state: 'opened-no-action',
+          reason: 'No meeting booked, met today',
+          signal: { label: 'Opened 3 times, last today', rank: 1 },
+        },
+      }),
+    );
+    expect(html).toContain('Opened 3 times, last today');
+    expect(html).toContain('No meeting booked, met today');
+  });
   it.each(['replied', 'dropped', 'sent', 'booked'] as const)(
     'renders no Send control for a %s contact without a draft',
     (state) => {

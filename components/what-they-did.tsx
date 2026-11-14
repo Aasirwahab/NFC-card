@@ -67,6 +67,18 @@ export async function WhatTheyDid({
   const turns = chatTurns(activity.chat_messages, activity.chat_unanswered);
   const events = activity.session_events.map((e) => ({ ...e, session_id: session.id }));
   const noteEmailed = events.some((e) => e.type === 'prospect_note_emailed');
+  const buttonPresses = (
+    [
+      ['booking_opened', 'Opened the booking page'],
+      ['linkedin_opened', 'Pressed LinkedIn'],
+      ['page_emailed', 'Emailed the page'],
+    ] as const
+  ).flatMap(([type, label]) => {
+    const count =
+      events.filter((e) => e.type === type).length -
+      (type === 'page_emailed' && noteEmailed ? 1 : 0);
+    return count > 0 ? [{ type, label, count }] : [];
+  });
   const signal = strongestSignal(
     {
       viewCount: activity.view_count,
@@ -135,26 +147,17 @@ export async function WhatTheyDid({
       ) : null}
 
       <h3 className="text-ink mt-5 text-sm font-semibold">Buttons pressed</h3>
-      <ul className="text-ink-2 mt-2 space-y-1 text-sm">
-        {(
-          [
-            ['booking_opened', 'Opened the booking page'],
-            ['linkedin_opened', 'Pressed LinkedIn'],
-            ['page_emailed', 'Emailed the page'],
-          ] as const
-        ).map(([type, label]) => {
-          const count = Math.max(
-            0,
-            events.filter((e) => e.type === type).length -
-              (type === 'page_emailed' && noteEmailed ? 1 : 0),
-          );
-          return (
+      {buttonPresses.length ? (
+        <ul className="text-ink-2 mt-2 space-y-1 text-sm">
+          {buttonPresses.map(({ type, label, count }) => (
             <li key={type}>
-              {label}: {count === 0 ? 'not recorded' : `${count} ${count === 1 ? 'time' : 'times'}`}
+              {label}: {count} {count === 1 ? 'time' : 'times'}
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-ink-3 mt-2 text-sm">No buttons pressed yet.</p>
+      )}
 
       <h3 className="text-ink mt-5 text-sm font-semibold">Their chat</h3>
       {turns.length ? (

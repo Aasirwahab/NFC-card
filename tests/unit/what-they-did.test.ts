@@ -60,7 +60,10 @@ describe('What they did on the contact page', () => {
     expect(mocks.activity).toHaveBeenCalledWith('rep', 'contact');
     expect(html).toContain('Opened 3 times');
     expect(html).not.toContain('Last opened');
-    expect(html).toContain('Opened the booking page');
+    expect(html).toContain('Opened the booking page: 1 time');
+    expect(html).not.toContain('Pressed LinkedIn');
+    expect(html).not.toContain('Emailed the page');
+    expect(html).not.toContain('No buttons pressed yet.');
     expect(html).toContain('Please ask Zaid.');
     expect(html).toContain('Chat could not answer fully.');
     expect(html).toContain('&lt;script&gt;Price?&lt;/script&gt;');
@@ -87,6 +90,7 @@ describe('What they did on the contact page', () => {
       'Last opened <time dateTime="2026-11-13T14:02:00Z">today at 14:02</time>',
     );
     expect(mocks.followup.mock.calls[0]![0].row.signal.label).toBe('Opened 3 times, last today');
+    expect(html).toContain('No buttons pressed yet.');
   });
 
   it('uses the contact they left when they asked for their note', async () => {
@@ -155,7 +159,10 @@ describe('What they did on the contact page', () => {
       }),
     );
     expect(html).toContain('We emailed them their note');
-    expect(html).toContain('Emailed the page: not recorded');
+    expect(html).toContain('No buttons pressed yet.');
+    expect(html).not.toContain('Emailed the page');
+    expect(html).not.toContain('Opened the booking page');
+    expect(html).not.toContain('Pressed LinkedIn');
     expect(mocks.followup.mock.calls[0]![0].row.signal.rank).toBe(1);
   });
 
