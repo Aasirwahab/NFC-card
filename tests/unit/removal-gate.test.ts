@@ -7,7 +7,7 @@ import { RemovalGate, RemovedContext } from '@/app/c/[code]/removal-gate';
 const h = vi.hoisted(() => ({ removed: false }));
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
-  useState: (initial: boolean) => [h.removed, (value: boolean) => (h.removed = value)],
+  useState: () => [h.removed, (value: boolean) => (h.removed = value)],
 }));
 
 describe('removing details replaces the whole page', () => {
