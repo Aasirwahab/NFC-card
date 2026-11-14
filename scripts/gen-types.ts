@@ -89,6 +89,23 @@ const FUNCTIONS = `    {
         Args: { p_session_id: string; p_user_id: string };
         Returns: boolean;
       };
+      replace_prospect_request: {
+        Args: {
+          p_session_id: string;
+          p_kind: string;
+          p_channel: string;
+          p_contact_value: string;
+          p_best_time: string | null;
+          p_consent_version: string;
+          p_requester_token_hash: string;
+          p_answer_token_hash: string | null;
+        };
+        Returns: Database['public']['Tables']['prospect_requests']['Row'];
+      };
+      mark_prospect_request_done: {
+        Args: { p_session_id: string; p_request_id: string; p_user_id: string };
+        Returns: boolean;
+      };
       delete_session: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: boolean;
@@ -335,6 +352,7 @@ async function main() {
              select 1 from pg_index i
               where i.indrelid = fk.conrelid
                 and i.indisunique
+                and i.indpred is null
                 and i.indkey::int2[] @> fk.conkey
                 and fk.conkey @> i.indkey::int2[]
            ) as is_one_to_one

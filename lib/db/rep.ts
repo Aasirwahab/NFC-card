@@ -149,10 +149,15 @@ export async function listSessions(
 export async function getSessionForRep(
   userId: string,
   sessionId: string,
-): Promise<Row<'sessions'> | null> {
+): Promise<
+  | (Row<'sessions'> & {
+      prospect_requests: Pick<Row<'prospect_requests'>, 'status' | 'created_at' | 'done_at'>[];
+    })
+  | null
+> {
   const { data } = await serviceClient()
     .from('sessions')
-    .select('*')
+    .select('*, prospect_requests(status, created_at, done_at)')
     .eq('user_id', userId)
     .eq('id', sessionId)
     .maybeSingle();
@@ -229,7 +234,7 @@ export async function listFollowups(
   const { data: sessions } = await db
     .from('sessions')
     .select(
-      'id, status, details_completed_at, registered_at, first_viewed_at, last_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, prospect_submitted_email, prospect_submitted_phone, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
+      'id, status, details_completed_at, registered_at, first_viewed_at, last_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, prospect_submitted_email, prospect_submitted_phone, event_sequence_number, colour_tag, cards(code), prospect_requests(status, created_at, done_at), session_events(type), bookings(session_id, status), chat_messages(content)',
     )
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -256,7 +261,7 @@ export async function listFollowups(
     const question = s.chat_messages[0]?.content;
     if (question) events.push({ session_id: s.id, type: 'chat_turn' });
     const state = followupState(s, events, s.bookings, now);
-    if (!state) return [];
+    if (!state || state === 'request-open') return []; // Explicit requests have their own live row.
     const requestedNote = Boolean(
       (s.prospect_submitted_email || s.prospect_submitted_phone) &&
       !events.some((e) => e.type === 'prospect_note_emailed'),
