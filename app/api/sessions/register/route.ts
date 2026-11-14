@@ -47,6 +47,8 @@ export const POST = withRep(async (rep, request) => {
 
   if (error) {
     const message = error.message ?? '';
+    if (message.includes('screen_qr_expired')) return fail('screen_qr_expired', 409);
+    if (message.includes('screen_qr_not_scanned')) return fail('screen_qr_not_scanned', 409);
 
     if (message.includes('card_not_found') || message.includes('event_not_found')) {
       // One response for both: a rep who mistypes a code and a rep whose event

@@ -39,6 +39,8 @@ export const POST = withRep(async (rep, request) => {
 
   if (error) {
     const message = error.message ?? '';
+    if (message.includes('screen_qr_expired')) return fail('screen_qr_expired', 409);
+    if (message.includes('screen_qr_not_scanned')) return fail('screen_qr_not_scanned', 409);
     if (message.includes('card_not_found')) return fail('card_not_found', 404);
 
     if (message.includes('card_already_assigned')) {

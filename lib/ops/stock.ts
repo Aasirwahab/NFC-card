@@ -4,6 +4,7 @@ export type CardRow = {
   status: string;
   written_at: string | null;
   verified_at: string | null;
+  screen_issued_at?: string | null;
 };
 
 export type Stock = {
@@ -14,17 +15,20 @@ export type Stock = {
   needsWriting: number;
   /** Written but not yet checked with a tap. */
   needsVerifying: number;
+  screenIssued: number;
 };
 
 export function emptyStock(): Stock {
-  return { inStock: 0, handedOut: 0, lost: 0, needsWriting: 0, needsVerifying: 0 };
+  return { inStock: 0, handedOut: 0, lost: 0, needsWriting: 0, needsVerifying: 0, screenIssued: 0 };
 }
 
 export function stockByUser(cards: readonly CardRow[]): Map<string, Stock> {
   const byUser = new Map<string, Stock>();
   for (const card of cards) {
     const stock = byUser.get(card.user_id) ?? emptyStock();
-    if (card.status === 'available') {
+    if (card.screen_issued_at) {
+      stock.screenIssued += 1;
+    } else if (card.status === 'available') {
       stock.inStock += 1;
       if (!card.written_at && !card.verified_at) stock.needsWriting += 1;
       else if (!card.verified_at) stock.needsVerifying += 1;
@@ -60,6 +64,7 @@ export function describeCard(card: {
   status: string;
   written_at: string | null;
   verified_at: string | null;
+  screen_issued_at?: string | null;
 }): { label: string; detail: string; tone: 'ok' | 'wait' | 'off' } {
   if (card.status === 'voided') {
     return {
@@ -70,6 +75,13 @@ export function describeCard(card: {
   }
   if (card.status === 'assigned') {
     return { label: 'In use', detail: 'Has a lead. Opens that prospect’s brief.', tone: 'ok' };
+  }
+  if (card.screen_issued_at) {
+    return {
+      label: 'Screen QR',
+      detail: 'Issued on the rep’s phone. No physical card or sticker.',
+      tone: 'ok',
+    };
   }
   if (card.verified_at) {
     return {

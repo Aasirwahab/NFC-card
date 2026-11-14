@@ -20,7 +20,11 @@ export default async function CardsPage() {
     .eq('user_id', rep.userId)
     .order('created_at', { ascending: false });
 
-  const { data: counts } = await db.from('cards').select('status').eq('user_id', rep.userId);
+  const { data: counts } = await db
+    .from('cards')
+    .select('status')
+    .eq('user_id', rep.userId)
+    .is('screen_issued_at', null);
 
   const count = (status: string) => (counts ?? []).filter((c) => c.status === status).length;
 

@@ -45,6 +45,7 @@ describe('migrations', () => {
       'pitch_ratings',
       'playbook_entries',
       'profiles',
+      'screen_card_codes',
       'session_events',
       'sessions',
       'staff_audit_log',

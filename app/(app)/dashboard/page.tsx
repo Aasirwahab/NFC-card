@@ -13,6 +13,7 @@ import {
   type SessionListItem,
 } from '@/lib/db/rep';
 import { requireRep } from '@/lib/db/server';
+import { ShowQr } from '@/components/show-qr';
 
 export const metadata = { title: 'Today' };
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,8 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           {sessions.length} contact{sessions.length === 1 ? '' : 's'} · {tapped} opened
         </p>
       </div>
+
+      <ShowQr />
 
       {summary.length ? (
         <nav

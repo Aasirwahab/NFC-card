@@ -89,7 +89,10 @@ export default async function OpsHome({ searchParams }: PageProps<'/ops'>) {
                 ) : null}
               </div>
               <p className="text-ink-2 mt-2 font-mono text-[12px]">
-                {rep.stock.inStock} in stock · {rep.stock.handedOut} out · {rep.stock.lost} lost
+                {rep.stock.inStock} physical in stock · {rep.stock.handedOut} out · {rep.stock.lost}{' '}
+                lost
+                {' · '}
+                {rep.stock.screenIssued} screen QR codes
               </p>
               {todo(rep).length > 0 ? (
                 <p className="text-ink-3 mt-1 text-[12px]">{todo(rep).join(' · ')}</p>
