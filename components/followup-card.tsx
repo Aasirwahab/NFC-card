@@ -82,6 +82,7 @@ export function FollowupToday({
 export function FollowupCard({ row }: { row: FollowupRow }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,9 +132,23 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
       <p className="text-ink mt-1 text-sm font-medium">{row.signal.label}</p>
       <p className="text-ink-3 mt-1 text-[13px]">{row.reason}</p>
       {row.draft ? (
-        <p className="text-ink-2 mt-2 text-[14px] leading-snug wrap-anywhere whitespace-pre-line">
-          {row.draft}
-        </p>
+        <div>
+          <p
+            id={`followup-draft-${row.sessionId}`}
+            className={`text-ink-2 mt-2 text-[14px] leading-snug wrap-anywhere whitespace-pre-line ${expanded ? '' : 'line-clamp-3'}`}
+          >
+            {row.draft}
+          </p>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={`followup-draft-${row.sessionId}`}
+            onClick={() => setExpanded((value) => !value)}
+            className="text-ink-2 inline-flex min-h-11 items-center text-sm underline underline-offset-2"
+          >
+            {expanded ? 'Show less' : 'Show all'}
+          </button>
+        </div>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

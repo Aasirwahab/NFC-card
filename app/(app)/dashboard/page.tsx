@@ -17,23 +17,6 @@ import { requireRep } from '@/lib/db/server';
 export const metadata = { title: 'Today' };
 export const dynamic = 'force-dynamic';
 
-/**
- * The dashboard (spec §15.2, §19.3).
- *
- * A card code box sits at the top: the backup when a tap will not read, and how a
- * card handed over untapped is completed later. Then groups, in the order a rep actually needs them:
- *
- *   1. NEEDS DETAILS   — registered at the table, never filled in. The most
- *                        time-sensitive group: the conversation is still fresh.
- *   2. NO WAY TO REACH — details saved, but neither LinkedIn nor email. The spec
- *                        is explicit that this case is SURFACED, not hidden: it is
- *                        the feedback loop that makes reps capture a LinkedIn URL
- *                        next time (§19.3).
- *   3. FOLLOW UP TODAY — who to message now, each with a ready draft to send by
- *                        hand (§19.3), worked out from what is recorded. A draft
- *                        never mentions tracking.
- *   4. EVERYTHING ELSE — newest first.
- */
 export default async function DashboardPage({ searchParams }: PageProps<'/dashboard'>) {
   const rep = await requireRep();
   const { event } = await searchParams;
@@ -60,9 +43,9 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   );
 
   const summary = [
+    { id: 'follow-up', count: followups.actionable.length, label: 'to follow up' },
     { id: 'needs-details', count: needsDetails.length, label: 'need details' },
     { id: 'needs-contact', count: noChannel.length, label: 'need a way to reach them' },
-    { id: 'follow-up', count: followups.actionable.length, label: 'to follow up' },
     { id: 'other-contacts', count: rest.length, label: 'other contacts' },
   ].filter((section) => section.count > 0);
 
@@ -80,51 +63,28 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       {summary.length ? (
         <nav
           aria-label="Contact summary"
-          className="text-ink-2 mt-2 flex flex-wrap items-center gap-x-1 text-sm"
+          className="text-ink-2 mt-2 flex gap-2 overflow-x-auto pb-1 text-sm"
         >
-          {summary.map((section, index) => (
-            <span key={section.id}>
-              {index > 0 ? <span aria-hidden="true"> · </span> : null}
-              <a
-                href={`#${section.id}`}
-                className="inline-flex min-h-11 items-center underline underline-offset-4"
-              >
-                {section.count} {section.label}
-              </a>
-            </span>
+          {summary.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="border-line bg-surface inline-flex min-h-11 shrink-0 items-center rounded-full border px-3"
+            >
+              {section.count} {section.label}
+            </a>
           ))}
         </nav>
       ) : null}
-
-      {needsDetails.length > 0 ? (
-        <>
-          <p className={styles.headline}>
-            {needsDetails.length} card{needsDetails.length === 1 ? '' : 's'} <br />
-            need{needsDetails.length === 1 ? 's' : ''} you.
-          </p>
-          <p className="text-ink-3 mt-3 text-sm">Say it now, while you still remember the room.</p>
-        </>
-      ) : (
-        <p className={styles.headline}>All caught up.</p>
-      )}
-
-      <p className="text-ink-2 mt-4 text-sm">Add a contact: tap your card, or type its code.</p>
-      <CardCodeLookup className={styles.cardLookup} />
-
-      {!progress.booking ? (
-        <aside className={styles.bookingWarning}>
-          <Link href="/settings#booking_url">Add a booking link before you hand out cards</Link>
-        </aside>
-      ) : null}
-
-      <FirstRunChecklist progress={progress} />
-
-      {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
 
       {sessions.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="mt-5 flex flex-col gap-6">
+          {followups.actionable.length + followups.history.length > 0 ? (
+            <FollowupToday {...followups} />
+          ) : null}
+
           <Group
             id="needs-details"
             title="Needs details"
@@ -140,13 +100,22 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
             tone="warn"
           />
 
-          {followups.actionable.length + followups.history.length > 0 ? (
-            <FollowupToday {...followups} />
-          ) : null}
-
           <Group id="other-contacts" title="Everything else" sessions={rest} />
         </div>
       )}
+      {sessions.length > 0 && needsDetails.length === 0 && followups.actionable.length === 0 ? (
+        <p className="text-ink mt-5 font-medium">All caught up.</p>
+      ) : null}
+
+      <FirstRunChecklist progress={progress} />
+      {events.length > 1 ? <EventFilter events={events} selected={eventId} /> : null}
+      <details className="border-line mt-5 border-t pt-2">
+        <summary className="text-ink-2 flex min-h-11 cursor-pointer items-center text-sm font-medium">
+          Type a card code
+        </summary>
+        <p className="text-ink-2 mt-2 text-sm">Add a contact: tap your card, or type its code.</p>
+        <CardCodeLookup className={styles.cardLookup} />
+      </details>
     </div>
   );
 }
@@ -222,9 +191,9 @@ function FilterChip({ href, label, active }: { href: string; label: string; acti
 function EmptyState() {
   return (
     <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6">
-      <p className="text-ink text-center font-medium">No contacts yet</p>
+      <h2 className="text-ink text-center text-xl font-semibold">Hand out your first card.</h2>
       <p className="text-ink-2 mx-auto mt-1.5 max-w-sm text-center text-sm">
-        Hand a card over. Anyone who taps it, and any card you tap yourself, shows up here.
+        Tap a card, then hand it over — the contact appears here ready for your notes.
       </p>
       <TapGuide />
     </div>

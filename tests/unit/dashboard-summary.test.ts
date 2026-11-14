@@ -21,7 +21,7 @@ beforeEach(() => {
   mocks.followups.mockResolvedValue({ actionable: [], history: [] });
 });
 
-it('links nonempty groups at the top without reordering the lists', async () => {
+it('puts follow-up and needs-details lists before setup and card lookup', async () => {
   mocks.sessions.mockResolvedValue([
     { id: 'details', details_completed_at: null },
     { id: 'reach', details_completed_at: 'saved' },
@@ -41,9 +41,11 @@ it('links nonempty groups at the top without reordering the lists', async () => 
   expect(nav).toContain('1 need a way to reach them');
   expect(nav).toContain('href="#follow-up"');
   expect(nav).toContain('1 to follow up');
+  expect(nav).not.toContain('·');
+  expect(html.indexOf('id="needs-details"')).toBeLessThan(html.indexOf('Add a contact:'));
   expect(html.indexOf('<nav')).toBeLessThan(html.indexOf('Add a contact:'));
   const sections = [...html.matchAll(/<section id="([^"]+)"/g)].map((m) => m[1]);
-  expect(sections).toEqual(['needs-details', 'needs-contact', 'follow-up', 'other-contacts']);
+  expect(sections).toEqual(['follow-up', 'needs-details', 'needs-contact', 'other-contacts']);
 });
 
 it('hides empty groups from the summary and hides the empty summary', async () => {
@@ -57,4 +59,23 @@ it('hides empty groups from the summary and hides the empty summary', async () =
   expect(nav).toContain('1 need details');
   expect(nav).not.toContain('#needs-contact');
   expect(nav).not.toContain('#follow-up');
+});
+
+it('gives a new rep a first-card instruction instead of saying caught up', async () => {
+  const html = renderToStaticMarkup(
+    await DashboardPage({ searchParams: Promise.resolve({}) } as never),
+  );
+  expect(html).toContain('Hand out your first card.');
+  expect(html).toContain('Tap a card, then hand it over');
+  expect(html).not.toContain('All caught up.');
+});
+
+it('keeps caught-up wording for existing contacts with no missing details', async () => {
+  mocks.sessions.mockResolvedValue([
+    { id: 'saved', details_completed_at: 'saved', prospect_email: 'tom@example.com' },
+  ]);
+  const html = renderToStaticMarkup(
+    await DashboardPage({ searchParams: Promise.resolve({}) } as never),
+  );
+  expect(html).toContain('All caught up.');
 });

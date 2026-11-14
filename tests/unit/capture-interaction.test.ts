@@ -257,8 +257,8 @@ describe('voice capture and sorting', () => {
 
 describe('visible send recipient', () => {
   it.each([
-    ['person@example.com', null, 'Send to person@example.com', 'mailto:person%40example.com?body='],
-    [null, '+447700900123', 'Text +447700900123', 'sms:+447700900123?body='],
+    ['person@example.com', null, 'person@example.com', 'mailto:person%40example.com?body='],
+    [null, '+447700900123', '+447700900123', 'sms:+447700900123?body='],
   ])(
     'opens exactly the displayed recipient even when native sharing is available',
     async (email, phone, label, url) => {
@@ -268,7 +268,8 @@ describe('visible send recipient', () => {
         FollowupSendButton({ draft: 'Hi', pagePath: '/c/abc', email, phone }),
       );
       const button = child(tree, 'Button');
-      expect(button.props.children).toBe(label);
+      expect(button.props.children).toBe('Send note');
+      expect(nodes(tree).some((el) => el.props.children === label)).toBe(true);
       click(button);
       await flush();
       expect(window.location.href).toBe(
@@ -334,4 +335,47 @@ describe('secondary follow-up actions', () => {
       ),
     ).toBe(true);
   });
+});
+
+it('keeps problems, notes and voice above contact fields, outside the closed disclosure', () => {
+  const tree = render('capture-order', () =>
+    DetailsForm({ ...props, fallbackProblems: ['Missed calls'] }),
+  );
+  const all = nodes(tree);
+  const more = all.find((el) => el.type === 'details' && el.props.open !== undefined)!;
+  expect(more.props.open).toBe(false);
+  expect(child(more, 'NoteBox')).toBeUndefined();
+  expect(child(more, 'VoiceNote')).toBeUndefined();
+  const name = all.findIndex((el) => el.props.id === 'name');
+  for (const component of ['NoteBox', 'VoiceNote']) {
+    expect(all.indexOf(child(tree, component))).toBeLessThan(name);
+  }
+  const problem = all.findIndex(
+    (el) => el.type === 'button' && el.props.children === 'Missed calls',
+  );
+  expect(problem).toBeGreaterThan(-1);
+  expect(problem).toBeLessThan(all.indexOf(child(tree, 'NoteBox')));
+});
+
+it('expands and collapses the whole follow-up draft', () => {
+  const row = {
+    sessionId: 'contact',
+    state: 'review',
+    signal: { label: 'Asked for a note' },
+    draft: 'Full draft',
+  } as FollowupRow;
+  const card = () => render('draft-preview', () => FollowupCard({ row }));
+  let tree = card();
+  const toggle = (tree: Element) =>
+    nodes(tree).find((el) => el.props['aria-expanded'] !== undefined)!;
+  expect(toggle(tree).props['aria-expanded']).toBe(false);
+  click(toggle(tree));
+  tree = card();
+  expect(toggle(tree).props['aria-expanded']).toBe(true);
+  expect(
+    nodes(tree).find((el) => el.type === 'p' && el.props.children === 'Full draft')!.props
+      .className,
+  ).not.toContain('line-clamp-3');
+  click(toggle(tree));
+  expect(toggle(card()).props['aria-expanded']).toBe(false);
 });
