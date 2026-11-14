@@ -9,6 +9,7 @@ import { createEventDigestHandler } from '@/lib/notify/digest';
 import { productionEventDigestDeps } from '@/lib/notify/digest-deps';
 import { productionNotifyTapDeps } from '@/lib/notify/deps';
 import { createNotifyTapHandler } from '@/lib/notify/tap';
+import { sendProspectNoteEmail } from '@/lib/email/prospect-note';
 import type { Handlers } from './types';
 
 /**
@@ -55,11 +56,27 @@ const eventDigest: Handlers[string] = (context) =>
 const followup: Handlers[string] = (context) =>
   createFollowupHandler(productionFollowupDeps())(context);
 
+const prospectNoteEmail: Handlers[string] = async (context) => {
+  if (!context.job.session_id) return;
+  await context.step('send', 15000, async () => {
+    const result = await sendProspectNoteEmail(context.job.session_id!);
+    // Keep the job alive if review was enabled after delivery was queued.
+    if (result === 'held') context.defer(60);
+    return true;
+  });
+};
+
 export const handlers: Handlers = enrichEnabled
   ? {
       enrich: (context) => createEnrichHandler(productionEnrichDeps())(context),
       notify_tap: notifyTap,
       event_digest: eventDigest,
       followup,
+      prospect_note_email: prospectNoteEmail,
     }
-  : { notify_tap: notifyTap, event_digest: eventDigest, followup };
+  : {
+      notify_tap: notifyTap,
+      event_digest: eventDigest,
+      followup,
+      prospect_note_email: prospectNoteEmail,
+    };

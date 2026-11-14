@@ -19,11 +19,13 @@ describe('tap first prospect content', () => {
       createElement(Holding, { code: 'ABCD2345', first: 'Sam', details }),
     );
     expect(html).toContain(
-      'Sam is writing you a note about your conversation. It will appear here.',
+      'Sam&#x27;s note about your conversation appears here once it&#x27;s written.',
     );
+    expect(html).toContain('Want it sent to you?');
+    expect(html).toContain('Leave your email or mobile and Sam will send you the note.');
     expect(html).toContain('What matters most to you right now?');
     expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain('aria-describedby="prospect-consent"');
+    expect(html).toContain('aria-describedby="prospect-contact-help prospect-consent"');
     expect(html).toContain(
       'Sam will use this only to send you this note. You can remove it any time.',
     );
@@ -47,7 +49,7 @@ describe('tap first prospect content', () => {
         details: { ...details, ready: false },
       }),
     );
-    expect(bootstrap).toContain('Sam is writing you a note');
+    expect(bootstrap).toContain('once it&#x27;s written.');
     expect(bootstrap).not.toContain('<input');
   });
   it('shows no more than six choices and allows unticking at the two-choice limit', () => {
