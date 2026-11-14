@@ -1,4 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { after } from 'next/server';
+import { alert } from '@/lib/alert';
+import { kickWorkers } from '@/lib/jobs/kick';
 import { cookies, headers } from 'next/headers';
 import { fail, json, readJson } from '@/lib/api';
 import { getStaff } from '@/lib/auth/staff';
@@ -152,5 +155,28 @@ async function answers(request: Request, context: Context, write: boolean) {
       path: `/api/landing/${code}/answers`,
       maxAge: 86400,
     });
+  if (answers.contact !== undefined) {
+    const { error: enqueueError } = await db.from('jobs').insert({
+      type: 'notify_contact',
+      session_id: session.id,
+      user_id: session.user_id,
+    });
+    // The partial live-job index cannot be an upsert target. Ignore its duplicate
+    // violation, leaving the queued/running job to read the latest saved details.
+    const alreadyLive =
+      enqueueError?.code === '23505' && enqueueError.message.includes('jobs_one_live_per_session');
+    if (enqueueError && !alreadyLive) {
+      // The details are saved and the rep sees them on the contact page; a missed
+      // alert must not tell the prospect their details failed. Page the team instead.
+      alert('contact_alert_enqueue_failed', { sessionId: session.id, code: enqueueError.code });
+    }
+    after(async () => {
+      try {
+        await kickWorkers();
+      } catch {
+        console.error(JSON.stringify({ event: 'kick_failed', sessionId: session.id }));
+      }
+    });
+  }
   return json({ saved: true }, { headers: { 'cache-control': 'no-store' } });
 }

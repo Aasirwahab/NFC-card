@@ -1,7 +1,11 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContactFormEditor } from '@/app/(app)/settings/settings-forms';
-import { DEFAULT_CONTACT_FORM } from '@/lib/domain/contact-form';
+import {
+  CONTACT_FORM_PRESETS,
+  contactFormSchema,
+  DEFAULT_CONTACT_FORM,
+} from '@/lib/domain/contact-form';
 import { ProspectContactForm } from '@/components/prospect-contact-form';
 const h = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0 }));
 vi.mock('react', async (original) => ({
@@ -47,6 +51,27 @@ beforeEach(() => {
   h.cursor = 0;
 });
 describe('Setup contact form editor', () => {
+  it.each(['Book a call', 'Get a quote', 'Stay in touch'])(
+    'applies %s to the draft and preview, with an accessible notice',
+    (label) => {
+      click('Add a question');
+      const button = render().find((el) => el.type === 'button' && el.props.children === label)!;
+      expect(button.props.type).toBe('button');
+      expect(button.props.className).toContain('min-h-11');
+      (button.props.onClick as () => void)();
+      const preset = CONTACT_FORM_PRESETS.find((preset) => preset.label === label)!;
+      expect(value()).toEqual(preset.config);
+      expect(contactFormSchema.safeParse(value()).success).toBe(true);
+      expect(render().find((el) => el.type === ProspectContactForm)!.props.config).toEqual(
+        preset.config,
+      );
+      expect(render().find((el) => el.props['aria-live'] === 'polite')!.props.children).toBe(
+        'Preset applied. Save to use it.',
+      );
+      expect(DEFAULT_CONTACT_FORM.questions).toEqual([]);
+    },
+  );
+
   it('updates live preview copy and keeps contact required', () => {
     const title = render().find((el) => el.props.id === 'form-title')!;
     (title.props.onChange as (e: unknown) => void)({ target: { value: 'Hello {first}' } });

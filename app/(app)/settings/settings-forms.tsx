@@ -4,7 +4,12 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ProspectContactForm } from '@/components/prospect-contact-form';
-import { CONTACT_BUILT_INS, parseContactForm, type ContactForm } from '@/lib/domain/contact-form';
+import {
+  CONTACT_FORM_PRESETS,
+  CONTACT_BUILT_INS,
+  parseContactForm,
+  type ContactForm,
+} from '@/lib/domain/contact-form';
 import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import {
@@ -286,6 +291,7 @@ export function PitchVoiceForm({
 export function ContactFormEditor({ config, first }: { config: ContactForm; first: string }) {
   const [state, action] = useActionState(saveContactFormAction, {});
   const [draft, setDraft] = useState(config);
+  const [presetNotice, setPresetNotice] = useState('');
   const focusQuestion = useRef<string | null>(null);
   const configToSave = {
     ...draft,
@@ -307,6 +313,25 @@ export function ContactFormEditor({ config, first }: { config: ContactForm; firs
       hint="Choose what prospects can share before your note is ready. Filling in the form is optional. Their email or UK mobile is required if they submit it."
     >
       <form action={action} className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Contact form presets">
+          {CONTACT_FORM_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className="border-line text-ink min-h-11 rounded-lg border px-3 text-sm"
+              onClick={() => {
+                setDraft(structuredClone(preset.config));
+                focusQuestion.current = null;
+                setPresetNotice('Preset applied. Save to use it.');
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <p aria-live="polite" className="text-ink-3 text-sm">
+          {presetNotice}
+        </p>
         <input type="hidden" name="contact_form" value={JSON.stringify(configToSave)} />
         <label className="flex min-h-11 items-center gap-3">
           <input
