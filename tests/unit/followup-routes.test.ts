@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { failureMessage } from '@/lib/http/client';
 import { POST as markSent } from '@/app/api/sessions/[id]/followup/sent/route';
 import { POST as setOutcome } from '@/app/api/sessions/[id]/followup/outcome/route';
 
@@ -59,6 +60,18 @@ describe('POST followup/sent', () => {
     mocks.rpc.mockClear();
     expect((await markSent(post(), context('nope'))).status).toBe(404);
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('tells the rep plainly when another tab already closed the contact', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: { code: 'P0001', message: 'followup_closed' },
+    });
+    const response = await markSent(post(), context(id));
+    expect(response.status).toBe(409);
+    expect(failureMessage(await response.json(), 'fallback')).toBe(
+      'This contact was already closed. Refresh to see the latest status.',
+    );
   });
 
   it('needs a signed-in rep', async () => {

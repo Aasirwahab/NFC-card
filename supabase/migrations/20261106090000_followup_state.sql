@@ -12,11 +12,17 @@ alter table public.sessions
   add column followup_sent_at timestamptz,
   add column followup_outcome text check (followup_outcome in ('replied', 'dropped'));
 
-update public.sessions s
-   set followup_sent_at = d.sent_at
-  from public.followup_drafts d
- where d.session_id = s.id
-   and d.sent_at is not null;
+-- The timestamp trigger always writes now(); suspend it only for this atomic backfill.
+do $backfill$
+begin
+  alter table public.sessions disable trigger sessions_set_updated_at;
+  update public.sessions s
+     set followup_sent_at = d.sent_at
+    from public.followup_drafts d
+   where d.session_id = s.id
+     and d.sent_at is not null;
+  alter table public.sessions enable trigger sessions_set_updated_at;
+end $backfill$;
 
 -- The rep sent it by hand. No draft row is needed any more, and a second call
 -- records nothing new: one event, the first timestamp. True means "your lead".
@@ -34,11 +40,20 @@ begin
    where id = p_session_id
      and user_id = p_user_id
      and status = 'active'
-     and followup_sent_at is null;
+     and followup_sent_at is null
+     and followup_outcome is null;
 
   get diagnostics v_updated = row_count;
   if v_updated = 1 then
     insert into public.session_events(session_id, type) values (p_session_id, 'followup_sent');
+  end if;
+
+  if exists (
+    select 1 from public.sessions
+     where id = p_session_id and user_id = p_user_id and status = 'active'
+       and followup_outcome is not null
+  ) then
+    raise exception 'followup_closed' using errcode = 'P0001';
   end if;
 
   -- Keep the draft row from the no-tap job in step, if there is one.

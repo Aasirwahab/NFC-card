@@ -17,6 +17,11 @@ export const POST = withRep(async (rep, _request, context: { params: Promise<{ i
     p_session_id: id.data,
     p_user_id: rep.userId,
   });
+  if (error?.code === 'P0001' && error.message === 'followup_closed') {
+    return fail('followup_closed', 409, {
+      issues: [{ message: 'This contact was already closed. Refresh to see the latest status.' }],
+    });
+  }
   if (error) throw new Error(`mark_followup_sent failed: ${error.message}`);
   if (!data) return fail('followup_not_found', 404);
   return json({ ok: true });

@@ -129,13 +129,15 @@ describe('safe deterministic drafts', () => {
     );
   });
 
-  it('thanks a reply, and nudges a sent lead only after three days', () => {
+  it('has no draft for replied contacts', () => {
     expect(
       followupDraft({ ...base, followup_outcome: 'replied' }, 'replied', identity, now),
-    ).toContain('Thanks for getting back');
-    const at = (ms: number) => ({ ...base, followup_sent_at: new Date(now - ms).toISOString() });
-    expect(followupDraft(at(3 * day), 'sent', identity, now)).toContain('light nudge');
-    expect(followupDraft(at(3 * day - 1), 'sent', identity, now)).toBeNull();
+    ).toBeNull();
+  });
+
+  it.each([3 * day - 1, 3 * day, 10 * day])('has no second-nudge draft %i ms after Done', (age) => {
+    const session = { ...base, followup_sent_at: new Date(now - age).toISOString() };
+    expect(followupDraft(session, 'sent', identity, now)).toBeNull();
   });
 
   it('uses only the ticked problem, never free text or the private note', () => {
@@ -147,7 +149,7 @@ describe('safe deterministic drafts', () => {
     };
     for (const state of states) {
       const draft = followupDraft({ ...session, ...sent }, state, identity, now + 10 * day);
-      expect(draft, state).not.toMatch(/SECRET FREE TEXT|PRIVATE NOTE|secret|private/i);
+      expect(draft ?? '', state).not.toMatch(/SECRET FREE TEXT|PRIVATE NOTE|secret|private/i);
     }
     expect(followupDraft(session, 'due-no-tap', identity, now)).not.toContain(' on ');
   });
