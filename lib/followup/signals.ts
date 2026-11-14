@@ -55,7 +55,7 @@ export function strongestSignal(
   if (input.openRequest) return { label: 'Asked you to contact them', rank: 7 };
   const emailed = input.events.includes('prospect_note_emailed');
   if ((input.submittedEmail || input.submittedPhone) && !emailed) {
-    return { label: 'Asked you to send their note', rank: 6 };
+    return { label: 'Shared their details', rank: 6 };
   }
   if (input.questions.length) {
     return {

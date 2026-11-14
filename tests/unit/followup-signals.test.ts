@@ -37,7 +37,7 @@ describe('recorded contact signals', () => {
     { submittedEmail: null, submittedPhone: '+447700900123' },
   ])('ranks a request for their note above questions: %o', (contact) => {
     expect(strongestSignal({ ...empty, ...contact, questions: ['Price?'] })).toEqual({
-      label: 'Asked you to send their note',
+      label: 'Shared their details',
       rank: 6,
     });
   });

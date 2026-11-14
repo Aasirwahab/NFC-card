@@ -56,6 +56,7 @@ export function OwnerCard({
               code={code}
               first={first}
               details={resolved.holding}
+              contactForm={rep.contactForm}
             >
               {resolved.holding.ready ? <ProspectRequest code={code} first={first} /> : null}
               <div className={styles.holdActions}>

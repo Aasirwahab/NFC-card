@@ -12,6 +12,7 @@ afterAll(async () => {
 
 it('rolls back tap first in the documented order and restores the previous follow-up functions', async () => {
   for (const migration of [
+    '20261113120000_contact_exchange.sql',
     '20261113000000_prospect_answers.sql',
     '20261106090000_followup_state.sql',
   ]) {
@@ -28,8 +29,15 @@ it('rolls back tap first in the documented order and restores the previous follo
   const { rows } = await db.query(`select column_name from information_schema.columns
     where table_schema = 'public' and table_name = 'sessions'
       and (column_name like 'prospect_submitted_%' or column_name in
-        ('last_viewed_at', 'prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
+        ('prospect_form_answers', 'last_viewed_at', 'prospect_picked_problems', 'prospect_consent_at', 'prospect_answer_token_hash', 'followup_sent_at', 'followup_outcome'))`);
   expect(rows).toEqual([]);
+  expect(
+    (
+      await db.query(
+        "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'contact_form'",
+      )
+    ).rows,
+  ).toEqual([]);
   const fixture = await seedFixture(db, { cards: 1 });
   const id = crypto.randomUUID();
   await db.query(`select * from public.register_card($1, $2, $3, $4, 'Tom', null)`, [
@@ -39,6 +47,9 @@ it('rolls back tap first in the documented order and restores the previous follo
     fixture.userId,
   ]);
   await db.query(`select public.save_session_details($1, $2, '{}'::jsonb)`, [id, fixture.userId]);
+  expect(
+    (await db.query("select id from public.jobs where type = 'prospect_note_email'")).rows,
+  ).toEqual([]);
   await db.query(`select public.queue_no_tap_followups()`);
   await db.query(`select public.save_followup_draft($1, 'email', 'Hi Tom')`, [id]);
   const sent = await db.query<{ mark_followup_sent: boolean }>(

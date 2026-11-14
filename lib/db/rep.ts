@@ -262,7 +262,7 @@ export async function listFollowups(
     if (question) events.push({ session_id: s.id, type: 'chat_turn' });
     const state = followupState(s, events, s.bookings, now);
     if (!state || state === 'request-open') return []; // Explicit requests have their own live row.
-    const requestedNote = Boolean(
+    const sharedDetails = Boolean(
       (s.prospect_submitted_email || s.prospect_submitted_phone) &&
       !events.some((e) => e.type === 'prospect_note_emailed'),
     );
@@ -296,15 +296,15 @@ export async function listFollowups(
           },
           now,
           question,
-          requestedNote,
+          sharedDetails,
         ),
         channel,
         prospectName: s.prospect_name,
         prospectCompany: s.prospect_company,
         linkedinUrl: s.linkedin_url,
-        prospectEmail: requestedNote ? s.prospect_submitted_email : s.prospect_email,
-        prospectPhone: requestedNote ? s.prospect_submitted_phone : null,
-        preferContact: requestedNote,
+        prospectEmail: sharedDetails ? s.prospect_submitted_email : s.prospect_email,
+        prospectPhone: sharedDetails ? s.prospect_submitted_phone : null,
+        preferContact: sharedDetails,
         sequence: s.event_sequence_number,
         colour: s.colour_tag,
       },
