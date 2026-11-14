@@ -785,6 +785,7 @@ export type Database = {
           prospect_submitted_email: string | null;
           prospect_submitted_phone: string | null;
           prospect_consent_at: string | null;
+          prospect_answer_token_hash: string | null;
         };
         Insert: {
           id: string;
@@ -832,6 +833,7 @@ export type Database = {
           prospect_submitted_email?: string | null;
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
         };
         Update: {
           id?: string;
@@ -879,6 +881,7 @@ export type Database = {
           prospect_submitted_email?: string | null;
           prospect_submitted_phone?: string | null;
           prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
         };
         Relationships: [
           {

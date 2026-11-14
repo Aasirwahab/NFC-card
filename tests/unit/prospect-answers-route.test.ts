@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { POST } from '@/app/api/landing/[code]/answers/route';
+import { createHash } from 'node:crypto';
+import { POST, GET } from '@/app/api/landing/[code]/answers/route';
 
 const mocks = vi.hoisted(() => ({
   userId: null as string | null,
   ownerCookie: false,
+  tokenCookie: null as string | null,
+  tokenHash: null as string | null,
+  setCookie: vi.fn(),
   staff: false,
   details: null as string | null,
   firstViewed: '2026-11-13T10:00:00Z',
@@ -16,7 +20,17 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('next/headers', () => ({
   headers: async () => new Headers(),
-  cookies: async () => ({ get: () => (mocks.ownerCookie ? { value: 'owner' } : undefined) }),
+  cookies: async () => ({
+    get: (name: string) =>
+      name === 'prospect_answers'
+        ? mocks.tokenCookie
+          ? { value: mocks.tokenCookie }
+          : undefined
+        : mocks.ownerCookie
+          ? { value: 'owner' }
+          : undefined,
+    set: (...args: unknown[]) => mocks.setCookie(...args),
+  }),
 }));
 vi.mock('@/lib/db/server', () => ({
   getRep: async () => (mocks.userId ? { userId: mocks.userId } : null),
@@ -68,6 +82,8 @@ vi.mock('@/lib/db/service', () => ({
                   event_id: 'event',
                   details_completed_at: mocks.details,
                   first_viewed_at: mocks.firstViewed,
+                  prospect_answer_token_hash: mocks.tokenHash,
+                  prospect_picked_problems: ['Problem A'],
                 },
           error: null,
         }),
@@ -81,6 +97,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-11-13T12:00:00Z'));
   mocks.userId = null;
   mocks.ownerCookie = false;
+  mocks.tokenCookie = null;
+  mocks.tokenHash = null;
   mocks.staff = false;
   mocks.details = null;
   mocks.firstViewed = '2026-11-13T10:00:00Z';
@@ -103,6 +121,7 @@ describe('prospect answer writes', () => {
     expect((await submit({ problems: ['Problem A'] })).status).toBe(200);
     expect(mocks.update).toHaveBeenCalledExactlyOnceWith({
       prospect_picked_problems: ['Problem A'],
+      prospect_answer_token_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(mocks.filters).toHaveBeenCalledWith('details_completed_at', null);
     expect(mocks.filters).toHaveBeenCalledWith('status', 'active');
@@ -115,7 +134,46 @@ describe('prospect answer writes', () => {
       prospect_submitted_email: 'a@example.com',
       prospect_submitted_phone: null,
       prospect_consent_at: '2026-11-13T12:00:00.000Z',
+      prospect_answer_token_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+  });
+  it('sets a secure, route-scoped cookie and stores only its hash on the first answer', async () => {
+    expect((await submit({ problems: [] })).status).toBe(200);
+    const [name, token, options] = mocks.setCookie.mock.calls[0]!;
+    expect(name).toBe('prospect_answers');
+    expect(token).toMatch(/^[a-f0-9]{64}$/);
+    expect(options).toEqual({
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/api/landing/ABCDEFGH/answers',
+      maxAge: 86400,
+    });
+    expect(mocks.update.mock.calls[0]![0].prospect_answer_token_hash).toBe(
+      createHash('sha256').update(token).digest('hex'),
+    );
+    expect(mocks.filters).toHaveBeenCalledWith('prospect_answer_token_hash', null);
+  });
+  it('refuses another browser and returns only read-only choices', async () => {
+    mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
+    const response = await submit({ contact: 'other@example.com', consent: true });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'answers_given' });
+    expect(mocks.update).not.toHaveBeenCalled();
+    const read = await GET(new Request('https://example.com'), {
+      params: Promise.resolve({ code: 'ABCDEFGH' }),
+    });
+    expect(await read.json()).toEqual({ picked: ['Problem A'], readOnly: true });
+  });
+  it('lets the same browser correct its contact without replacing the token', async () => {
+    mocks.tokenCookie = 'first-browser';
+    mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
+    expect((await submit({ contact: 'fixed@example.com', consent: true })).status).toBe(200);
+    expect(mocks.update.mock.calls[0]![0]).toMatchObject({
+      prospect_submitted_email: 'fixed@example.com',
+    });
+    expect(mocks.filters).toHaveBeenCalledWith('prospect_answer_token_hash', mocks.tokenHash);
+    expect(mocks.setCookie).not.toHaveBeenCalled();
   });
   it('rejects a problem outside this contact event list', async () => {
     expect((await submit({ problems: ['Injected topic'] })).status).toBe(400);
