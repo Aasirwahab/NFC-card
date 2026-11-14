@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { ProspectContactForm } from '@/components/prospect-contact-form';
+import {
+  contactFormFields,
+  contactFormText,
+  DEFAULT_CONTACT_FORM,
+  type ContactForm,
+  type ContactFormAnswer,
+  answerLine,
+} from '@/lib/domain/contact-form';
 import { useRouter } from 'next/navigation';
 import { ApiError, apiGet, apiSend } from '@/lib/http/client';
 import { pollLandingStatus } from '@/lib/browser/landing-poll';
@@ -16,17 +24,28 @@ export type HoldingDetails = {
   expiresAt: number | null;
 };
 
-type Answers = { picked: string[]; readOnly: boolean; contact?: string | null };
+type Answers = {
+  picked: string[];
+  readOnly: boolean;
+  contact?: string | null;
+  answers?: ContactFormAnswer[] | null;
+};
+
+function hasDraft(draft: { contact: string; answers: Record<string, string> }) {
+  return Boolean(draft.contact || Object.values(draft.answers).some(Boolean));
+}
 
 export function Holding({
   code,
   first,
   details,
   children,
+  contactForm = DEFAULT_CONTACT_FORM,
 }: {
   code: string;
   first: string;
   details: HoldingDetails;
+  contactForm?: ContactForm;
   /** The page's one action and the quiet "About" row, shown under the form. */
   children?: React.ReactNode;
 }) {
@@ -35,6 +54,8 @@ export function Holding({
     keepVisible(details.picked, details.problems).slice(0, 2),
   );
   const [contact, setContact] = useState('');
+  const [formAnswers, setFormAnswers] = useState<Record<string, string>>({});
+  const [savedAnswers, setSavedAnswers] = useState<ContactFormAnswer[]>([]);
   const [busy, setBusy] = useState(false);
   const [closed, setClosed] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
@@ -49,12 +70,18 @@ export function Holding({
   const [changing, setChanging] = useState(false);
   const [expired, setExpired] = useState(false);
   const [noteReady, setNoteReady] = useState(false);
-  const editing = useRef({ contact: '', focused: false, busy: false });
+  const editing = useRef({
+    contact: '',
+    answers: {} as Record<string, string>,
+    focused: false,
+    busy: false,
+  });
 
-  const pendingSaved = useRef<string | null>(null);
+  const pendingSaved = useRef<Answers | null>(null);
   function applyPendingSaved() {
-    if (!editing.current.focused && !editing.current.contact && pendingSaved.current) {
-      setSaved(pendingSaved.current);
+    if (!editing.current.focused && !hasDraft(editing.current) && pendingSaved.current) {
+      setSaved(pendingSaved.current.contact ?? null);
+      setSavedAnswers(pendingSaved.current.answers ?? []);
       pendingSaved.current = null;
     }
   }
@@ -70,9 +97,12 @@ export function Holding({
           if (cancelled || editing.current.busy) return;
           setPicked(keepVisible(answers.picked, details.problems).slice(0, 2));
           setReadOnly(answers.readOnly);
-          if (editing.current.focused || editing.current.contact) {
-            pendingSaved.current = answers.contact ?? null;
-          } else setSaved(answers.contact ?? null);
+          if (editing.current.focused || hasDraft(editing.current)) {
+            pendingSaved.current = answers;
+          } else {
+            setSaved(answers.contact ?? null);
+            setSavedAnswers(answers.answers ?? []);
+          }
         })
         .catch(() => {})
         .finally(() => {
@@ -96,7 +126,7 @@ export function Holding({
           : ['holding', 'working', 'completed', 'held', 'failed'].includes(status)
       ) {
         if (editing.current.busy) return false;
-        if (editing.current.contact) {
+        if (hasDraft(editing.current)) {
           if (afterEditing && status === 'portfolio') {
             setExpired(true);
             setGaveUp(true);
@@ -136,7 +166,7 @@ export function Holding({
       onTimeout: () => {
         stopped = true;
         if (details.expiresAt !== null && Date.now() >= details.expiresAt) {
-          if (!editing.current.contact && !editing.current.focused && !editing.current.busy) {
+          if (!hasDraft(editing.current) && !editing.current.focused && !editing.current.busy) {
             setClosed(true);
             router.refresh();
           }
@@ -145,7 +175,10 @@ export function Holding({
     });
   }, [code, details.ready, details.expiresAt, first, router]);
 
-  async function save(body: { problems: string[] } | { contact: string; consent: true }) {
+  async function save(
+    body:
+      { problems: string[] } | { contact: string; consent: true; answers: Record<string, string> },
+  ) {
     editing.current.busy = true;
     setBusy(true);
     setError('');
@@ -155,10 +188,14 @@ export function Holding({
       else {
         pendingSaved.current = null;
         editing.current.contact = '';
+        editing.current.answers = {};
+        setFormAnswers({});
         setContact('');
         setChanging(false);
         try {
-          setSaved((await apiGet<Answers>(answersUrl)).contact ?? null);
+          const answers = await apiGet<Answers>(answersUrl);
+          setSaved(answers.contact ?? null);
+          setSavedAnswers(answers.answers ?? []);
         } catch {
           setMessage('Saved. You can remove your details below.');
         }
@@ -178,7 +215,7 @@ export function Holding({
           setChecked(true);
         } catch (readError) {
           if (readError instanceof ApiError && readError.status === 409) {
-            if (editing.current.contact) {
+            if (hasDraft(editing.current)) {
               setNoteReady(true);
               setMessage(`${first}'s note is ready. You can still copy this and send it to them.`);
             } else {
@@ -190,7 +227,7 @@ export function Holding({
       } else {
         setError(
           caught instanceof ApiError && caught.status === 400
-            ? 'Please enter an email address or a UK mobile number.'
+            ? 'Check your contact details and complete the required fields.'
             : 'Could not save just now. Please try again in a moment.',
         );
       }
@@ -244,71 +281,107 @@ export function Holding({
                 </div>
               </fieldset>
             ) : null}
-            {saved && !changing ? (
-              <div className={styles.holdBlock} role="status">
-                <p className={styles.holdLabel}>Saved: {saved}</p>
-                <p className={styles.holdHint}>
-                  {first} will send you the note. You can remove it any time below.
-                </p>
-                <button type="button" onClick={() => setChanging(true)} className={styles.holdLink}>
-                  Change
-                </button>
-              </div>
-            ) : (
-              <form
-                className={styles.holdBlock}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void save({ contact, consent: true });
-                }}
-              >
-                <label htmlFor="prospect-contact" className={styles.holdLabel}>
-                  Want it sent to you?
-                </label>
-                <p id="prospect-contact-help" className={styles.holdHint}>
-                  Leave your email or mobile and {first} will send you the note.
-                </p>
-                <input
-                  id="prospect-contact"
-                  type="text"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  maxLength={254}
-                  required
-                  aria-describedby="prospect-contact-help prospect-consent"
-                  placeholder="Email address or UK mobile"
-                  value={contact}
-                  readOnly={noteReady || expired}
-                  onFocus={() => {
-                    editing.current.focused = true;
+            {contactForm.enabled ? (
+              saved && !changing ? (
+                <div className={styles.holdBlock} role="status">
+                  <p className={styles.holdLabel}>Saved: {saved}</p>
+                  <p className={styles.holdHint}>
+                    {first} has your details and will get back to you. You can remove them any time
+                    below.
+                  </p>
+                  {savedAnswers.map((answer, index) => (
+                    <p
+                      key={index}
+                      className={`${styles.holdHint} wrap-anywhere whitespace-pre-wrap`}
+                    >
+                      {answerLine(answer)}
+                    </p>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChanging(true);
+                      const values: Record<string, string> = {};
+                      const fields = contactFormFields(contactForm, first);
+                      for (const field of fields) {
+                        if (field.key === 'contact') continue;
+                        const answer = savedAnswers.find((a) => a.label === field.label);
+                        if (
+                          !answer ||
+                          fields.filter((f) => f.label === field.label).length !== 1 ||
+                          savedAnswers.filter((a) => a.label === field.label).length !== 1
+                        )
+                          continue;
+                        if (field.type === 'choice') {
+                          const options = field.options.filter(
+                            (option) => contactFormText(option, first) === answer.value,
+                          );
+                          if (options.length === 1) values[field.key] = options[0]!;
+                        } else values[field.key] = answer.value;
+                      }
+                      setFormAnswers(values);
+                      editing.current.answers = values;
+                    }}
+                    className={styles.holdLink}
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <form
+                  className={styles.holdBlock}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void save({ contact, consent: true, answers: formAnswers });
                   }}
-                  onBlur={() => {
-                    editing.current.focused = false;
-                    applyPendingSaved();
-                    void recheck.current();
-                  }}
-                  onChange={(event) => {
-                    editing.current.contact = event.target.value;
-                    setContact(event.target.value);
-                    if (!event.target.value) {
+                >
+                  {changing && savedAnswers.length > 0 ? (
+                    <details className="w-full text-sm wrap-anywhere">
+                      <summary className="min-h-11 cursor-pointer py-3">
+                        Previously shared answers
+                      </summary>
+                      <p className={styles.holdHint}>
+                        Sharing again replaces these answers. Check each question before sharing.
+                      </p>
+                      {savedAnswers.map((answer, index) => (
+                        <p key={index} className={`${styles.holdHint} whitespace-pre-wrap`}>
+                          {answerLine(answer)}
+                        </p>
+                      ))}
+                    </details>
+                  ) : null}
+                  <ProspectContactForm
+                    config={contactForm}
+                    first={first}
+                    values={{ ...formAnswers, contact }}
+                    busy={busy}
+                    readOnly={noteReady || expired}
+                    onFocus={() => {
+                      editing.current.focused = true;
+                    }}
+                    onBlur={() => {
+                      editing.current.focused = false;
                       applyPendingSaved();
                       void recheck.current();
-                    }
-                  }}
-                  className={styles.holdInput}
-                />
-                <p id="prospect-consent" className={styles.holdHint}>
-                  {first} will use this only to send you this note. You can remove it any time.{' '}
-                  <Link href="/privacy">Privacy</Link>
-                </p>
-                {!noteReady && !expired ? (
-                  <button type="submit" disabled={busy} className={styles.holdSubmit}>
-                    {busy ? 'Saving…' : 'Send it to me'}
-                  </button>
-                ) : null}
-              </form>
-            )}
+                    }}
+                    onChange={(key, value) => {
+                      if (key === 'contact') {
+                        editing.current.contact = value;
+                        setContact(value);
+                      } else {
+                        const next = { ...editing.current.answers, [key]: value };
+                        editing.current.answers = next;
+                        setFormAnswers(next);
+                      }
+                      if (!value) {
+                        applyPendingSaved();
+                        void recheck.current();
+                      }
+                    }}
+                  />
+                </form>
+              )
+            ) : null}
           </>
         )
       ) : null}

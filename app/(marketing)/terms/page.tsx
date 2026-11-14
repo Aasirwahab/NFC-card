@@ -74,7 +74,7 @@ export default function TermsPage() {
 
       <p className="text-ink-2 mt-5 text-lg">
         <strong>INSIGNAR pilot terms.</strong> Between [INSIGNAR LEGAL ENTITY] (“INSIGNAR”) and
-        [REP’S COMPANY] (“the Company”), starting [DATE] for [6 WEEKS].
+        [REP’S COMPANY] (“the Company”), starting [DATE] for 90 days.
       </p>
 
       <ol className="text-ink-2 mt-6 list-decimal space-y-4 pl-5 text-[15px] leading-relaxed">

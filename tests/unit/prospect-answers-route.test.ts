@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
+import { DEFAULT_CONTACT_FORM } from '@/lib/domain/contact-form';
 import { POST, GET } from '@/app/api/landing/[code]/answers/route';
 
 const mocks = vi.hoisted(() => ({
@@ -11,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   staff: false,
   details: null as string | null,
   email: 'bella@example.test' as string | null,
+  form: null as unknown,
+  profileError: false,
+  answers: [{ label: 'What would you like from Sam?', value: 'A quick call' }],
   firstViewed: '2026-11-13T10:00:00Z',
   choices: ['Problem A', 'Problem B'],
   update: vi.fn(),
@@ -77,18 +81,21 @@ vi.mock('@/lib/db/service', () => ({
               ? mocks.missing
                 ? null
                 : { id: 'card', user_id: 'owner' }
-              : {
-                  id: 'session',
-                  user_id: 'owner',
-                  event_id: 'event',
-                  details_completed_at: mocks.details,
-                  first_viewed_at: mocks.firstViewed,
-                  prospect_answer_token_hash: mocks.tokenHash,
-                  prospect_picked_problems: ['Problem A'],
-                  prospect_submitted_email: mocks.email,
-                  prospect_submitted_phone: mocks.email ? null : '+447700900123',
-                },
-          error: null,
+              : table === 'profiles'
+                ? { contact_form: mocks.form, full_name: 'Sam Smith' }
+                : {
+                    id: 'session',
+                    user_id: 'owner',
+                    event_id: 'event',
+                    details_completed_at: mocks.details,
+                    first_viewed_at: mocks.firstViewed,
+                    prospect_answer_token_hash: mocks.tokenHash,
+                    prospect_picked_problems: ['Problem A'],
+                    prospect_form_answers: mocks.answers,
+                    prospect_submitted_email: mocks.email,
+                    prospect_submitted_phone: mocks.email ? null : '+447700900123',
+                  },
+          error: table === 'profiles' && mocks.profileError ? { message: 'offline' } : null,
         }),
       };
     },
@@ -108,6 +115,8 @@ beforeEach(() => {
   mocks.firstViewed = '2026-11-13T10:00:00Z';
   mocks.race = false;
   mocks.missing = false;
+  mocks.form = null;
+  mocks.profileError = false;
   mocks.rate.mockResolvedValue({ allowed: true });
 });
 const submit = (body: unknown) =>
@@ -137,9 +146,75 @@ describe('prospect answer writes', () => {
     expect(mocks.update).toHaveBeenCalledExactlyOnceWith({
       prospect_submitted_email: 'a@example.com',
       prospect_submitted_phone: null,
+      prospect_form_answers: null,
       prospect_consent_at: '2026-11-13T12:00:00.000Z',
       prospect_answer_token_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+  });
+  it.each([
+    ['  A quote please  ', 'A quote please'],
+    ['   ', null],
+    ['x'.repeat(300), 'x'.repeat(300)],
+  ])('saves a trimmed optional message: %s', async (message, expected) => {
+    expect(
+      (await submit({ contact: 'a@example.com', consent: true, answers: { message } })).status,
+    ).toBe(200);
+    expect(mocks.update.mock.calls[0]![0].prospect_form_answers).toEqual(
+      expected ? [{ label: 'What would you like from Sam?', value: expected }] : null,
+    );
+  });
+  it('rejects overlong messages and messages without a consenting contact', async () => {
+    for (const body of [
+      { contact: 'a@example.com', consent: true, answers: { message: 'x'.repeat(301) } },
+      { answers: { message: 'A call' } },
+      { problems: [], answers: { message: 'A call' } },
+      { contact: 'a@example.com', answers: { message: 'A call' } },
+    ])
+      expect((await submit(body)).status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it('clears a previous message when correcting contact without one', async () => {
+    mocks.tokenCookie = 'first-browser';
+    mocks.tokenHash = createHash('sha256').update('first-browser').digest('hex');
+    expect((await submit({ contact: 'fixed@example.com', consent: true })).status).toBe(200);
+    expect(mocks.update.mock.calls[0]![0].prospect_form_answers).toBeNull();
+  });
+  it('validates the rep config, rejecting missing required, unknown and invalid choice answers', async () => {
+    mocks.form = {
+      ...DEFAULT_CONTACT_FORM,
+      fields: { ...DEFAULT_CONTACT_FORM.fields, name: { ask: true, required: true } },
+      questions: [
+        { id: 'when', label: 'When?', type: 'choice', options: ['Now', 'Later'], required: true },
+      ],
+    };
+    for (const answers of [
+      {},
+      { name: 'Alex', 'question:when': 'Never' },
+      { name: 'Alex', 'question:when': 'Now', injected: 'x' },
+    ]) {
+      expect((await submit({ contact: 'a@example.com', consent: true, answers })).status).toBe(400);
+    }
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(
+      (
+        await submit({
+          contact: 'a@example.com',
+          consent: true,
+          answers: { name: ' Alex ', 'question:when': 'Now' },
+        })
+      ).status,
+    ).toBe(200);
+    expect(mocks.update.mock.calls[0]![0].prospect_form_answers).toEqual([
+      { label: 'Name', value: 'Alex' },
+      { label: 'When?', value: 'Now' },
+    ]);
+  });
+  it('rejects hidden forms while retaining problem answers, and handles profile read errors', async () => {
+    mocks.form = { ...DEFAULT_CONTACT_FORM, enabled: false };
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(400);
+    expect((await submit({ problems: [] })).status).toBe(200);
+    mocks.profileError = true;
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(503);
   });
   it('sets a secure, route-scoped cookie and stores only its hash on the first answer', async () => {
     expect((await submit({ problems: [] })).status).toBe(200);
@@ -167,7 +242,7 @@ describe('prospect answer writes', () => {
     const read = await GET(new Request('https://example.com'), {
       params: Promise.resolve({ code: 'ABCDEFGH' }),
     });
-    expect(await read.json()).toEqual({ picked: [], contact: null, readOnly: true });
+    expect(await read.json()).toEqual({ picked: [], contact: null, answers: null, readOnly: true });
   });
   it('lets the same browser correct its contact without replacing the token', async () => {
     mocks.tokenCookie = 'first-browser';
@@ -184,6 +259,7 @@ describe('prospect answer writes', () => {
     expect(await read.json()).toEqual({
       picked: ['Problem A'],
       contact: 'b•••@example.test',
+      answers: mocks.answers,
       readOnly: false,
     });
   });

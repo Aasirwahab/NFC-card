@@ -45,7 +45,11 @@ vi.mock('@/lib/db/service', () => ({
                   }
                 : null
               : table === 'profiles'
-                ? { full_name: 'Sam Smith', review_before_live: false }
+                ? {
+                    full_name: 'Sam Smith',
+                    review_before_live: false,
+                    contact_form: { enabled: false, title: 'Talk to {first}' },
+                  }
                 : null,
       }),
     }),
@@ -68,6 +72,8 @@ describe('portfolio holding resolution', () => {
     expect(result.audience).toBe('owner');
     if (result.audience !== 'owner') throw new Error('Expected portfolio');
     expect(result.rep.fullName).toBe('Sam Smith');
+    expect(result.rep.contactForm).toMatchObject({ enabled: false, title: 'Talk to {first}' });
+    expect(state.selected.filter((columns) => columns.includes('contact_form'))).toHaveLength(1);
     expect(result.holding).toEqual({
       ready: true,
       problems: ['Slow quotes'],

@@ -170,13 +170,13 @@ describe('follow-up list wiring', () => {
       state: 'review',
       preferContact: true,
       prospectEmail: 'tom@example.com',
-      signal: { label: 'Asked you to send their note', rank: 6 },
+      signal: { label: 'Shared their details', rank: 6 },
     });
     expect(result.actionable.find((r) => r.sessionId === 'opened')!.signal.label).toBe(
       'Opened 3 times, last today',
     );
     expect(result.actionable[0]!.draft).toBe(
-      "Hi Tom,\n\nHere is your note from our conversation.\n\nZaid\n\nReply stop and I won't write again.",
+      "Hi Tom,\n\nThanks for sharing your details after our conversation.\n\nZaid\n\nReply stop and I won't write again.",
     );
     expect(result.actionable.find((r) => r.sessionId === 'mobile')).toMatchObject({
       preferContact: true,

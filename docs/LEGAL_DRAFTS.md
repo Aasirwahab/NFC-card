@@ -24,7 +24,7 @@
 
 ## 3. Pilot terms with a rep's company (draft, one page)
 
-> **INSIGNAR pilot terms.** Between `[INSIGNAR LEGAL ENTITY]` ("INSIGNAR") and `[REP'S COMPANY]` ("the Company"), starting `[DATE]` for `[6 WEEKS]`.
+> **INSIGNAR pilot terms.** Between `[INSIGNAR LEGAL ENTITY]` ("INSIGNAR") and `[REP'S COMPANY]` ("the Company"), starting `[DATE]` for `90 days`.
 >
 > 1. **What you get.** Up to `[10]` numbered cards per rep, access to the INSIGNAR rep app, and support by `[CONTACT]`. The pilot is `[FREE / £X]`.
 > 2. **Roles.** `[OPTION A: The Company decides why and how prospect details are used, so it is the controller; INSIGNAR processes them on its behalf and only on its instructions. OPTION B: INSIGNAR is a controller in its own right for the prospect pages it hosts.]` A solicitor chooses A or B.
