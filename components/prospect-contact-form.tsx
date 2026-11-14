@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { contactFormFields, contactFormText, type ContactForm } from '@/lib/domain/contact-form';
 import styles from '@/app/ui-slice.module.css';
 
+/** WCAG 1.3.5: let phones autofill what they know. The email-or-mobile field has no single token. */
+const AUTOFILL: Record<string, string> = {
+  name: 'name',
+  company: 'organization',
+  jobTitle: 'organization-title',
+};
+
 /** Shared field rendering for the holding page and Setup's inert live preview. */
 export function ProspectContactForm({
   config,
@@ -104,7 +111,7 @@ export function ProspectContactForm({
                   {...shared}
                   id={id}
                   type="text"
-                  autoComplete="off"
+                  autoComplete={preview ? 'off' : (AUTOFILL[field.key] ?? 'off')}
                   autoCapitalize={field.type === 'contact' ? 'none' : undefined}
                   spellCheck={field.type === 'contact' ? false : undefined}
                   maxLength={field.type === 'contact' ? 254 : 300}
