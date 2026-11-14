@@ -107,13 +107,23 @@ describe('screen QR polling', () => {
     apiGet.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ status: 'expired' });
     const callbacks = options();
     const stop = pollScreenQr('ABCDEFGH', callbacks);
-    await vi.advanceTimersByTimeAsync(12_000);
+    await vi.advanceTimersByTimeAsync(8_000);
     expect(callbacks.onExpired).toHaveBeenCalledOnce();
-    expect(apiGet).toHaveBeenCalledTimes(4);
+    expect(apiGet).toHaveBeenCalledTimes(3);
     apiGet.mockResolvedValue({ status: 'scanned', sessionId: 'contact-1' });
     await vi.advanceTimersByTimeAsync(4000);
     expect(callbacks.onScanned).toHaveBeenCalledExactlyOnceWith('contact-1');
     stop();
+  });
+  it('stops polling about 10 s after the server says expired, before the local deadline', async () => {
+    apiGet.mockResolvedValue({ status: 'expired' });
+    const callbacks = options();
+    pollScreenQr('ABCDEFGH', callbacks);
+    await vi.advanceTimersByTimeAsync(12_000);
+    const calls = apiGet.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(apiGet.mock.calls.length).toBe(calls);
+    expect(callbacks.onExpired).toHaveBeenCalledOnce();
   });
 });
 

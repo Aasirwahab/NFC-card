@@ -13,6 +13,7 @@ export function pollScreenQr(
   let cancelled = false;
   let pending = false;
   let expired = false;
+  let serverExpiredStop: ReturnType<typeof setTimeout> | undefined;
   const expire = () => {
     if (!expired) options.onExpired();
     expired = true;
@@ -27,7 +28,10 @@ export function pollScreenQr(
         options.onScanned(result.sessionId);
         stop();
       } else if (result.status === 'expired') {
+        // The server's clock is the authority. Keep checking ~10 s for a scan committed at
+        // the deadline, then stop; "Check again" covers anything later.
         expire();
+        serverExpiredStop ??= setTimeout(stop, 10_000);
       }
     } catch {
       // A lost connection must not discard the code or create another contact.
@@ -61,6 +65,7 @@ export function pollScreenQr(
     clearInterval(interval);
     clearTimeout(deadline);
     clearTimeout(recoveryDeadline);
+    clearTimeout(serverExpiredStop);
     document.removeEventListener('visibilitychange', onVisible);
   }
   document.addEventListener('visibilitychange', onVisible);
