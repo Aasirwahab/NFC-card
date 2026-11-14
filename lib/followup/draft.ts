@@ -121,6 +121,17 @@ const LONG: Record<
   ],
 };
 
+/** A prospect quote is data: one line, no controls, at most 120 characters. */
+export function quoteProspectQuestion(question: string): string {
+  return question
+    .replace(/[\p{Cc}\p{Cf}\s]+/gu, ' ')
+    .replace(/["“”]/g, '')
+    .trim()
+    .slice(0, 120)
+    .replace(/[\uD800-\uDBFF]$/u, '')
+    .trim();
+}
+
 export function composeFollowupDraft(input: FollowupInput): string {
   const them = first(input.prospectName);
   const me = first(input.repFullName) ?? input.repFullName;
@@ -143,13 +154,7 @@ export function composeFollowupDraft(input: FollowupInput): string {
   }
 
   if (state === 'asked-question') {
-    const question = (input.question ?? '')
-      .replace(/[\p{Cc}\p{Cf}\s]+/gu, ' ')
-      .replace(/["“”]/g, '')
-      .trim()
-      .slice(0, 120)
-      .replace(/[\uD800-\uDBFF]$/u, '')
-      .trim();
+    const question = quoteProspectQuestion(input.question ?? '');
     const quote = question ? `You asked: “${question}”` : 'Following up on our chat.';
     const body =
       input.channel === 'linkedin'

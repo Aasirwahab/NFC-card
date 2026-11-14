@@ -10,6 +10,8 @@ import { parseNiches } from '@/lib/db/rep';
 import { pitchUsesMock } from '@/lib/ai/models';
 import { PhotoUpload } from './photo-upload';
 import { commonQuestions } from '@/lib/chat/knowledge';
+import { suggestedAssistantQuestions } from '@/lib/chat/settings';
+import { AssistantStudio } from '@/components/assistant-studio';
 import {
   BusinessForm,
   KnowledgeForm,
@@ -22,31 +24,44 @@ import {
 export const metadata = { title: 'Setup' };
 export const dynamic = 'force-dynamic';
 
+const QUESTION_COLUMNS =
+  'id, question, handed_off, resolved_at, saved_answer, sessions(status, prospect_name, prospect_email, prospect_submitted_email, prospect_submitted_phone, cards(code))';
+
 export default async function SettingsPage() {
   const rep = await requireRep();
 
-  const [profile, business, knowledge, playbook, events, unanswered] = await Promise.all([
-    getProfile(rep.userId),
-    getBusinessProfile(rep.userId),
-    serviceClient()
-      .from('knowledge_base')
-      .select('topic, content, source')
-      .eq('user_id', rep.userId),
-    serviceClient()
-      .from('playbook_entries')
-      .select('id, problem, why, checks, resource_url')
-      .eq('user_id', rep.userId)
-      .order('created_at'),
-    serviceClient().from('events').select('niches').eq('user_id', rep.userId),
-    serviceClient()
-      .from('chat_unanswered')
-      .select('id, question')
-      .eq('user_id', rep.userId)
-      .is('resolved_at', null)
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(20),
-  ]);
+  const [profile, business, knowledge, playbook, events, unanswered, savedAnswers] =
+    await Promise.all([
+      getProfile(rep.userId),
+      getBusinessProfile(rep.userId),
+      serviceClient()
+        .from('knowledge_base')
+        .select('topic, content, source')
+        .eq('user_id', rep.userId),
+      serviceClient()
+        .from('playbook_entries')
+        .select('id, problem, why, checks, resource_url')
+        .eq('user_id', rep.userId)
+        .order('created_at'),
+      serviceClient().from('events').select('niches').eq('user_id', rep.userId),
+      serviceClient()
+        .from('chat_unanswered')
+        .select(QUESTION_COLUMNS)
+        .eq('user_id', rep.userId)
+        .is('resolved_at', null)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(20),
+      serviceClient()
+        .from('chat_unanswered')
+        .select(QUESTION_COLUMNS)
+        .eq('user_id', rep.userId)
+        .not('saved_answer', 'is', null)
+        .not('resolved_at', 'is', null)
+        .order('resolved_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(5),
+    ]);
 
   const publicFields = publicProfileCheck(profile, business);
   const presentFields = publicFields.filter((field) => field.present).length;
@@ -149,10 +164,23 @@ export default async function SettingsPage() {
         </ul>
       </section>
       <UnansweredQuestions
-        questions={unanswered.data ?? []}
-        loadError={Boolean(unanswered.error)}
+        questions={[...(unanswered.data ?? []), ...(savedAnswers.data ?? [])]}
+        loadError={Boolean(unanswered.error || savedAnswers.error)}
+        repName={profile?.full_name ?? 'Your contact'}
       />
       <KnowledgeForm entries={entries} />
+      <AssistantStudio
+        blockedTopics={profile?.assistant_blocked_topics ?? []}
+        suggestions={suggestedAssistantQuestions(
+          [
+            ...(playbook.data ?? []).map((entry) => entry.problem),
+            ...(events.data ?? []).flatMap((event) =>
+              parseNiches(event.niches).flatMap((niche) => niche.problems),
+            ),
+          ],
+          knowledge.data ?? [],
+        )}
+      />
     </div>
   );
 }

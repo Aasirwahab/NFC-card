@@ -152,6 +152,28 @@ export function mockChatModel(): MockLanguageModelV4 {
     doGenerate: async (options) => {
       // The rules mention "<knowledge>" before the block itself: read the LAST one.
       const system = systemText(options);
+      if (system.startsWith('Classify only.')) {
+        const data = JSON.parse(
+          options.prompt
+            .find((m) => m.role === 'user')
+            ?.content.map((c) => (c.type === 'text' ? c.text : ''))
+            .join('') ?? '{}',
+        ) as { question?: string; blockedTopics?: string[] };
+        const question = (data.question ?? '').toLowerCase();
+        const synonyms: Record<string, RegExp> = {
+          pricing: /owe|money|spend|afford/,
+          legal: /sign|sue|obligation/,
+          delivery: /soon|wait|available/,
+          competitors: /other provider|rival/,
+        };
+        return reply(
+          JSON.stringify({
+            blocked: (data.blockedTopics ?? []).some(
+              (topic) => synonyms[topic]?.test(question) || question.includes(topic.toLowerCase()),
+            ),
+          }),
+        );
+      }
       const start = system.lastIndexOf('<knowledge>');
       const end = system.lastIndexOf('</knowledge>');
       const knowledge = start >= 0 && end > start ? system.slice(start + 11, end) : '';
@@ -167,7 +189,18 @@ export function mockChatModel(): MockLanguageModelV4 {
         : `Ask ${rep} about that detail using the contact options on this page.`;
       return reply(
         options.responseFormat?.type === 'json'
-          ? JSON.stringify({ outcome: first ? 'answered' : 'unknown', reply: text, action: null })
+          ? JSON.stringify({
+              outcome: first ? 'answered' : 'unknown',
+              reply: text,
+              action: null,
+              topics: first
+                ? [
+                    JSON.parse(
+                      system.match(/Only these topics exist: (\[[^\n]*?\])/u)?.[1] ?? '[]',
+                    )[0],
+                  ].filter(Boolean)
+                : [],
+            })
           : text,
       );
     },

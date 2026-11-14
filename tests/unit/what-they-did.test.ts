@@ -13,6 +13,7 @@ vi.mock('@/lib/db/rep', () => ({
   getBusinessProfile: async () => ({ company_name: null }),
 }));
 vi.mock('@/components/followup-card', () => ({ FollowupCard: mocks.followup }));
+vi.mock('@/app/(app)/settings/actions', () => ({ saveKnowledgeAction: vi.fn() }));
 
 const session = {
   id: 'contact',
@@ -44,7 +45,16 @@ const activity = {
     { id: 1, role: 'user', content: '<script>Price?</script>', created_at: at },
     { id: 2, role: 'assistant', content: 'Please ask Zaid.', created_at: at },
   ],
-  chat_unanswered: [{ question: '<script>Price?</script>', created_at: at }],
+  chat_unanswered: [
+    {
+      id: 1,
+      question: '<script>Price?</script>',
+      created_at: at,
+      handed_off: true,
+      resolved_at: null,
+      saved_answer: null,
+    },
+  ],
   bookings: [],
 };
 beforeEach(() => {
@@ -65,9 +75,11 @@ describe('What they did on the contact page', () => {
     expect(html).not.toContain('Emailed the page');
     expect(html).not.toContain('No buttons pressed yet.');
     expect(html).toContain('Please ask Zaid.');
+    expect(html).toContain('Answer this');
+    expect(html).toContain('Passed to you.');
     expect(html).toContain('Chat could not answer fully.');
     expect(html).toContain('&lt;script&gt;Price?&lt;/script&gt;');
-    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('<script>Price?</script>');
     expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({
       pagePath: '/c/abc',
       signal: { label: 'Asked about pricing' },
