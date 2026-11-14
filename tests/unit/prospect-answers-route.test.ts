@@ -4,6 +4,9 @@ import { DEFAULT_CONTACT_FORM } from '@/lib/domain/contact-form';
 import { POST, GET } from '@/app/api/landing/[code]/answers/route';
 
 const mocks = vi.hoisted(() => ({
+  insert: vi.fn(),
+  after: vi.fn(),
+  kick: vi.fn(),
   userId: null as string | null,
   ownerCookie: false,
   tokenCookie: null as string | null,
@@ -23,6 +26,11 @@ const mocks = vi.hoisted(() => ({
   race: false,
   missing: false,
 }));
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof import('next/server')>()),
+  after: (fn: unknown) => mocks.after(fn),
+}));
+vi.mock('@/lib/jobs/kick', () => ({ kickWorkers: () => mocks.kick() }));
 vi.mock('next/headers', () => ({
   headers: async () => new Headers(),
   cookies: async () => ({
@@ -56,6 +64,7 @@ vi.mock('@/lib/db/service', () => ({
     from: (table: string) => {
       let updating = false;
       return {
+        insert: (...args: unknown[]) => mocks.insert(...args),
         select() {
           return this;
         },
@@ -105,6 +114,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-11-13T12:00:00Z'));
+  mocks.insert.mockResolvedValue({ error: null });
   mocks.userId = null;
   mocks.ownerCookie = false;
   mocks.tokenCookie = null;
@@ -130,6 +140,44 @@ const submit = (body: unknown) =>
   );
 
 describe('prospect answer writes', () => {
+  it('queues a contact alert with no prospect data and kicks after the response', async () => {
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(200);
+    expect(mocks.insert).toHaveBeenCalledExactlyOnceWith({
+      type: 'notify_contact',
+      session_id: 'session',
+      user_id: 'owner',
+    });
+    expect(mocks.kick).not.toHaveBeenCalled();
+    await mocks.after.mock.calls[0]![0]();
+    expect(mocks.kick).toHaveBeenCalledOnce();
+  });
+  it('leaves an existing live alert untouched and accepts the save', async () => {
+    mocks.insert.mockResolvedValue({
+      error: {
+        code: '23505',
+        message: 'duplicate key violates unique constraint "jobs_one_live_per_session"',
+      },
+    });
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(200);
+    expect(mocks.insert).toHaveBeenCalledOnce();
+    expect(mocks.after).toHaveBeenCalledOnce();
+  });
+  it('never queues for problem picks or a failed contact save', async () => {
+    expect((await submit({ problems: [] })).status).toBe(200);
+    mocks.race = true;
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(409);
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+  it('still saves when the rep alert cannot be queued, and alerts without prospect data', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.insert.mockResolvedValue({ error: { code: '08006', message: 'private data' } });
+    expect((await submit({ contact: 'a@example.com', consent: true })).status).toBe(200);
+    expect(JSON.stringify(log.mock.calls)).toContain('contact_alert_enqueue_failed');
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/private data|a@example.com/);
+    log.mockRestore();
+  });
+
   it('saves valid chips alone with an atomic unsaved and active guard', async () => {
     expect((await submit({ problems: ['Problem A'] })).status).toBe(200);
     expect(mocks.update).toHaveBeenCalledExactlyOnceWith({

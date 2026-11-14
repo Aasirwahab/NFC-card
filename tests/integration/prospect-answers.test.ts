@@ -383,3 +383,35 @@ it('removes only queued automatic note emails when upgrading', async () => {
     await previous.close();
   }
 });
+
+it('allows at most one live contact alert, then another after completion', async () => {
+  const { sessionId, userId } = await contact();
+  const enqueue = () =>
+    db.query<{ id: string }>(
+      "insert into public.jobs(type, session_id, user_id) values ('notify_contact', $1, $2) returning id",
+      [sessionId, userId],
+    );
+  const {
+    rows: [first],
+  } = await enqueue();
+  for (const status of ['queued', 'running']) {
+    await db.query('update public.jobs set status = $1 where id = $2', [status, first!.id]);
+    await expect(enqueue()).rejects.toMatchObject({
+      code: '23505',
+      message: expect.stringContaining('jobs_one_live_per_session'),
+    });
+  }
+  await db.query("update public.jobs set status = 'succeeded' where id = $1", [first!.id]);
+  const {
+    rows: [next],
+  } = await enqueue();
+  expect(next!.id).not.toBe(first!.id);
+  expect(
+    (
+      await db.query(
+        "select status from public.jobs where session_id = $1 and type = 'notify_contact' order by status",
+        [sessionId],
+      )
+    ).rows,
+  ).toEqual([{ status: 'queued' }, { status: 'succeeded' }]);
+});
