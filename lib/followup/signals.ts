@@ -3,6 +3,8 @@ type SignalInput = {
   firstViewedAt: string | null;
   events: string[];
   questions: string[];
+  submittedEmail: string | null;
+  submittedPhone: string | null;
 };
 
 export function openingSummary(count: number, first: string | null) {
@@ -17,6 +19,10 @@ export function openingSummary(count: number, first: string | null) {
 
 /** Order recorded actions, never score or profile the person. */
 export function strongestSignal(input: SignalInput): { label: string; rank: number } {
+  const emailed = input.events.includes('prospect_note_emailed');
+  if ((input.submittedEmail || input.submittedPhone) && !emailed) {
+    return { label: 'Asked you to send their note', rank: 6 };
+  }
   if (input.questions.length) {
     return {
       label: input.questions.some((q) => /\b(?:pric(?:e|es|ing)|costs?)\b|\bhow much\b/i.test(q))
@@ -27,9 +33,14 @@ export function strongestSignal(input: SignalInput): { label: string; rank: numb
   }
   if (input.events.includes('booking_opened')) return { label: 'Opened the booking page', rank: 4 };
   if (input.events.includes('linkedin_opened')) return { label: 'Pressed LinkedIn', rank: 3 };
-  if (input.events.includes('page_emailed')) return { label: 'Emailed the page', rank: 2 };
+  // Automatic delivery also records one page_emailed event.
+  if (input.events.filter((e) => e === 'page_emailed').length > (emailed ? 1 : 0))
+    return { label: 'Emailed the page', rank: 2 };
   const summary = openingSummary(input.viewCount, input.firstViewedAt);
-  return { label: summary.count, rank: input.viewCount > 0 || input.firstViewedAt ? 1 : 0 };
+  return {
+    label: emailed ? 'We emailed them their note' : summary.count,
+    rank: input.viewCount > 0 || input.firstViewedAt ? 1 : 0,
+  };
 }
 
 type Message = { id: number; role: string; content: string; created_at: string };

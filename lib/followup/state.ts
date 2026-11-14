@@ -29,6 +29,8 @@ export type FollowupSession = {
   followup_outcome: string | null;
   /** The problems the rep ticked. The free-text field is deliberately not here. */
   problems: string[];
+  prospect_submitted_email: string | null;
+  prospect_submitted_phone: string | null;
 };
 
 export type FollowupEvent = { session_id: string; type: string };
@@ -63,12 +65,15 @@ export function followupState(
 
   if (session.followup_sent_at) return 'sent';
 
+  const contactEvents = events.filter((e) => e.session_id === session.id);
+  const emailed = contactEvents.some((e) => e.type === 'prospect_note_emailed');
   if (
-    events.some(
-      (e) =>
-        e.session_id === session.id &&
-        ['linkedin_opened', 'booking_opened', 'page_emailed', 'chat_turn'].includes(e.type),
-    )
+    contactEvents.some((e) =>
+      ['linkedin_opened', 'booking_opened', 'chat_turn'].includes(e.type),
+    ) ||
+    // Automatic delivery also records one page_emailed event.
+    contactEvents.filter((e) => e.type === 'page_emailed').length > (emailed ? 1 : 0) ||
+    ((session.prospect_submitted_email || session.prospect_submitted_phone) && !emailed)
   )
     return 'review';
   if (session.first_viewed_at) return 'opened-no-action';

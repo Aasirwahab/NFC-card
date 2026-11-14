@@ -167,7 +167,12 @@ export default function PrivacyPage() {
           On the page you open, you can choose what matters to you from a short list. You can also
           leave an email address or mobile number so the person you met can send you their note. You
           give these yourself. We use them only for that, and <strong>Remove my details</strong>{' '}
-          deletes them with the rest of your record.
+          deletes them with the rest of your record. If you leave an email address, we send you the
+          link to your note once when it is ready, when email sending is available.
+        </p>
+        <p>
+          The prospect page sets one strictly necessary cookie so only the browser that gave an
+          answer can change it; it is not used for tracking.
         </p>
       </Section>
 

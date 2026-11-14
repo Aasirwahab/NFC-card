@@ -52,9 +52,9 @@ export default function HowItWorksPage() {
 
       <Section title="Then we wrote the page">
         <p>
-          The page you saw was written before you tapped and stored, which is why it loaded
-          instantly. It is tied to the problem you actually raised. If the research turned up
-          nothing useful, you got a simpler page rather than something invented.
+          Your note may be ready when you tap, or appear afterwards once the person you met has
+          written down your conversation. It is tied to the problem you actually raised. If the
+          research turned up nothing useful, you got a simpler page rather than something invented.
         </p>
       </Section>
 

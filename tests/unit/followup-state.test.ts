@@ -20,6 +20,8 @@ const base: FollowupSession = {
   followup_sent_at: null,
   followup_outcome: null,
   problems: ['Manual timesheets'],
+  prospect_submitted_email: null,
+  prospect_submitted_phone: null,
 };
 const opened = { first_viewed_at: '2026-11-06T10:00:00Z' };
 const sent = { followup_sent_at: '2026-11-03T12:00:00Z' };
@@ -73,6 +75,23 @@ describe('follow-up display precedence', () => {
     const events = [{ session_id: 'other', type: 'linkedin_opened' }];
     const bookings = [{ session_id: 'other', status: 'confirmed' }];
     expect(followupState({ ...base, ...opened }, events, bookings, now)).toBe('opened-no-action');
+  });
+
+  it.each([
+    { prospect_submitted_email: 'tom@example.com' },
+    { prospect_submitted_phone: '+447700900123' },
+  ])('queues a requested note immediately, but not automatic delivery alone: %o', (contact) => {
+    const session = { ...base, ...contact, registered_at: new Date(now).toISOString() };
+    expect(followupState(session, [], [], now)).toBe('review');
+    const delivered = [
+      { session_id: base.id, type: 'prospect_note_emailed' },
+      { session_id: base.id, type: 'page_emailed' },
+    ];
+    expect(followupState(session, delivered, [], now)).toBeNull();
+    expect(followupState(session, [...delivered, ...linkedin], [], now)).toBe('review');
+    expect(followupState({ ...session, ...sent }, [], [], now)).toBe('sent');
+    expect(followupState(session, [], booked, now)).toBe('booked');
+    expect(followupState({ ...session, followup_outcome: 'dropped' }, [], [], now)).toBe('dropped');
   });
 
   it('queues only the three states the rep can act on', () => {

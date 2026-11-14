@@ -23,6 +23,51 @@ describe('one-tap send', () => {
     expect(p.openMail).not.toHaveBeenCalled();
   });
 
+  it('opens a requested email directly even when sharing is available', async () => {
+    const p = platform();
+    expect(await sendFollowup({ ...message, preferContact: true }, p)).toBe('email');
+    expect(p.openMail).toHaveBeenCalledWith(
+      `mailto:tom%40example.com?body=${encodeURIComponent(`${message.draft}\n\n${message.pageUrl}`)}`,
+    );
+    expect(p.share).not.toHaveBeenCalled();
+  });
+
+  it('opens a requested mobile directly with the same draft and link', async () => {
+    const p = platform();
+    expect(
+      await sendFollowup(
+        { ...message, email: null, phone: '+447700900123', preferContact: true },
+        p,
+      ),
+    ).toBe('sms');
+    expect(p.openMail).toHaveBeenCalledWith(
+      `sms:+447700900123?body=${encodeURIComponent(`${message.draft}\n\n${message.pageUrl}`)}`,
+    );
+    expect(p.share).not.toHaveBeenCalled();
+  });
+
+  it('prefers the supplied email over a mobile and keeps sharing as the other option', async () => {
+    const p = platform();
+    const requested = { ...message, phone: '+447700900123', preferContact: true };
+    expect(await sendFollowup(requested, p)).toBe('email');
+    expect(await sendFollowup({ ...requested, preferContact: false }, p)).toBe('shared');
+    p.openMail.mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(await sendFollowup(requested, p)).toBe('shared');
+  });
+
+  it.each(['+447700900123?body=bad', 'javascript:alert(1)', '+447700900123\r\n'])(
+    'never opens an unsafe SMS target: %s',
+    async (phone) => {
+      const p = { ...platform(), share: undefined };
+      expect(await sendFollowup({ ...message, email: null, phone, preferContact: true }, p)).toBe(
+        'copied',
+      );
+      expect(p.openMail).not.toHaveBeenCalled();
+    },
+  );
+
   it('falls back to an encoded mailto when share is unavailable', async () => {
     const p = { ...platform(), share: undefined };
     expect(await sendFollowup(message, p)).toBe('email');

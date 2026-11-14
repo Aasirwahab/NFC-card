@@ -90,6 +90,8 @@ describe('follow-up list wiring', () => {
       prospect_company: null,
       linkedin_url: null,
       prospect_email: null,
+      prospect_submitted_email: null,
+      prospect_submitted_phone: null,
       event_sequence_number: 1,
       colour_tag: 'Blue',
       cards: { code: 'abc' },
@@ -102,6 +104,25 @@ describe('follow-up list wiring', () => {
         table === 'sessions'
           ? [
               base,
+              {
+                ...base,
+                id: 'requested',
+                prospect_submitted_email: 'tom@example.com',
+                registered_at: '2026-11-13T12:00:00Z',
+              },
+              { ...base, id: 'mobile', prospect_submitted_phone: '+447700900123' },
+              {
+                ...base,
+                id: 'saved',
+                prospect_email: 'new@example.com',
+                prospect_submitted_email: 'old@example.com',
+              },
+              {
+                ...base,
+                id: 'emailed',
+                prospect_submitted_email: 'tom@example.com',
+                session_events: [{ type: 'prospect_note_emailed' }, { type: 'page_emailed' }],
+              },
               { ...base, id: 'opened', first_viewed_at: '2026-11-11T12:00:00Z', view_count: 3 },
               { ...base, id: 'booking', session_events: [{ type: 'booking_opened' }] },
               {
@@ -119,13 +140,41 @@ describe('follow-up list wiring', () => {
     }));
     const result = await listFollowups('rep-a', Date.parse('2026-11-13T12:00:00Z'));
     expect(result.actionable.map((r) => r.sessionId)).toEqual([
+      'requested',
+      'mobile',
+      'saved',
       'question',
       'booking',
       'opened',
       'none',
+      'emailed',
     ]);
-    expect(result.actionable[0]!.draft).toContain('You asked: “Does it work offline?”');
-    expect(result.actionable[0]!.signal.label).toBe('Asked about pricing');
+    expect(result.actionable.find((r) => r.sessionId === 'question')!.draft).toContain(
+      'You asked: “Does it work offline?”',
+    );
+    expect(result.actionable.find((r) => r.sessionId === 'question')!.signal.label).toBe(
+      'Asked about pricing',
+    );
+    expect(result.actionable[0]).toMatchObject({
+      state: 'review',
+      preferContact: true,
+      prospectEmail: 'tom@example.com',
+      signal: { label: 'Asked you to send their note', rank: 6 },
+    });
+    expect(result.actionable.find((r) => r.sessionId === 'mobile')).toMatchObject({
+      preferContact: true,
+      prospectEmail: null,
+      prospectPhone: '+447700900123',
+    });
+    expect(result.actionable.find((r) => r.sessionId === 'saved')!.prospectEmail).toBe(
+      'new@example.com',
+    );
+    expect(result.actionable.find((r) => r.sessionId === 'emailed')).toMatchObject({
+      state: 'due-no-tap',
+      signal: { label: 'We emailed them their note', rank: 0 },
+    });
+    expect(mocks.queries[0]!.columns).toContain('prospect_submitted_email');
+    expect(mocks.queries[0]!.columns).toContain('prospect_submitted_phone');
     expect(result.actionable.every((r) => r.draft && r.pagePath === '/c/abc')).toBe(true);
     expect(mocks.queries.find((q) => q.table === 'sessions')!.filters).toContainEqual([
       'user_id',

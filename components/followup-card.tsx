@@ -134,7 +134,13 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {row.draft ? (
-          <FollowupSendButton draft={row.draft} pagePath={row.pagePath} email={row.prospectEmail} />
+          <FollowupSendButton
+            draft={row.draft}
+            pagePath={row.pagePath}
+            email={row.prospectEmail}
+            phone={row.prospectPhone}
+            preferContact={row.preferContact}
+          />
         ) : null}
         {row.draft ? (
           <Button type="button" variant="secondary" onClick={copy}>

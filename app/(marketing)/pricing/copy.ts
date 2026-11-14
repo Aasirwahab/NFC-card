@@ -46,7 +46,7 @@ export const copy = {
     ],
     [
       'A page that builds itself after the tap',
-      'It is about their problem, in their words, and only they can open it.',
+      'It is about their problem, in their words, with a private link.',
     ],
     ['A small chat on that page', 'It answers their questions from the knowledge you give it.'],
     [

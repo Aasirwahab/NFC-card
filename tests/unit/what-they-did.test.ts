@@ -26,6 +26,8 @@ const session = {
   prospect_name: 'Tom',
   prospect_company: null,
   prospect_email: null,
+  prospect_submitted_email: null,
+  prospect_submitted_phone: null,
   linkedin_url: null,
   event_sequence_number: 1,
   colour_tag: 'Blue',
@@ -67,6 +69,51 @@ describe('What they did on the contact page', () => {
       signal: { label: 'Asked about pricing' },
       draft: expect.stringContaining('You asked:'),
     });
+  });
+
+  it('shows the contact they left and uses the rep’s saved email for sending', async () => {
+    const html = renderToStaticMarkup(
+      await WhatTheyDid({
+        userId: 'rep',
+        cardCode: 'abc',
+        session: {
+          ...session,
+          prospect_email: 'saved@example.com',
+          prospect_submitted_email: 'left@example.com',
+          prospect_submitted_phone: '+447700900123',
+        },
+      }),
+    );
+    expect(html).toContain('Asked you to send their note');
+    expect(html).toContain('left@example.com');
+    expect(html).toContain('+447700900123');
+    expect(mocks.followup.mock.calls[0]![0].row).toMatchObject({
+      prospectEmail: 'saved@example.com',
+      prospectPhone: '+447700900123',
+      preferContact: true,
+      signal: { label: 'Asked you to send their note', rank: 6 },
+    });
+  });
+
+  it('shows automatic delivery in the activity block', async () => {
+    mocks.activity.mockResolvedValue({
+      ...activity,
+      chat_messages: [],
+      session_events: [
+        { type: 'prospect_note_emailed', occurred_at: at },
+        { type: 'page_emailed', occurred_at: at },
+      ],
+    });
+    const html = renderToStaticMarkup(
+      await WhatTheyDid({
+        userId: 'rep',
+        cardCode: 'abc',
+        session: { ...session, prospect_submitted_email: 'left@example.com' },
+      }),
+    );
+    expect(html).toContain('We emailed them their note');
+    expect(html).toContain('Emailed the page: not recorded');
+    expect(mocks.followup.mock.calls[0]![0].row.signal.rank).toBe(1);
   });
 
   it('renders nothing for a contact outside the owner query', async () => {

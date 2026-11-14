@@ -62,11 +62,14 @@ export async function WhatTheyDid({
   const opens = openingSummary(activity.view_count, activity.first_viewed_at);
   const turns = chatTurns(activity.chat_messages, activity.chat_unanswered);
   const events = activity.session_events.map((e) => ({ ...e, session_id: session.id }));
+  const noteEmailed = events.some((e) => e.type === 'prospect_note_emailed');
   const signal = strongestSignal({
     viewCount: activity.view_count,
     firstViewedAt: activity.first_viewed_at,
     events: events.map((e) => e.type),
     questions: turns.map((t) => t.question),
+    submittedEmail: session.prospect_submitted_email,
+    submittedPhone: session.prospect_submitted_phone,
   });
   const channel = followupChannel(session);
   const now = activity.readAt;
@@ -107,6 +110,20 @@ export async function WhatTheyDid({
         <p className="text-ink-3 mt-1 text-sm">Last opened: time not recorded.</p>
       ) : null}
 
+      {session.prospect_submitted_email || session.prospect_submitted_phone ? (
+        <div className="mt-5 text-sm wrap-anywhere">
+          <h3 className="text-ink font-semibold">
+            {noteEmailed ? 'We emailed them their note' : 'Asked you to send their note'}
+          </h3>
+          {session.prospect_submitted_email ? (
+            <p className="text-ink-2 mt-1">{session.prospect_submitted_email}</p>
+          ) : null}
+          {session.prospect_submitted_phone ? (
+            <p className="text-ink-2 mt-1">{session.prospect_submitted_phone}</p>
+          ) : null}
+        </div>
+      ) : null}
+
       <h3 className="text-ink mt-5 text-sm font-semibold">Buttons pressed</h3>
       <ul className="text-ink-2 mt-2 space-y-1 text-sm">
         {(
@@ -116,7 +133,11 @@ export async function WhatTheyDid({
             ['page_emailed', 'Emailed the page'],
           ] as const
         ).map(([type, label]) => {
-          const count = events.filter((e) => e.type === type).length;
+          const count = Math.max(
+            0,
+            events.filter((e) => e.type === type).length -
+              (type === 'page_emailed' && noteEmailed ? 1 : 0),
+          );
           return (
             <li key={type}>
               {label}: {count === 0 ? 'not recorded' : `${count} ${count === 1 ? 'time' : 'times'}`}
@@ -155,8 +176,8 @@ export async function WhatTheyDid({
         <div className="mt-5">
           <h3 className="text-ink text-base font-semibold">Follow up</h3>
           <p className="text-ink-3 mt-1 text-sm">
-            Send opens your share sheet or email, or copies the message. Tap Done once you have sent
-            it.
+            Send opens their email or text message if they left one, or your share sheet. You can
+            also copy the message. Tap Done once you have sent it.
           </p>
           <FollowupCard
             row={{
@@ -169,7 +190,11 @@ export async function WhatTheyDid({
               pagePath: cardCode ? `/c/${cardCode}` : null,
               prospectName: session.prospect_name,
               prospectCompany: session.prospect_company,
-              prospectEmail: session.prospect_email,
+              prospectEmail: session.prospect_email || session.prospect_submitted_email,
+              prospectPhone: session.prospect_submitted_phone,
+              preferContact: Boolean(
+                session.prospect_submitted_email || session.prospect_submitted_phone,
+              ),
               linkedinUrl: session.linkedin_url,
               sequence: session.event_sequence_number,
               colour: session.colour_tag,

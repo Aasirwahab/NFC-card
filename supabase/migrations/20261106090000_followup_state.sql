@@ -1,3 +1,56 @@
+-- Rollback: revert the deploy and prospect-answers migration first.
+-- create or replace function public.queue_no_tap_followups(p_now timestamptz default now())
+-- returns int
+-- language plpgsql
+-- security definer
+-- set search_path = public, pg_temp
+-- as $fn$
+-- declare
+--   v_count int;
+-- begin
+--   insert into public.jobs(type, session_id, user_id)
+--   select 'followup', s.id, s.user_id
+--     from public.sessions s
+--    where s.status = 'active'
+--      and s.first_viewed_at is null
+--      and s.details_completed_at is not null
+--      and s.registered_at <  p_now - interval '24 hours'
+--      -- Not for sessions from long before this feature existed.
+--      and s.registered_at >= p_now - interval '30 days'
+--      and not exists (select 1 from public.followup_drafts d where d.session_id = s.id)
+--   on conflict do nothing;
+--
+--   get diagnostics v_count = row_count;
+--   return v_count;
+-- end $fn$;
+--
+-- create or replace function public.mark_followup_sent(p_session_id uuid, p_user_id uuid)
+-- returns boolean
+-- language plpgsql
+-- security definer
+-- set search_path = public, pg_temp
+-- as $fn$
+-- declare
+--   v_updated int;
+-- begin
+--   update public.followup_drafts d
+--      set sent_at = coalesce(d.sent_at, now())
+--     from public.sessions s
+--    where d.session_id = p_session_id
+--      and s.id = d.session_id
+--      and s.user_id = p_user_id;
+--
+--   get diagnostics v_updated = row_count;
+--   if v_updated = 1 then
+--     insert into public.session_events(session_id, type) values (p_session_id, 'followup_sent');
+--   end if;
+--   return v_updated = 1;
+-- end $fn$;
+--
+-- alter table public.sessions
+--   drop column followup_sent_at,
+--   drop column followup_outcome;
+
 -- INSIGNAR: "Follow up today" state on the session.
 --
 -- The list on Today is derived from sessions, session events and bookings, so it

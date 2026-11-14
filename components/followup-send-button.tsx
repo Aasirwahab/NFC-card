@@ -8,23 +8,33 @@ export function FollowupSendButton({
   draft,
   pagePath,
   email,
+  phone,
+  preferContact,
 }: {
   draft: string | null;
   pagePath: string | null;
   email: string | null;
+  phone: string | null;
+  preferContact: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [failed, setFailed] = useState(false);
 
-  async function send() {
+  async function send(share = false) {
     if (!draft || !pagePath || busy) return;
     setBusy(true);
     setNotice('');
     setFailed(false);
     try {
       const result = await sendFollowup(
-        { draft, pageUrl: new URL(pagePath, window.location.origin).href, email },
+        {
+          draft,
+          pageUrl: new URL(pagePath, window.location.origin).href,
+          email: share ? null : email,
+          phone: share ? null : phone,
+          preferContact: !share && preferContact,
+        },
         {
           share: navigator.share ? (data) => navigator.share(data) : undefined,
           openMail: (url) => {
@@ -35,7 +45,8 @@ export function FollowupSendButton({
       );
       if (result === 'copied')
         setNotice('Message and page link copied. Paste them into your message.');
-      if (result === 'shared' || result === 'email') setNotice('Tap Done once you have sent it.');
+      if (result === 'shared' || result === 'email' || result === 'sms')
+        setNotice('Tap Done once you have sent it.');
     } catch {
       setFailed(true);
       setNotice('Could not share or copy. Select the message and page link below to copy them.');
@@ -46,9 +57,21 @@ export function FollowupSendButton({
 
   return (
     <div className="min-w-0">
-      <Button type="button" onClick={send} disabled={busy || !draft || !pagePath}>
-        {busy ? 'Opening…' : 'Send'}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={() => send()} disabled={busy || !draft || !pagePath}>
+          {busy ? 'Opening…' : 'Send'}
+        </Button>
+        {preferContact ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => send(true)}
+            disabled={busy || !draft || !pagePath}
+          >
+            Share
+          </Button>
+        ) : null}
+      </div>
       <p role="status" className="text-ink-3 mt-1 max-w-sm text-[13px] wrap-anywhere">
         {notice}
       </p>

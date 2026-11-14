@@ -210,6 +210,8 @@ export type FollowupRow = {
   prospectCompany: string | null;
   linkedinUrl: string | null;
   prospectEmail: string | null;
+  prospectPhone: string | null;
+  preferContact: boolean;
   sequence: number;
   colour: string;
 };
@@ -227,7 +229,7 @@ export async function listFollowups(
   const { data: sessions } = await db
     .from('sessions')
     .select(
-      'id, status, details_completed_at, registered_at, first_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
+      'id, status, details_completed_at, registered_at, first_viewed_at, view_count, followup_sent_at, followup_outcome, problems, prospect_name, prospect_company, linkedin_url, prospect_email, prospect_submitted_email, prospect_submitted_phone, event_sequence_number, colour_tag, cards(code), session_events(type), bookings(session_id, status), chat_messages(content)',
     )
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -266,6 +268,8 @@ export async function listFollowups(
           firstViewedAt: s.first_viewed_at,
           events: events.map((e) => e.type),
           questions: s.chat_messages.map((m) => m.content),
+          submittedEmail: s.prospect_submitted_email,
+          submittedPhone: s.prospect_submitted_phone,
         }),
         pagePath: s.cards ? `/c/${s.cards.code}` : null,
         draft: followupDraft(
@@ -284,7 +288,9 @@ export async function listFollowups(
         prospectName: s.prospect_name,
         prospectCompany: s.prospect_company,
         linkedinUrl: s.linkedin_url,
-        prospectEmail: s.prospect_email,
+        prospectEmail: s.prospect_email || s.prospect_submitted_email,
+        prospectPhone: s.prospect_submitted_phone,
+        preferContact: Boolean(s.prospect_submitted_email || s.prospect_submitted_phone),
         sequence: s.event_sequence_number,
         colour: s.colour_tag,
       },

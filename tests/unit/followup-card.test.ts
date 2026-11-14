@@ -18,6 +18,8 @@ const row: FollowupRow = {
   prospectCompany: null,
   linkedinUrl: null,
   prospectEmail: 'tom@example.com',
+  prospectPhone: null,
+  preferContact: false,
   sequence: 1,
   colour: 'Blue',
 };
@@ -37,5 +39,14 @@ describe('follow-up send control', () => {
       createElement(FollowupCard, { row: { ...row, state: 'due-no-tap', draft: 'Hi Tom' } }),
     );
     expect(html).toMatch(/>Send<\/button>/);
+  });
+  it('keeps Share beside Send for a requested note', () => {
+    const html = renderToStaticMarkup(
+      createElement(FollowupCard, {
+        row: { ...row, state: 'review', draft: 'Hi Tom', preferContact: true },
+      }),
+    );
+    expect(html).toMatch(/>Send<\/button>/);
+    expect(html).toMatch(/>Share<\/button>/);
   });
 });

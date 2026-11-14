@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { strongestSignal, chatTurns, openingSummary } from '@/lib/followup/signals';
 
-const empty = { viewCount: 0, firstViewedAt: null, events: [], questions: [] };
+const empty = {
+  viewCount: 0,
+  firstViewedAt: null,
+  events: [],
+  questions: [],
+  submittedEmail: null,
+  submittedPhone: null,
+};
 
 describe('recorded contact signals', () => {
   it('ranks questions, booking clicks, LinkedIn, emailed pages, opens, then nothing', () => {
@@ -23,6 +30,32 @@ describe('recorded contact signals', () => {
       'Not opened yet',
     ]);
     expect([...signals].reverse().sort((a, b) => b.rank - a.rank)).toEqual(signals);
+  });
+
+  it.each([
+    { submittedEmail: 'tom@example.com', submittedPhone: null },
+    { submittedEmail: null, submittedPhone: '+447700900123' },
+  ])('ranks a request for their note above questions: %o', (contact) => {
+    expect(strongestSignal({ ...empty, ...contact, questions: ['Price?'] })).toEqual({
+      label: 'Asked you to send their note',
+      rank: 6,
+    });
+  });
+
+  it('reports automatic delivery without a request priority boost', () => {
+    const delivered = {
+      ...empty,
+      submittedEmail: 'tom@example.com',
+      events: ['prospect_note_emailed', 'page_emailed'],
+    };
+    expect(strongestSignal(delivered)).toEqual({ label: 'We emailed them their note', rank: 0 });
+    expect(
+      strongestSignal({ ...delivered, events: [...delivered.events, 'page_emailed'] }),
+    ).toEqual({ label: 'Emailed the page', rank: 2 });
+    expect(strongestSignal({ ...delivered, questions: ['Price?'] })).toEqual({
+      label: 'Asked about pricing',
+      rank: 5,
+    });
   });
 
   it('describes other questions without guessing their topic or intent', () => {
