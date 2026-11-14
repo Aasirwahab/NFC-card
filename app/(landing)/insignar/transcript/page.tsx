@@ -1,13 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { OG_IMAGE } from '@/lib/site';
 import { film } from '../copy';
 import '../insignar.css';
 
 export const metadata: Metadata = {
-  title: 'The film, as text',
-  description: film.title,
+  title: 'The INSIGNAR film, as text',
+  description:
+    'A plain-text version of the INSIGNAR film: what the rep says and what the prospect sees, beat by beat, for readers who skip video.',
   robots: { index: true, follow: true },
   alternates: { canonical: '/insignar/transcript' },
+  openGraph: {
+    title: 'The INSIGNAR film, as text',
+    url: '/insignar/transcript',
+    images: [OG_IMAGE],
+  },
 };
 
 /** Plain-text version of the film for readers who skip video or use assistive tech. */

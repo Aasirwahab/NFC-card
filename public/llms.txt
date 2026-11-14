@@ -1,12 +1,16 @@
 # INSIGNAR
 
-> INSIGNAR is B2B introduction and follow-up software. After an event conversation, the rep records what the person said and INSIGNAR builds a private page about their problem, opened by tapping an NFC / QR card. Pre-launch; UK founding pilot by request.
+> INSIGNAR is B2B introduction and follow-up software for UK teams. After an in-person conversation, the rep records what the person said. INSIGNAR builds a private page about that person's problem, which they open by tapping a numbered NFC / QR card (no app needed). The page ends in one action, booking a meeting, and has a small chat for questions. The rep sees what each person opened and asked. It is not a digital business card. Stage: pre-launch, with a UK founding pilot by request. There are no customers, reviews or ratings yet.
 
 ## Pages
 - [Home](/): what it does and how to request a pilot
 - [Pricing](/pricing): what it costs per rep, and the founding offer
 - [Facts](/facts): plain statements about the product and its stage
+- [How to follow up after a networking event](/after-networking-follow-up): why most follow-ups go unanswered and what a page about the conversation changes
 - [Digital business card vs introduction software](/vs/digital-business-cards): the difference and when each fits
-- [How it works](/how-it-works): what a prospect sees and what is and is not collected
+- [How it works](/how-it-works): what the person who is handed a card sees, and what is and is not collected
 - [Privacy](/privacy): data handling
 - [Pilot terms](/terms): the pilot terms in draft, under legal review
+
+## Not for indexing
+Prospect pages (/c/...), the rep app and the API are private.

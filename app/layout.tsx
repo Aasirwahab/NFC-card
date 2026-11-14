@@ -32,7 +32,8 @@ export const metadata: Metadata = {
     default: 'INSIGNAR',
     template: '%s · INSIGNAR',
   },
-  description: 'Make every introduction worth more.',
+  description:
+    'INSIGNAR is B2B introduction and follow-up software: a private page written about the conversation, opened by tapping an NFC card.',
   // The prospect page is a private link handed to one person. Nothing here
   // should ever appear in a search index.
   robots: { index: false, follow: false },

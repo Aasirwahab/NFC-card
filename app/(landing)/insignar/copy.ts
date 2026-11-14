@@ -234,4 +234,5 @@ export const footer = {
   readFilm: 'Read the film',
   facts: 'Facts',
   compare: 'vs digital business cards',
+  followUp: 'Follow up after events',
 };

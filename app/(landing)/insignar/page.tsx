@@ -36,6 +36,7 @@ const jsonLd = {
     {
       '@type': 'Organization',
       name: 'INSIGNAR',
+      description: meta.description,
       ...(siteUrl ? { url: siteUrl, logo: `${siteUrl}/icon.png` } : {}),
     },
     {

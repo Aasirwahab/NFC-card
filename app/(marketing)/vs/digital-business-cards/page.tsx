@@ -6,7 +6,7 @@ import { OG_IMAGE } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Digital business card vs introduction software',
   description:
-    'A digital business card shares your details. Introduction software follows up on what the other person told you. What differs, what it costs, and when each fits.',
+    'A digital business card shares your details. Introduction software follows up on what they told you. What differs, what it costs, and when each fits.',
   robots: { index: true, follow: true },
   alternates: { canonical: '/vs/digital-business-cards' },
   openGraph: {

@@ -3,7 +3,8 @@ import { OG_IMAGE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'How it works',
-  description: 'What happens when you tap a INSIGNAR card.',
+  description:
+    'What you see when someone hands you an INSIGNAR card and you tap it: who wrote the page, what it uses, and how to have your details removed.',
   robots: { index: true, follow: true },
   alternates: { canonical: '/how-it-works' },
   openGraph: { title: 'How it works · INSIGNAR', url: '/how-it-works', images: [OG_IMAGE] },

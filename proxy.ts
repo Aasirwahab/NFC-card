@@ -44,6 +44,7 @@ const PUBLIC_PAGES = [
   '/privacy',
   '/terms',
   '/how-it-works',
+  '/after-networking-follow-up',
   '/legacy',
 ];
 
