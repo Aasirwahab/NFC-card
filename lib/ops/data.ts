@@ -1,7 +1,7 @@
 import 'server-only';
 import { serviceClient } from '@/lib/db/service';
 import { eventOwnersWithRealEvents, repReadiness } from '@/lib/domain/rep-readiness';
-import { isLowStock, stockByUser, emptyStock, type Stock } from './stock';
+import { isLowStock, emptyStock, type Stock } from './stock';
 
 export type OpsRep = {
   id: string;
@@ -39,10 +39,7 @@ export async function listReps(): Promise<OpsRep[]> {
       .from('profiles')
       .select('id, full_name, title, photo_url, booking_url, linkedin_url, low_stock_at')
       .throwOnError(),
-    db
-      .from('cards')
-      .select('user_id, status, written_at, verified_at, screen_issued_at')
-      .throwOnError(),
+    db.rpc('ops_card_stock').throwOnError(),
     db.from('card_orders').select('user_id').in('status', ['requested', 'ordered']).throwOnError(),
     db.from('business_profiles').select('user_id, company_name, tagline, services').throwOnError(),
     db.from('events').select('user_id, name').throwOnError(),
@@ -51,7 +48,19 @@ export async function listReps(): Promise<OpsRep[]> {
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
   const businessById = new Map((businesses ?? []).map((b) => [b.user_id, b]));
   const repsWithEvents = eventOwnersWithRealEvents(events ?? []);
-  const stock = stockByUser(cards ?? []);
+  const stock = new Map<string, Stock>(
+    (cards ?? []).map((c) => [
+      c.user_id,
+      {
+        inStock: c.in_stock,
+        handedOut: c.handed_out,
+        lost: c.lost,
+        needsWriting: c.needs_writing,
+        needsVerifying: c.needs_verifying,
+        screenIssued: c.screen_issued,
+      },
+    ]),
+  );
   const openOrders = new Map<string, number>();
   for (const o of orders ?? []) openOrders.set(o.user_id, (openOrders.get(o.user_id) ?? 0) + 1);
 

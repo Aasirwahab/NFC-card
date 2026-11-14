@@ -7,6 +7,9 @@ import { POST as tapRegister } from '@/app/api/sessions/tap-register/route';
 
 const state = vi.hoisted(() => ({
   rep: true,
+  profile: { rep: { fullName: 'Sam Smith', photoUrl: '/photo.png' } } as {
+    rep: { fullName: string; photoUrl: string | null };
+  } | null,
   allowed: true,
   degraded: false,
   owner: 'rep-1',
@@ -16,6 +19,7 @@ const state = vi.hoisted(() => ({
   inserted: [] as Record<string, unknown>[],
   collision: 0,
   dbError: false,
+  rpcError: false,
   limits: [] as string[][],
   recentCount: 0,
 }));
@@ -31,9 +35,18 @@ vi.mock('@/lib/security/rate-limit', () => ({
 }));
 vi.mock('@/lib/db/service', () => ({
   serviceClient: () => ({
+    rpc: (name: string, args: Record<string, unknown>) => ({
+      async maybeSingle() {
+        if (name !== 'issue_screen_card') throw new Error('unexpected_rpc');
+        if (state.rpcError) return { data: null, error: new Error('unavailable') };
+        if (state.recentCount >= 30) return { data: null, error: null };
+        state.inserted.push(args);
+        if (state.collision-- > 0) return { data: null, error: { code: '23505' } };
+        return { data: { code: args.p_code, screen_issued_at: state.issued }, error: null };
+      },
+    }),
     from: (table: string) => {
       const filters = new Map<string, unknown>();
-      let insert: Record<string, unknown> | undefined;
       return {
         select() {
           return this;
@@ -42,28 +55,22 @@ vi.mock('@/lib/db/service', () => ({
           filters.set(key, value);
           return this;
         },
-        async gte() {
-          if (state.dbError) return { count: null, error: new Error('unavailable') };
-          return { count: state.recentCount, error: null };
-        },
-        insert(value: Record<string, unknown>) {
-          insert = value;
-          state.inserted.push(value);
-          return this;
-        },
-        async single() {
-          if (state.collision-- > 0) return { data: null, error: { code: '23505' } };
-          return { data: insert, error: null };
-        },
         async maybeSingle() {
           if (state.dbError) return { data: null, error: new Error('unavailable') };
           return {
             data:
-              filters.get('user_id') !== state.owner
+              table !== 'profiles' && filters.get('user_id') !== state.owner
                 ? null
-                : table === 'cards'
-                  ? { id: 'card-1', status: state.cardStatus, screen_issued_at: state.issued }
-                  : state.session,
+                : table === 'profiles'
+                  ? state.profile
+                    ? {
+                        full_name: state.profile.rep.fullName,
+                        photo_url: state.profile.rep.photoUrl,
+                      }
+                    : null
+                  : table === 'cards'
+                    ? { id: 'card-1', status: state.cardStatus, screen_issued_at: state.issued }
+                    : state.session,
             error: null,
           };
         },
@@ -89,6 +96,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-11-14T12:00:00Z'));
   Object.assign(state, {
     rep: true,
+    profile: { rep: { fullName: 'Sam Smith', photoUrl: '/photo.png' } },
     allowed: true,
     degraded: false,
     owner: 'rep-1',
@@ -98,6 +106,7 @@ beforeEach(() => {
     inserted: [],
     collision: 0,
     dbError: false,
+    rpcError: false,
     limits: [],
     recentCount: 0,
   });
@@ -113,10 +122,28 @@ describe('rep screen QR API', () => {
     expect(result.url).toBe(`https://insignar.app/c/${result.code}?src=qr`);
     expect(result.svg).toContain('<svg');
     expect(result.expiresAt).toBe('2026-11-14T12:30:00.000Z');
-    expect(state.inserted).toEqual([
-      { code: result.code, user_id: 'rep-1', screen_issued_at: '2026-11-14T12:00:00.000Z' },
-    ]);
+    expect(state.inserted).toEqual([{ p_code: result.code, p_user_id: 'rep-1' }]);
     expect(state.limits[0]).toEqual(['screenQr', 'rep-1']);
+  });
+  it.each([false, true])('uses the database cap even with Redis degraded=%s', async (degraded) => {
+    state.degraded = degraded;
+    state.recentCount = 30;
+    expect((await post()).status).toBe(429);
+    expect(state.inserted).toHaveLength(0);
+  });
+  it.each([null, { rep: { fullName: ' ', photoUrl: '/photo.png' } }])(
+    'refuses issuance without a usable public profile',
+    async (profile) => {
+      state.profile = profile;
+      const response = await post();
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ error: 'profile_incomplete' });
+      expect(state.inserted).toHaveLength(0);
+    },
+  );
+  it('issues for a named rep with no photo (the page only needs a name)', async () => {
+    state.profile = { rep: { fullName: 'Sam', photoUrl: null } };
+    expect((await post()).status).toBe(200);
   });
   it('rejects unauthenticated issuance and polling', async () => {
     state.rep = false;
@@ -137,19 +164,24 @@ describe('rep screen QR API', () => {
     state.degraded = true;
     state.recentCount = 30;
     expect((await post()).status).toBe(429);
-    state.dbError = true;
+    state.rpcError = true;
     expect((await post()).status).toBe(503);
     expect(state.inserted).toHaveLength(0);
-    state.dbError = false;
+    state.rpcError = false;
     state.recentCount = 3;
     expect((await post()).status).toBe(200);
     expect(state.inserted).toHaveLength(1);
+  });
+  it('returns a temporary error when the profile query fails', async () => {
+    state.dbError = true;
+    expect((await post()).status).toBe(503);
+    expect(state.inserted).toHaveLength(0);
   });
   it('retries a unique-code collision', async () => {
     state.collision = 1;
     expect((await post()).status).toBe(200);
     expect(state.inserted).toHaveLength(2);
-    expect(state.inserted[0]!.code).not.toBe(state.inserted[1]!.code);
+    expect(state.inserted[0]!.p_code).not.toBe(state.inserted[1]!.p_code);
   });
   it('never returns another rep’s scan status', async () => {
     state.owner = 'someone-else';

@@ -36,7 +36,8 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
   ]);
 
   const unused = card.status === 'available' && (sessions?.length ?? 0) === 0;
-  const reps = unused ? (await listReps()).filter((r) => r.id !== card.user_id) : [];
+  const canReassign = unused && !card.screen_issued_at;
+  const reps = canReassign ? (await listReps()).filter((r) => r.id !== card.user_id) : [];
 
   const { data: ownerAuth } = await db.auth.admin.getUserById(card.user_id);
   const ownerName = profile?.full_name ?? ownerAuth?.user?.email ?? 'Unknown';
@@ -98,32 +99,36 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
 
       {unused ? (
         <section className="mt-6 flex flex-col gap-4">
-          <form action={reassignCardAction} className="border-line rounded-xl border p-4">
-            <input type="hidden" name="code" value={card.code} />
-            <p className="text-ink text-[14px] font-semibold">Move to another rep</p>
-            <p className="text-ink-3 text-[12px]">Only works while the card has never been used.</p>
-            <div className="mt-2 flex gap-2">
-              <select
-                name="userId"
-                required
-                defaultValue=""
-                className="border-line bg-bg text-ink min-w-0 flex-1 rounded-lg border px-3 py-2.5 text-[14px]"
-                aria-label="New owner"
-              >
-                <option value="" disabled>
-                  Choose a rep
-                </option>
-                {reps.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name ?? r.email}
+          {canReassign ? (
+            <form action={reassignCardAction} className="border-line rounded-xl border p-4">
+              <input type="hidden" name="code" value={card.code} />
+              <p className="text-ink text-[14px] font-semibold">Move to another rep</p>
+              <p className="text-ink-3 text-[12px]">
+                Only works while the card has never been used.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <select
+                  name="userId"
+                  required
+                  defaultValue=""
+                  className="border-line bg-bg text-ink min-w-0 flex-1 rounded-lg border px-3 py-2.5 text-[14px]"
+                  aria-label="New owner"
+                >
+                  <option value="" disabled>
+                    Choose a rep
                   </option>
-                ))}
-              </select>
-              <Button type="submit" variant="secondary" className="shrink-0">
-                Move
-              </Button>
-            </div>
-          </form>
+                  {reps.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name ?? r.email}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit" variant="secondary" className="shrink-0">
+                  Move
+                </Button>
+              </div>
+            </form>
+          ) : null}
 
           <div className="border-line flex flex-wrap gap-2 rounded-xl border p-4">
             <form action={voidCardAction}>

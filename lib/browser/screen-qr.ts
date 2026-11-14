@@ -36,6 +36,11 @@ export function pollScreenQr(
     }
   };
   const onVisible = () => {
+    if (Date.now() >= options.expiresAt + 60_000) {
+      expire();
+      stop();
+      return;
+    }
     void check();
   };
   const interval = setInterval(onVisible, 4000);
@@ -44,17 +49,18 @@ export function pollScreenQr(
       if (!cancelled) {
         expire();
         // A scan just before the deadline may already be bound. Check once more,
-        // including on return from a hidden tab. Keep light recovery polling
-        // until close: a transaction that bound before expiry may commit later.
+        // including on return from a hidden tab during the recovery minute.
         void check();
       }
     },
     Math.max(0, options.expiresAt - Date.now()),
   );
+  const recoveryDeadline = setTimeout(stop, Math.max(0, options.expiresAt + 60_000 - Date.now()));
   function stop() {
     cancelled = true;
     clearInterval(interval);
     clearTimeout(deadline);
+    clearTimeout(recoveryDeadline);
     document.removeEventListener('visibilitychange', onVisible);
   }
   document.addEventListener('visibilitychange', onVisible);

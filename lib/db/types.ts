@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 19 tables by scripts/gen-types.ts.
+ * Generated from 20 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -709,6 +709,32 @@ export type Database = {
           },
         ];
       };
+      screen_card_codes: {
+        Row: {
+          code: string;
+          user_id: string | null;
+          issued_at: string;
+        };
+        Insert: {
+          code: string;
+          user_id?: string | null;
+          issued_at: string;
+        };
+        Update: {
+          code?: string;
+          user_id?: string | null;
+          issued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'screen_card_codes_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       session_events: {
         Row: {
           id: number;
@@ -952,6 +978,22 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      issue_screen_card: {
+        Args: { p_user_id: string; p_code: string };
+        Returns: { code: string; screen_issued_at: string }[];
+      };
+      ops_card_stock: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          in_stock: number;
+          handed_out: number;
+          lost: number;
+          needs_writing: number;
+          needs_verifying: number;
+          screen_issued: number;
+        }[];
+      };
       register_card: {
         Args: {
           p_session_id: string;

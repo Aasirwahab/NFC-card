@@ -62,6 +62,14 @@ type Relationship = {
  * handful of declarations it replaces.
  */
 const FUNCTIONS = `    {
+      issue_screen_card: {
+        Args: { p_user_id: string; p_code: string };
+        Returns: { code: string; screen_issued_at: string }[];
+      };
+      ops_card_stock: {
+        Args: Record<string, never>;
+        Returns: { user_id: string; in_stock: number; handed_out: number; lost: number; needs_writing: number; needs_verifying: number; screen_issued: number }[];
+      };
       register_card: {
         Args: {
           p_session_id: string;

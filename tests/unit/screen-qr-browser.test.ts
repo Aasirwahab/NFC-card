@@ -61,6 +61,30 @@ describe('screen QR polling', () => {
     expect(callbacks.onScanned).toHaveBeenCalledWith('contact-1');
     stop();
   });
+  it('stops polling sixty seconds after expiry, including visibility recovery', async () => {
+    const callbacks = { ...options(), expiresAt: Date.now() + 1000 };
+    const stop = pollScreenQr('ABCDEFGH', callbacks);
+    await vi.advanceTimersByTimeAsync(61_000);
+    expect(callbacks.onExpired).toHaveBeenCalledOnce();
+    const calls = apiGet.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(120_000);
+    target.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(apiGet).toHaveBeenCalledTimes(calls);
+    expect(vi.getTimerCount()).toBe(0);
+    stop();
+  });
+  it('expires on return after the grace period even if hidden timers were suspended', async () => {
+    const callbacks = options();
+    const stop = pollScreenQr('ABCDEFGH', callbacks);
+    await vi.advanceTimersByTimeAsync(0);
+    vi.setSystemTime(callbacks.expiresAt + 61_000);
+    target.dispatchEvent(new Event('visibilitychange'));
+    expect(callbacks.onExpired).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(apiGet).toHaveBeenCalledTimes(1);
+    stop();
+  });
   it('never overlaps requests and ignores results after closing', async () => {
     let finish!: (value: unknown) => void;
     apiGet.mockImplementation(
@@ -79,7 +103,7 @@ describe('screen QR polling', () => {
     expect(callbacks.onScanned).not.toHaveBeenCalled();
     expect(callbacks.onExpired).not.toHaveBeenCalled();
   });
-  it('keeps recovery polling after expiry until the view closes or a committed scan appears', async () => {
+  it('recovers a committed scan during the expiry grace period', async () => {
     apiGet.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ status: 'expired' });
     const callbacks = options();
     const stop = pollScreenQr('ABCDEFGH', callbacks);

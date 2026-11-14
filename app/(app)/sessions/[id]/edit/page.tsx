@@ -36,7 +36,7 @@ export default async function EditSessionPage({
     listEvents(rep.userId),
     serviceClient()
       .from('cards')
-      .select('code')
+      .select('code, screen_issued_at')
       .eq('id', session.card_id)
       .eq('user_id', rep.userId)
       .maybeSingle(),
@@ -58,6 +58,7 @@ export default async function EditSessionPage({
           fallbackProblems={fallbackProblems}
           eventName={event?.name ?? null}
           cardCode={card?.code ?? ''}
+          screenIssued={Boolean(card?.screen_issued_at)}
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
           scanEnabled={Boolean(env.MODEL_VISION)}
