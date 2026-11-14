@@ -69,6 +69,21 @@ export async function GET(request: Request) {
       purged = data ?? 0;
       if (purged > 0) console.log(JSON.stringify({ event: 'retention_purge', purged }));
     }
+
+    // Pilot requests have a fixed 12-month promise, separate from session retention.
+    const cutoff = new Date();
+    const month = cutoff.getUTCMonth();
+    cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 1);
+    if (cutoff.getUTCMonth() !== month) cutoff.setUTCDate(0);
+    const { error: requestError } = await serviceClient()
+      .from('early_access_requests')
+      .delete()
+      .lt('updated_at', cutoff.toISOString());
+    if (requestError) {
+      console.error(
+        JSON.stringify({ event: 'early_access_purge_failed', error: requestError.message }),
+      );
+    }
   }
 
   const kick = await kickWorkers();

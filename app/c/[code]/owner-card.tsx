@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Globe } from 'lucide-react';
+import { Building2, CalendarDays, ChevronRight, Globe } from 'lucide-react';
 import styles from '@/app/ui-slice.module.css';
 import type { Resolved } from '@/lib/db/landing';
 import { parseBookingUrl } from '@/lib/booking/link';
@@ -6,6 +6,8 @@ import { linkedinHref } from '@/lib/domain/linkedin';
 import { publicWebsiteHref } from '@/lib/domain/public-profile';
 import { LinkedInConnect } from './linkedin-connect';
 import { Footer, Header, SaveContact } from './prospect-view';
+import { Holding } from './holding';
+import { RemovalGate } from './removal-gate';
 
 /**
  * "One card, two jobs" (2026-09-25 review).
@@ -21,7 +23,13 @@ import { Footer, Header, SaveContact } from './prospect-view';
  */
 type OwnerResolved = Extract<Resolved, { audience: 'owner' }>;
 
-export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
+export function OwnerCard({
+  resolved,
+  prospect = false,
+}: {
+  resolved: OwnerResolved;
+  prospect?: boolean;
+}) {
   const { code, rep, business } = resolved;
   const first = rep.fullName.trim().split(/\s+/)[0] || rep.fullName;
   const booking = parseBookingUrl(rep.bookingUrl);
@@ -34,83 +42,154 @@ export function OwnerCard({ resolved }: { resolved: OwnerResolved }) {
     .filter(Boolean)
     .slice(0, 8);
 
-  return (
-    <div className={`${styles.surface} ${styles.publicPage} ${styles.ownerPage}`}>
-      <Header rep={rep} business={business} />
-
-      <main className="flex-1">
-        <h1 className={styles.headline}>Meet {first}</h1>
-        {tagline ? <p className={`${styles.tagline} mt-3`}>{tagline}</p> : null}
-
-        <div className={styles.ownerActions}>
-          {booking ? (
-            // A plain link, not the embed: there is no session to attach a
-            // booking to, and the rep's Cal.com page stands on its own.
-            <a
-              href={`${booking.calOrigin}/${booking.calLink}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.primaryAction}
+  // A prospect inside the 24 hours before details exist: the quiet holding page, in the
+  // same language as the note. Everything the portfolio shows lives behind "About".
+  if (prospect && resolved.holding)
+    return (
+      <RemovalGate>
+        <div className={`${styles.surface} ${styles.publicPage}`}>
+          <Header rep={rep} business={business} />
+          <main className="flex-1">
+            <Holding
+              key={resolved.holding.ready ? 'ready' : 'waiting'}
+              code={code}
+              first={first}
+              details={resolved.holding}
             >
-              <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              Book a meeting with {first}
-            </a>
-          ) : (
-            <SaveContact code={code} repName={first} primary />
-          )}
-          {linkedin ? (
-            // preview: no session to count against, so never recorded.
-            <LinkedInConnect code={code} href={linkedin} repName={first} preview />
-          ) : null}
-          {booking ? <SaveContact code={code} repName={first} /> : null}
-        </div>
-
-        {services.length > 0 ? (
-          <section className={styles.ownerSection}>
-            <h2 className={styles.sectionLabel}>What {first} does</h2>
-            <ul className={styles.quietList}>
-              {services.map((service) => (
-                <li key={service}>{service}</li>
-              ))}
-            </ul>
-          </section>
-        ) : (
-          <p className={`${styles.tagline} mt-7`}>
-            Happy to talk about what you&rsquo;re looking for.
-          </p>
-        )}
-
-        {company || website ? (
-          <section className={styles.ownerSection}>
-            <h2 className={styles.sectionLabel}>Business details</h2>
-            {company ? (
-              <div className={styles.publicDetail}>
-                <Building2 aria-hidden="true" className="h-5 w-5" />
-                <div>
-                  <span>Company</span>
-                  <p>{company}</p>
-                </div>
+              <div className={styles.holdActions}>
+                <SaveContact code={code} repName={first} primary />
               </div>
-            ) : null}
-            {website ? (
+              {tagline || booking || linkedin || services.length > 0 || company || website ? (
+                <details className={styles.services}>
+                  <summary>
+                    <span>About {first}</span>
+                    <ChevronRight aria-hidden="true" className="h-[18px] w-[18px]" />
+                  </summary>
+                  <div className={styles.aboutBody}>
+                    {tagline ? <p>{tagline}</p> : null}
+                    {services.length > 0 ? (
+                      <ul>
+                        {services.map((service) => (
+                          <li key={service}>{service}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {company ? <p className={styles.aboutMeta}>{company}</p> : null}
+                    {website ? (
+                      <a href={website} target="_blank" rel="noopener noreferrer">
+                        {business?.website}
+                      </a>
+                    ) : null}
+                    {booking ? (
+                      <a
+                        href={`${booking.calOrigin}/${booking.calLink}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                        Book a meeting with {first}
+                      </a>
+                    ) : null}
+                    {linkedin ? (
+                      <LinkedInConnect code={code} href={linkedin} repName={first} preview />
+                    ) : null}
+                  </div>
+                </details>
+              ) : null}
+            </Holding>
+          </main>
+          <Footer
+            removeCode={resolved.sessionId ? code : undefined}
+            first={first}
+            eventCode={code}
+          />
+        </div>
+      </RemovalGate>
+    );
+
+  return (
+    <RemovalGate>
+      <div className={`${styles.surface} ${styles.publicPage} ${styles.ownerPage}`}>
+        <Header rep={rep} business={business} />
+
+        <main className="flex-1">
+          <h1 className={styles.headline}>Meet {first}</h1>
+          {tagline ? <p className={`${styles.tagline} mt-3`}>{tagline}</p> : null}
+
+          <div className={styles.ownerActions}>
+            {booking ? (
+              // A plain link, not the embed: there is no session to attach a
+              // booking to, and the rep's Cal.com page stands on its own.
               <a
-                href={website}
+                href={`${booking.calOrigin}/${booking.calLink}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.publicDetail}
+                className={styles.primaryAction}
               >
-                <Globe aria-hidden="true" className="h-5 w-5" />
-                <div>
-                  <span>Website</span>
-                  <p>{business?.website}</p>
-                </div>
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                Book a meeting with {first}
               </a>
+            ) : (
+              <SaveContact code={code} repName={first} primary />
+            )}
+            {linkedin ? (
+              // preview: no session to count against, so never recorded.
+              <LinkedInConnect code={code} href={linkedin} repName={first} preview />
             ) : null}
-          </section>
-        ) : null}
-      </main>
+            {booking ? <SaveContact code={code} repName={first} /> : null}
+          </div>
 
-      <Footer />
-    </div>
+          {services.length > 0 ? (
+            <section className={styles.ownerSection}>
+              <h2 className={styles.sectionLabel}>What {first} does</h2>
+              <ul className={styles.quietList}>
+                {services.map((service) => (
+                  <li key={service}>{service}</li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <p className={`${styles.tagline} mt-7`}>
+              Happy to talk about what you&rsquo;re looking for.
+            </p>
+          )}
+
+          {company || website ? (
+            <section className={styles.ownerSection}>
+              <h2 className={styles.sectionLabel}>Business details</h2>
+              {company ? (
+                <div className={styles.publicDetail}>
+                  <Building2 aria-hidden="true" className="h-5 w-5" />
+                  <div>
+                    <span>Company</span>
+                    <p>{company}</p>
+                  </div>
+                </div>
+              ) : null}
+              {website ? (
+                <a
+                  href={website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.publicDetail}
+                >
+                  <Globe aria-hidden="true" className="h-5 w-5" />
+                  <div>
+                    <span>Website</span>
+                    <p>{business?.website}</p>
+                  </div>
+                </a>
+              ) : null}
+            </section>
+          ) : null}
+        </main>
+
+        <Footer
+          removeCode={prospect && resolved.sessionId ? code : undefined}
+          first={first}
+          eventCode={prospect ? code : undefined}
+        />
+      </div>
+    </RemovalGate>
   );
 }

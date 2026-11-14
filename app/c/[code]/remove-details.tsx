@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { apiSend } from '@/lib/http/client';
+import { RemovedContext } from './removal-gate';
 
 /**
  * "Remove my details": the prospect deleting the record made about them, without
@@ -9,12 +10,14 @@ import { apiSend } from '@/lib/http/client';
  */
 export function RemoveDetails({ code }: { code: string }) {
   const [step, setStep] = useState<'idle' | 'confirm' | 'busy' | 'done' | 'error'>('idle');
+  const onRemoved = useContext(RemovedContext);
 
   async function remove() {
     setStep('busy');
     try {
       await apiSend(`/api/landing/${code}/remove`, 'POST', {});
       setStep('done');
+      onRemoved();
     } catch {
       setStep('error');
     }

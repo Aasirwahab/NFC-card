@@ -8,6 +8,7 @@ import { requireRep } from '@/lib/db/server';
 import { serviceClient } from '@/lib/db/service';
 import { parseNiches } from '@/lib/db/rep';
 import { pitchUsesMock } from '@/lib/ai/models';
+import { PhotoUpload } from './photo-upload';
 import { commonQuestions } from '@/lib/chat/knowledge';
 import {
   BusinessForm,
@@ -69,6 +70,25 @@ export default async function SettingsPage() {
         <BackLink href="/dashboard">Today</BackLink>
         <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">Setup</h1>
       </div>
+      <section
+        className="border-line bg-surface shadow-card rounded-xl border p-4"
+        aria-labelledby="photo-heading"
+      >
+        <h2 id="photo-heading" className="font-display text-ink mb-4 font-semibold">
+          Your photo
+        </h2>
+        <PhotoUpload name={profile?.full_name ?? ''} photoUrl={profile?.photo_url ?? null} />
+      </section>
+      <BusinessForm business={business} />
+      <div id="problems" className="scroll-mt-24">
+        <PlaybookForm
+          entries={playbook.data ?? []}
+          suggestions={suggestions}
+          draftEnabled={!pitchUsesMock()}
+        />
+      </div>
+      <ProfileForm profile={profile} />
+      <PitchVoiceForm profile={profile} />
       <section className={styles.profileCheck} aria-labelledby="public-profile-heading">
         <h2 id="public-profile-heading" className={styles.sectionLabel}>
           Public profile check
@@ -100,14 +120,6 @@ export default async function SettingsPage() {
           ))}
         </ul>
       </section>
-      <ProfileForm profile={profile} />
-      <PitchVoiceForm profile={profile} />
-      <BusinessForm business={business} />
-      <PlaybookForm
-        entries={playbook.data ?? []}
-        suggestions={suggestions}
-        draftEnabled={!pitchUsesMock()}
-      />
       <section className={styles.profileCheck} aria-labelledby="common-questions-heading">
         <h2 id="common-questions-heading" className={styles.sectionLabel}>
           Common questions

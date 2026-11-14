@@ -9,11 +9,12 @@ import { composeFollowupDraft, followupChannel } from './draft';
 export type FollowupData = {
   status: string;
   firstViewedAt: string | null;
+  /** The rep already followed up, or marked the lead replied or dropped. */
+  followupClosed: boolean;
   prospectName: string | null;
   linkedinUrl: string | null;
   prospectEmail: string | null;
   problem: string | null;
-  eventName: string | null;
   repFullName: string;
   businessName: string | null;
 };
@@ -30,8 +31,8 @@ export function createFollowupHandler(deps: FollowupDeps): JobHandler {
     if (!sessionId) throw new PermanentJobError('followup job has no session');
 
     const data = await deps.load(sessionId);
-    // Voided, deleted, or opened since it was queued: nothing to follow up.
-    if (!data || data.status !== 'active' || data.firstViewedAt) {
+    // Voided, deleted, opened or closed by the rep since it was queued: nothing to draft.
+    if (!data || data.status !== 'active' || data.firstViewedAt || data.followupClosed) {
       deps.log('followup_skipped', { sessionId, reason: data ? 'opened_or_inactive' : 'missing' });
       return;
     }
@@ -44,7 +45,6 @@ export function createFollowupHandler(deps: FollowupDeps): JobHandler {
       channel,
       prospectName: data.prospectName,
       repFullName: data.repFullName,
-      eventName: data.eventName,
       problem: data.problem,
       businessName: data.businessName,
     });

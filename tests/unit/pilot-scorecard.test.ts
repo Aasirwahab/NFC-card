@@ -19,6 +19,7 @@ function session(
   opened: string | null,
   status = 'active',
   registered_by = 'Rep',
+  followup_sent_at: string | null = null,
 ): ScorecardSession {
   return {
     ...base,
@@ -28,6 +29,7 @@ function session(
     registered_by,
     registered_at: '2026-10-01T10:00:00Z',
     first_viewed_at: opened,
+    followup_sent_at,
   };
 }
 
@@ -93,6 +95,28 @@ describe('pilotScorecard', () => {
       booked: 1,
     });
     expect(card.reps.map((r) => r.userId)).toEqual(['zaid', 'adam']);
+  });
+
+  it('counts followed up as distinct live sessions the rep confirmed, apart from opened and acted', () => {
+    const followed = pilotScorecard({
+      sessions: [
+        session('f1', 'zaid', null, 'active', 'Rep', '2026-10-02T10:00:00Z'),
+        session('f2', 'zaid', '2026-10-01T18:00:00Z', 'active', 'Rep', '2026-10-02T10:00:00Z'),
+        session('f3', 'zaid', '2026-10-01T18:00:00Z'),
+        session('f4', 'adam', null, 'voided', 'Rep', '2026-10-02T10:00:00Z'),
+      ],
+      events: [
+        { session_id: 'f2', type: 'booking_opened' },
+        { session_id: 'f2', type: 'linkedin_opened' },
+        { session_id: 'f2', type: 'linkedin_opened' },
+        { session_id: 'f3', type: 'linkedin_opened' },
+        { session_id: 'f4', type: 'linkedin_opened' },
+      ],
+      bookings: [],
+    });
+    expect(followed.total).toMatchObject({ followedUp: 2, opened: 2, acted: 2, booked: 0 });
+    expect(followed.reps.find((r) => r.userId === 'zaid')!.results.followedUp).toBe(2);
+    expect(followed.reps.find((r) => r.userId === 'adam')!.results.followedUp).toBe(0);
   });
 
   it('gives meetings per 10 opened, or null with nothing opened', () => {

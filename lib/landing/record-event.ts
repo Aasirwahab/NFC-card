@@ -10,7 +10,7 @@ import { claimOnce } from '@/lib/security/once';
 import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-limit';
 
 /** Prospect-page clicks worth counting (spec §27 "basic counts"). */
-export type LandingEventType = 'booking_opened' | 'linkedin_opened';
+export type LandingEventType = 'booking_opened' | 'linkedin_opened' | 'made_with_opened';
 
 const DEDUPE_SECONDS = 60;
 

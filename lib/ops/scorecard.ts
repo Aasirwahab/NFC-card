@@ -19,7 +19,7 @@ export async function loadScorecard() {
     db
       .from('sessions')
       .select(
-        'id, user_id, status, registered_by, registered_at, details_completed_at, first_viewed_at, first_view_source, chat_response_count',
+        'id, user_id, status, registered_by, registered_at, details_completed_at, first_viewed_at, first_view_source, chat_response_count, followup_sent_at',
       )
       .limit(ROW_CAP)
       .throwOnError(),

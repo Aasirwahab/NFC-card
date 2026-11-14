@@ -781,6 +781,14 @@ export type Database = {
           pitch_guidance: string | null;
           pitch_approved_at: string | null;
           pitch_approved_revision: number | null;
+          followup_sent_at: string | null;
+          followup_outcome: string | null;
+          last_viewed_at: string | null;
+          prospect_picked_problems: string[] | null;
+          prospect_submitted_email: string | null;
+          prospect_submitted_phone: string | null;
+          prospect_consent_at: string | null;
+          prospect_answer_token_hash: string | null;
         };
         Insert: {
           id: string;
@@ -824,6 +832,14 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
+          last_viewed_at?: string | null;
+          prospect_picked_problems?: string[] | null;
+          prospect_submitted_email?: string | null;
+          prospect_submitted_phone?: string | null;
+          prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
         };
         Update: {
           id?: string;
@@ -867,6 +883,14 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
+          last_viewed_at?: string | null;
+          prospect_picked_problems?: string[] | null;
+          prospect_submitted_email?: string | null;
+          prospect_submitted_phone?: string | null;
+          prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
         };
         Relationships: [
           {

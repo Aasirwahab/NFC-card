@@ -18,7 +18,7 @@ export function TapGuide() {
         </li>
         <li>
           Not reading? Scan the QR on the card with the Camera app, or type the code printed on the
-          back into the box above.
+          back into the card code box on this screen.
         </li>
         <li>A metal case, a thick case or a card lying on metal can block the tap.</li>
       </ul>

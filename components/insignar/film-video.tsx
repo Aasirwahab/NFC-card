@@ -54,7 +54,7 @@ export function FilmVideo() {
           muted
           playsInline
           loop
-          preload="metadata"
+          preload="none"
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onVolumeChange={(event) => setSound(!event.currentTarget.muted)}
