@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { page } from '@/app/(landing)/insignar/copy';
 
 /**
- * The prospect's page, shown on a phone: five parts, in order, always with a way out.
+ * The prospect's page, shown on a phone: a greeting, a short note, one button, always with a way out.
  * The screen scrolls like a real phone (wheel, trackpad, touch or keyboard); when it reaches
  * the end, scrolling carries on down the landing. The buttons are drawn, not live: it is an example.
  */
@@ -82,45 +82,22 @@ export function ProspectPage() {
                 <span className="who" aria-hidden="true">
                   {page.initial}
                 </span>
-                <p>{page.header}</p>
+                <div>
+                  <p>{page.rep}</p>
+                  <p>{page.repLine}</p>
+                </div>
                 <span className="tag ex">{page.example}</span>
               </header>
-              <section>
-                <p className="tag">{page.one.h}</p>
-                <q>{page.one.q}</q>
-                <p className="srcs">{page.one.by}</p>
-              </section>
-              <section>
-                <p className="tag">{page.two.h}</p>
-                <p className="rng">{page.two.range}</p>
-                <div className="rbar" aria-hidden="true">
-                  <i />
-                </div>
-                <p className="srcs">{page.two.sources.join(' ')}</p>
-                <p className="srcs ok">{page.two.confirmed}</p>
-              </section>
-              <section>
-                <p className="tag">{page.three.h}</p>
-                <p className="quote">{page.three.q}</p>
-              </section>
-              <section>
-                <p className="tag">{page.four.h}</p>
-                <p>{page.four.p}</p>
-              </section>
-              <section>
-                <p className="tag">{page.five.h}</p>
-                <ol>
-                  {page.five.steps.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ol>
-                <div className="actions">
-                  <span className="btn">{page.five.book}</span>
-                  <span className="srcs">{page.five.forward}</span>
-                </div>
-                <span className="linkish">{page.five.remove}</span>
-                {page.five.ai && <p className="ai">{page.five.ai}</p>}
-              </section>
+              <h3>{page.greeting}</h3>
+              <p className="from">{page.from}</p>
+              <p className="topic">{page.topic}</p>
+              {page.note.map((p) => (
+                <p key={p} className="note">
+                  {p}
+                </p>
+              ))}
+              <span className="btn">{page.book}</span>
+              <span className="linkish">{page.remove}</span>
             </article>
           </div>
         </div>

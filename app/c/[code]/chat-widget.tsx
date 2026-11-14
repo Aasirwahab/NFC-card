@@ -210,15 +210,10 @@ export function ChatWidget({
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="border-line text-ink-2 flex min-h-12 w-full items-center justify-between gap-2 border-t py-3 text-left text-[15px]"
+          className="border-line text-ink flex min-h-[52px] w-full items-center justify-center gap-2 border-t py-3 text-[15px] font-semibold"
         >
-          <span className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            Questions first?
-          </span>
-          <span className="text-ink font-semibold">
-            Ask {repFirstName}&rsquo;s assistant &rarr;
-          </span>
+          <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Ask {repFirstName}&rsquo;s AI assistant &rarr;
         </button>
       ) : null}
     </>

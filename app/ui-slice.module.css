@@ -1021,7 +1021,7 @@
   min-height: 64px;
   gap: 14px;
   margin: -16px -20px 0;
-  padding: 28px 20px 24px;
+  padding: 20px 20px 16px;
   border-radius: 0 0 28px 28px;
   background: var(--color-accent-soft);
 }
@@ -1046,6 +1046,12 @@
 .publicPage > header p + p {
   font-size: 14px;
   font-weight: 400;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .publicPage .headline {
@@ -1056,7 +1062,23 @@
   line-height: 1;
   letter-spacing: -0.035em;
   text-wrap: balance;
+  overflow-wrap: anywhere;
   animation: greet 450ms ease-out both;
+}
+
+/* Real names are longer than "Hi Sam": scale by length so the greeting stays on one or two lines. */
+.publicPage .headline[data-len='mid'] {
+  font-size: 38px;
+}
+
+.publicPage .headline[data-len='long'] {
+  font-size: 30px;
+  letter-spacing: -0.025em;
+}
+
+.publicPage .headline[data-len='xlong'] {
+  font-size: 24px;
+  letter-spacing: -0.02em;
 }
 
 .publicPage .topicLine {
@@ -1071,7 +1093,7 @@
 /* Greeting lands first; the note, then the buttons, follow a beat later. */
 .publicPage .arrive,
 .publicPage .cta {
-  animation: arrive 500ms ease-out 700ms both;
+  animation: arrive 500ms ease-out 700ms backwards;
 }
 
 .publicPage .cta {

@@ -116,7 +116,7 @@ export function ProspectView({
 
         <main className="flex-1">
           {/* Greeting first; everything below it arrives a moment later (see .arrive). */}
-          <h1 className={styles.headline}>
+          <h1 className={styles.headline} data-len={nameSize(prospectFirst)}>
             {prospectFirst
               ? `Hi ${prospectFirst}`
               : lead
@@ -281,6 +281,12 @@ function titleLine(title: string | null, company: string | null): string {
   const c = company?.trim() || null;
   if (t && c && t.toLowerCase().includes(c.toLowerCase())) return t;
   return [t, c].filter(Boolean).join(' · ');
+}
+
+/** Longer names get a smaller greeting so it holds to one or two lines (see .headline in the CSS). */
+function nameSize(name: string | null): 'mid' | 'long' | 'xlong' | undefined {
+  const n = name?.length ?? 0;
+  return n > 20 ? 'xlong' : n > 11 ? 'long' : n > 7 ? 'mid' : undefined;
 }
 
 function firstName(fullName: string): string {
