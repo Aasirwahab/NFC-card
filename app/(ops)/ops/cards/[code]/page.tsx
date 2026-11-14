@@ -23,7 +23,9 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
 
   const { data: card } = await db
     .from('cards')
-    .select('id, code, status, user_id, batch_id, written_at, verified_at, created_at')
+    .select(
+      'id, code, status, user_id, batch_id, written_at, verified_at, created_at, screen_issued_at',
+    )
     .eq('code', code)
     .maybeSingle();
   if (!card) notFound();
@@ -40,7 +42,8 @@ export default async function OpsCard({ params, searchParams }: PageProps<'/ops/
   const ownerName = profile?.full_name ?? ownerAuth?.user?.email ?? 'Unknown';
   const state = describeCard(card);
   const rows: [string, string][] = [
-    ['Programming', cardProgress(card)],
+    ['Issued as', card.screen_issued_at ? 'Screen QR' : 'Physical card'],
+    ['Programming', card.screen_issued_at ? 'Not needed' : cardProgress(card)],
     ['Owner', ownerName],
     ['Leads', String(sessions?.length ?? 0)],
     ['Tag link', tagUrl(env.NEXT_PUBLIC_APP_URL, card.code)],

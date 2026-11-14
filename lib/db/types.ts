@@ -184,6 +184,7 @@ export type Database = {
           written_at: string | null;
           verified_at: string | null;
           tag_uid: string | null;
+          screen_issued_at: string | null;
         };
         Insert: {
           id?: string;
@@ -195,6 +196,7 @@ export type Database = {
           written_at?: string | null;
           verified_at?: string | null;
           tag_uid?: string | null;
+          screen_issued_at?: string | null;
         };
         Update: {
           id?: string;
@@ -206,6 +208,7 @@ export type Database = {
           written_at?: string | null;
           verified_at?: string | null;
           tag_uid?: string | null;
+          screen_issued_at?: string | null;
         };
         Relationships: [
           {

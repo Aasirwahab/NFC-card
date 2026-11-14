@@ -39,7 +39,10 @@ export async function listReps(): Promise<OpsRep[]> {
       .from('profiles')
       .select('id, full_name, title, photo_url, booking_url, linkedin_url, low_stock_at')
       .throwOnError(),
-    db.from('cards').select('user_id, status, written_at, verified_at').throwOnError(),
+    db
+      .from('cards')
+      .select('user_id, status, written_at, verified_at, screen_issued_at')
+      .throwOnError(),
     db.from('card_orders').select('user_id').in('status', ['requested', 'ordered']).throwOnError(),
     db.from('business_profiles').select('user_id, company_name, tagline, services').throwOnError(),
     db.from('events').select('user_id, name').throwOnError(),

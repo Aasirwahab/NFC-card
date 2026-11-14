@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   hasSession: true,
   completed: false,
   selected: [] as string[],
+  screenIssued: null as string | null,
 }));
 vi.mock('@/lib/capture/prospect-problems', () => ({
   getProspectProblems: async () => ['Slow quotes'],
@@ -29,6 +30,7 @@ vi.mock('@/lib/db/service', () => ({
                 status: 'available',
                 written_at: null,
                 verified_at: null,
+                screen_issued_at: state.screenIssued,
               }
             : table === 'sessions'
               ? state.hasSession
@@ -56,6 +58,7 @@ beforeEach(() => {
   state.hasSession = true;
   state.completed = false;
   state.selected = [];
+  state.screenIssued = null;
 });
 afterEach(() => vi.useRealTimers());
 
@@ -96,5 +99,19 @@ describe('portfolio holding resolution', () => {
   });
   it('keeps the signed-in owner on the rep view', async () => {
     expect((await resolveCode('ABCDEFGH', 'owner')).audience).toBe('rep');
+  });
+  it('shows the neutral rep profile for a stale unused screen QR, without a holding promise', async () => {
+    state.hasSession = false;
+    state.screenIssued = '2026-11-13T11:30:00Z';
+    const result = await resolveCode('ABCDEFGH', null);
+    expect(result.audience === 'owner' && result.rep.fullName).toBe('Sam Smith');
+    expect(result.audience === 'owner' && result.holding).toBeNull();
+  });
+  it('uses the same holding and note resolution for a scanned screen code after the issuance deadline', async () => {
+    state.screenIssued = '2026-11-13T10:00:00Z';
+    const holding = await resolveCode('ABCDEFGH', null);
+    expect(holding.audience === 'owner' && holding.holding?.ready).toBe(true);
+    state.completed = true;
+    expect((await resolveCode('ABCDEFGH', null)).audience).toBe('prospect');
   });
 });

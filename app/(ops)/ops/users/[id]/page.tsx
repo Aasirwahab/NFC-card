@@ -55,7 +55,9 @@ export default async function OpsUser({ params, searchParams }: PageProps<'/ops/
       </h1>
       <p className="text-ink-3 text-[13px]">{rep.email}</p>
       <p className="text-ink-2 mt-3 font-mono text-[13px]">
-        {rep.stock.inStock} in stock · {rep.stock.handedOut} out · {rep.stock.lost} lost
+        {rep.stock.inStock} physical in stock · {rep.stock.handedOut} out · {rep.stock.lost} lost
+        {' · '}
+        {rep.stock.screenIssued} screen QR codes
       </p>
 
       {!rep.name ? (
