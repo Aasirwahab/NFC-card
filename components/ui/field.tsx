@@ -8,7 +8,7 @@ export function Input({ className, ...props }: React.ComponentProps<'input'>) {
   return (
     <input
       className={cn(
-        'border-line bg-surface text-ink placeholder:text-ink-3/70 h-12 w-full rounded-lg border px-3',
+        'bg-surface text-ink placeholder:text-ink-3/70 h-12 w-full rounded-lg border border-[color-mix(in_srgb,var(--color-ink-3)_70%,var(--color-line))] px-3',
         'focus:border-accent focus:ring-accent/20 text-base focus:ring-2 focus:outline-none',
         className,
       )}
@@ -21,7 +21,7 @@ export function Textarea({ className, ...props }: React.ComponentProps<'textarea
   return (
     <textarea
       className={cn(
-        'border-line bg-surface text-ink placeholder:text-ink-3/70 w-full rounded-lg border px-3 py-2.5',
+        'bg-surface text-ink placeholder:text-ink-3/70 w-full rounded-lg border border-[color-mix(in_srgb,var(--color-ink-3)_70%,var(--color-line))] px-3 py-2.5',
         'focus:border-accent focus:ring-accent/20 text-base focus:ring-2 focus:outline-none',
         className,
       )}
