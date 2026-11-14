@@ -1,24 +1,56 @@
 type SignalInput = {
   viewCount: number;
   firstViewedAt: string | null;
+  lastViewedAt?: string | null;
   events: string[];
   questions: string[];
   submittedEmail: string | null;
   submittedPhone: string | null;
 };
 
-export function openingSummary(count: number, first: string | null) {
+export function openingSummary(count: number, first: string | null, last: string | null = null) {
   const views = Math.max(count, first ? 1 : 0);
   return {
     count: views === 0 ? 'Not opened yet' : views === 1 ? 'Opened once' : `Opened ${views} times`,
     first,
-    // Only the first view is timestamped. With repeats, the last is unknown.
-    last: views === 1 ? first : null,
+    last,
   };
 }
 
+/** Use the same UK calendar day on the dashboard and contact page. */
+export function openedWhen(value: string, now: number, withTime = false): string {
+  const date = new Date(value);
+  const today = new Date(now);
+  const dayFormat = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Europe/London',
+  });
+  const yesterday = new Date(`${dayFormat.format(today)}T12:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const day =
+    dayFormat.format(date) === dayFormat.format(today)
+      ? 'today'
+      : dayFormat.format(date) === dayFormat.format(yesterday)
+        ? 'yesterday'
+        : new Intl.DateTimeFormat('en-GB', {
+            dateStyle: 'medium',
+            timeZone: 'Europe/London',
+          }).format(date);
+  const time = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/London',
+  }).format(date);
+  return withTime ? `${day} at ${time}` : day;
+}
+
 /** Order recorded actions, never score or profile the person. */
-export function strongestSignal(input: SignalInput): { label: string; rank: number } {
+export function strongestSignal(
+  input: SignalInput,
+  now = Date.now(),
+): { label: string; rank: number } {
   const emailed = input.events.includes('prospect_note_emailed');
   if ((input.submittedEmail || input.submittedPhone) && !emailed) {
     return { label: 'Asked you to send their note', rank: 6 };
@@ -36,9 +68,11 @@ export function strongestSignal(input: SignalInput): { label: string; rank: numb
   // Automatic delivery also records one page_emailed event.
   if (input.events.filter((e) => e === 'page_emailed').length > (emailed ? 1 : 0))
     return { label: 'Emailed the page', rank: 2 };
-  const summary = openingSummary(input.viewCount, input.firstViewedAt);
+  const summary = openingSummary(input.viewCount, input.firstViewedAt, input.lastViewedAt);
   return {
-    label: emailed ? 'We emailed them their note' : summary.count,
+    label: emailed
+      ? 'We emailed them their note'
+      : `${summary.count}${summary.last ? `, last ${openedWhen(summary.last, now)}` : ''}`,
     rank: input.viewCount > 0 || input.firstViewedAt ? 1 : 0,
   };
 }

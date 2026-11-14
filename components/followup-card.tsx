@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, buttonStyles } from '@/components/ui/button';
 import type { FollowupRow } from '@/lib/db/rep';
 import { apiSend } from '@/lib/http/client';
-import { followupTarget } from '@/lib/followup/send';
+import { followupMessage } from '@/lib/followup/send';
 import { FollowupSendButton } from '@/components/followup-send-button';
 
 /** How many leads show before "Show all", so Today stays one short list. */
@@ -37,7 +37,7 @@ export function FollowupToday({
   const shown = all ? actionable : actionable.slice(0, FIRST_SHOWN);
 
   return (
-    <section>
+    <section id="follow-up" className="scroll-mt-4">
       <h2 className="text-ink text-base font-semibold">Follow up today · {actionable.length}</h2>
       <p className="text-ink-3 mt-1 text-[13px] leading-snug">
         A note to send yourself, in your own words if you like. Tap Done once you have sent it.
@@ -88,12 +88,14 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
   const who = [row.prospectName, row.prospectCompany].filter(Boolean).join(' · ') || 'No name';
   const waiting = row.state === 'due-no-tap' || row.state === 'opened-no-action';
   const closed = row.state === 'replied' || row.state === 'dropped';
-  const emailTarget = followupTarget(row.prospectEmail);
   const linkClass = buttonStyles({ variant: 'secondary', size: 'md' });
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(row.draft ?? '');
+      const pageUrl = row.pagePath ? new URL(row.pagePath, window.location.origin).href : null;
+      await navigator.clipboard.writeText(
+        pageUrl ? followupMessage(row.draft ?? '', pageUrl) : (row.draft ?? ''),
+      );
       setCopied(true);
     } catch {
       setError('Could not copy. Select the text and copy it instead.');
@@ -141,39 +143,21 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
             pagePath={row.pagePath}
             email={row.prospectEmail}
             phone={row.prospectPhone}
-            preferContact={row.preferContact}
           />
-        ) : null}
-        {row.draft ? (
-          <Button type="button" variant="secondary" onClick={copy}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
-        ) : null}
-        {row.draft && row.channel === 'linkedin' && row.linkedinUrl ? (
-          <a href={row.linkedinUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
-            Open LinkedIn
-          </a>
-        ) : null}
-        {row.draft && row.channel === 'email' && emailTarget ? (
-          <a
-            href={`mailto:${emailTarget.address}?body=${encodeURIComponent(row.draft)}`}
-            className={linkClass}
-          >
-            Open email
-          </a>
         ) : null}
         {row.draft && isPersonalAddress(row.prospectEmail) ? (
           <p className="text-ink-3 basis-full text-[13px]">
             A personal address: only write if they asked to hear from you.
           </p>
         ) : null}
-        {!row.draft && row.linkedinUrl ? (
-          <a href={row.linkedinUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
-            Open LinkedIn
-          </a>
-        ) : null}
         {waiting || row.state === 'review' ? (
-          <Button type="button" onClick={() => send('sent')} disabled={busy} className="ml-auto">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => send('sent')}
+            disabled={busy}
+            className="ml-auto"
+          >
             {busy ? 'Saving…' : 'Done'}
           </Button>
         ) : null}
@@ -187,31 +171,60 @@ export function FollowupCard({ row }: { row: FollowupRow }) {
           >
             Undo
           </Button>
-        ) : (
+        ) : null}
+        {!closed || row.draft || row.linkedinUrl ? (
           <details className="basis-full">
             <summary className="text-ink-2 inline-flex min-h-11 cursor-pointer items-center text-sm">
               More
             </summary>
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => send('outcome', { outcome: 'replied' })}
-              >
-                They replied
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => send('outcome', { outcome: 'dropped' })}
-              >
-                Drop this contact
-              </Button>
+              {row.draft ? (
+                <>
+                  <FollowupSendButton
+                    draft={row.draft}
+                    pagePath={row.pagePath}
+                    email={null}
+                    phone={null}
+                    shareOnly
+                  />
+                  <Button type="button" variant="secondary" onClick={copy}>
+                    {copied ? 'Copied' : 'Copy'}
+                  </Button>
+                </>
+              ) : null}
+              {row.linkedinUrl ? (
+                <a
+                  href={row.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
+                  Open LinkedIn
+                </a>
+              ) : null}
+              {!closed ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => send('outcome', { outcome: 'replied' })}
+                  >
+                    They replied
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => send('outcome', { outcome: 'dropped' })}
+                  >
+                    Drop this contact
+                  </Button>
+                </>
+              ) : null}
             </div>
           </details>
-        )}
+        ) : null}
       </div>
       {error ? <p className="text-warn mt-2 text-[13px]">{error}</p> : null}
     </div>

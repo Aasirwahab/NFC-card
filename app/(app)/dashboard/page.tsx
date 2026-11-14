@@ -59,6 +59,13 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
     (s) => s.details_completed_at && (s.linkedin_url || s.prospect_email),
   );
 
+  const summary = [
+    { id: 'needs-details', count: needsDetails.length, label: 'need details' },
+    { id: 'needs-contact', count: noChannel.length, label: 'need a way to reach them' },
+    { id: 'follow-up', count: followups.actionable.length, label: 'to follow up' },
+    { id: 'other-contacts', count: rest.length, label: 'other contacts' },
+  ].filter((section) => section.count > 0);
+
   const tapped = sessions.filter((s) => s.first_viewed_at).length;
 
   return (
@@ -69,6 +76,25 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           {sessions.length} contact{sessions.length === 1 ? '' : 's'} · {tapped} opened
         </p>
       </div>
+
+      {summary.length ? (
+        <nav
+          aria-label="Contact summary"
+          className="text-ink-2 mt-2 flex flex-wrap items-center gap-x-1 text-sm"
+        >
+          {summary.map((section, index) => (
+            <span key={section.id}>
+              {index > 0 ? <span aria-hidden="true"> · </span> : null}
+              <a
+                href={`#${section.id}`}
+                className="inline-flex min-h-11 items-center underline underline-offset-4"
+              >
+                {section.count} {section.label}
+              </a>
+            </span>
+          ))}
+        </nav>
+      ) : null}
 
       {needsDetails.length > 0 ? (
         <>
@@ -100,12 +126,14 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
       ) : (
         <div className="mt-5 flex flex-col gap-6">
           <Group
+            id="needs-details"
             title="Needs details"
             hint="Fill these in while you still remember the conversation."
             sessions={needsDetails}
           />
 
           <Group
+            id="needs-contact"
             title="Add a way to reach them"
             hint="Open the contact and add LinkedIn or email so you can follow up."
             sessions={noChannel}
@@ -116,7 +144,7 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
             <FollowupToday {...followups} />
           ) : null}
 
-          <Group title="Everything else" sessions={rest} />
+          <Group id="other-contacts" title="Everything else" sessions={rest} />
         </div>
       )}
     </div>
@@ -124,11 +152,13 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 }
 
 function Group({
+  id,
   title,
   hint,
   sessions,
   tone,
 }: {
+  id: string;
   title: string;
   hint?: string;
   sessions: SessionListItem[];
@@ -137,7 +167,7 @@ function Group({
   if (sessions.length === 0) return null;
 
   return (
-    <section>
+    <section id={id} className="scroll-mt-4">
       <h2 className={`text-base font-semibold ${tone === 'warn' ? 'text-warn' : 'text-ink'}`}>
         {title} · {sessions.length}
       </h2>

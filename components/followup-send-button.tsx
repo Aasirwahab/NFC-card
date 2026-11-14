@@ -2,28 +2,28 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { followupTarget, sendFollowup } from '@/lib/followup/send';
+import { followupMessage, followupTarget, sendFollowup } from '@/lib/followup/send';
 
 export function FollowupSendButton({
   draft,
   pagePath,
   email,
   phone,
-  preferContact,
+  shareOnly = false,
 }: {
   draft: string | null;
   pagePath: string | null;
   email: string | null;
   phone: string | null;
-  preferContact: boolean;
+  shareOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [failed, setFailed] = useState(false);
 
-  const target = followupTarget(email, phone);
+  const target = shareOnly ? null : followupTarget(email, phone);
 
-  async function send(share = false) {
+  async function send() {
     if (!draft || !pagePath || busy) return;
     setBusy(true);
     setNotice('');
@@ -33,9 +33,9 @@ export function FollowupSendButton({
         {
           draft,
           pageUrl: new URL(pagePath, window.location.origin).href,
-          email: share ? null : email,
-          phone: share ? null : phone,
-          preferContact: !share && Boolean(target),
+          email: shareOnly ? null : email,
+          phone: shareOnly ? null : phone,
+          preferContact: Boolean(target),
         },
         {
           share: navigator.share ? (data) => navigator.share(data) : undefined,
@@ -62,31 +62,20 @@ export function FollowupSendButton({
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
+          variant={shareOnly ? 'secondary' : 'primary'}
           onClick={() => send()}
           disabled={busy || !draft || !pagePath}
           className="h-auto min-h-11 min-w-0 break-all whitespace-normal"
         >
           {busy ? 'Opening…' : (target?.label ?? 'Share')}
         </Button>
-        {preferContact && target ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => send(true)}
-            disabled={busy || !draft || !pagePath}
-          >
-            Share
-          </Button>
-        ) : null}
       </div>
       <p role="status" className="text-ink-3 mt-1 max-w-sm text-[13px] wrap-anywhere">
         {notice}
       </p>
       {failed && draft && pagePath ? (
         <p className="text-ink-2 mt-2 max-w-sm text-sm wrap-anywhere whitespace-pre-wrap select-text">
-          {draft}
-          {'\n\n'}
-          {new URL(pagePath, window.location.origin).href}
+          {followupMessage(draft, new URL(pagePath, window.location.origin).href)}
         </p>
       ) : null}
     </div>

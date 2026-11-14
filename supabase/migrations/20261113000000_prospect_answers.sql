@@ -1,4 +1,45 @@
--- Rollback: drop triggers and delivery index before restoring the save function.
+-- Rollback: restore the view counter, then drop triggers and restore the save function.
+-- create or replace function public.record_prospect_view(p_session_id uuid, p_source text default 'nfc')
+-- returns boolean
+-- language plpgsql
+-- security definer
+-- set search_path = public, pg_temp
+-- as $fn$
+-- declare
+--   v_was_first boolean;
+--   v_user_id   uuid;
+--   v_source    text := case when p_source = 'qr' then 'qr' else 'nfc' end;
+-- begin
+--   -- SET expressions read the row as it was before this update, so the source is
+--   -- written exactly when first_viewed_at is.
+--   update public.sessions
+--      set view_count        = view_count + 1,
+--          first_view_source = case when first_viewed_at is null then v_source
+--                                   else first_view_source end,
+--          first_viewed_at   = coalesce(first_viewed_at, now())
+--    where id = p_session_id
+--   returning (view_count = 1), user_id into v_was_first, v_user_id;
+--
+--   if not found then
+--     return false;
+--   end if;
+--
+--   if v_was_first then
+--     insert into public.session_events(session_id, type, meta)
+--     values (p_session_id, 'prospect_viewed', jsonb_build_object('source', v_source));
+--
+--     insert into public.jobs(type, session_id, user_id)
+--     values ('notify_tap', p_session_id, v_user_id)
+--     on conflict do nothing;
+--   end if;
+--
+--   return v_was_first;
+-- end $fn$;
+--
+-- revoke execute on function public.record_prospect_view(uuid, text) from public, anon, authenticated;
+-- grant  execute on function public.record_prospect_view(uuid, text) to service_role;
+-- alter table public.sessions drop column last_viewed_at;
+--
 -- drop trigger queue_prospect_note_email on public.sessions;
 -- drop trigger queue_prospect_note_email on public.profiles;
 -- drop function public.queue_prospect_note_email();
@@ -61,6 +102,7 @@
 -- Prospect input stays separate from the rep's saved contact details. Existing
 -- owner RLS and grants on sessions cover these nullable columns unchanged.
 alter table public.sessions
+  add column last_viewed_at timestamptz,
   add column prospect_picked_problems text[],
   add column prospect_submitted_email text,
   add column prospect_submitted_phone text,
@@ -172,3 +214,45 @@ create trigger queue_prospect_note_email
 create trigger queue_prospect_note_email
   after update of review_before_live on public.profiles
   for each row execute function public.queue_prospect_note_email();
+
+-- Count and timestamp each prospect view in the same row update.
+create or replace function public.record_prospect_view(p_session_id uuid, p_source text default 'nfc')
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  v_was_first boolean;
+  v_user_id   uuid;
+  v_source    text := case when p_source = 'qr' then 'qr' else 'nfc' end;
+begin
+  -- SET expressions read the row as it was before this update, so the source is
+  -- written exactly when first_viewed_at is.
+  update public.sessions
+     set view_count        = view_count + 1,
+         last_viewed_at    = now(),
+         first_view_source = case when first_viewed_at is null then v_source
+                                  else first_view_source end,
+         first_viewed_at   = coalesce(first_viewed_at, now())
+   where id = p_session_id
+  returning (view_count = 1), user_id into v_was_first, v_user_id;
+
+  if not found then
+    return false;
+  end if;
+
+  if v_was_first then
+    insert into public.session_events(session_id, type, meta)
+    values (p_session_id, 'prospect_viewed', jsonb_build_object('source', v_source));
+
+    insert into public.jobs(type, session_id, user_id)
+    values ('notify_tap', p_session_id, v_user_id)
+    on conflict do nothing;
+  end if;
+
+  return v_was_first;
+end $fn$;
+
+revoke execute on function public.record_prospect_view(uuid, text) from public, anon, authenticated;
+grant  execute on function public.record_prospect_view(uuid, text) to service_role;

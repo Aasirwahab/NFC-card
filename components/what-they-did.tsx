@@ -8,7 +8,7 @@ import {
   followupState,
   type FollowupSession,
 } from '@/lib/followup/state';
-import { chatTurns, openingSummary, strongestSignal } from '@/lib/followup/signals';
+import { chatTurns, openedWhen, openingSummary, strongestSignal } from '@/lib/followup/signals';
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium',
@@ -59,18 +59,26 @@ export async function WhatTheyDid({
   const [activity, profile, business] = loaded;
   if (!activity) return null;
 
-  const opens = openingSummary(activity.view_count, activity.first_viewed_at);
+  const opens = openingSummary(
+    activity.view_count,
+    activity.first_viewed_at,
+    activity.last_viewed_at,
+  );
   const turns = chatTurns(activity.chat_messages, activity.chat_unanswered);
   const events = activity.session_events.map((e) => ({ ...e, session_id: session.id }));
   const noteEmailed = events.some((e) => e.type === 'prospect_note_emailed');
-  const signal = strongestSignal({
-    viewCount: activity.view_count,
-    firstViewedAt: activity.first_viewed_at,
-    events: events.map((e) => e.type),
-    questions: turns.map((t) => t.question),
-    submittedEmail: session.prospect_submitted_email,
-    submittedPhone: session.prospect_submitted_phone,
-  });
+  const signal = strongestSignal(
+    {
+      viewCount: activity.view_count,
+      firstViewedAt: activity.first_viewed_at,
+      lastViewedAt: activity.last_viewed_at,
+      events: events.map((e) => e.type),
+      questions: turns.map((t) => t.question),
+      submittedEmail: session.prospect_submitted_email,
+      submittedPhone: session.prospect_submitted_phone,
+    },
+    activity.readAt,
+  );
   const requestedNote = Boolean(
     (session.prospect_submitted_email || session.prospect_submitted_phone) && !noteEmailed,
   );
@@ -91,6 +99,7 @@ export async function WhatTheyDid({
         },
         now,
         turns.at(-1)?.question,
+        requestedNote,
       )
     : null;
 
@@ -107,10 +116,8 @@ export async function WhatTheyDid({
       ) : null}
       {opens.last ? (
         <p className="text-ink-3 mt-1 text-sm">
-          Last opened: <RecordedTime value={opens.last} />
+          Last opened <time dateTime={opens.last}>{openedWhen(opens.last, now, true)}</time>
         </p>
-      ) : activity.view_count > 1 ? (
-        <p className="text-ink-3 mt-1 text-sm">Last opened: time not recorded.</p>
       ) : null}
 
       {session.prospect_submitted_email || session.prospect_submitted_phone ? (

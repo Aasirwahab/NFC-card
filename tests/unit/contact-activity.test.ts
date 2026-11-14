@@ -47,12 +47,14 @@ describe('server ownership of contact activity', () => {
       ['id', 'contact-b'],
     ]);
     expect(mocks.queries[0]!.columns).toContain('chat_messages');
+    expect(mocks.queries[0]!.columns).toContain('last_viewed_at');
   });
 
   it('returns the owner’s recorded events and transcript', async () => {
     const activity = {
       view_count: 3,
       first_viewed_at: '2026-11-06T10:00:00Z',
+      last_viewed_at: '2026-11-13T14:02:00Z',
       session_events: [],
       chat_messages: [
         { id: 1, role: 'user', content: 'Price?', created_at: '2026-11-06T10:00:00Z' },
@@ -82,6 +84,7 @@ describe('follow-up list wiring', () => {
       details_completed_at: '2026-11-10T12:00:00Z',
       registered_at: '2026-11-10T12:00:00Z',
       first_viewed_at: null,
+      last_viewed_at: null,
       view_count: 0,
       followup_sent_at: null,
       followup_outcome: null,
@@ -109,6 +112,7 @@ describe('follow-up list wiring', () => {
                 id: 'requested',
                 prospect_submitted_email: 'tom@example.com',
                 registered_at: '2026-11-13T12:00:00Z',
+                chat_messages: [{ content: 'What is the price?' }],
               },
               { ...base, id: 'mobile', prospect_submitted_phone: '+447700900123' },
               {
@@ -124,7 +128,13 @@ describe('follow-up list wiring', () => {
                 prospect_email: 'saved@example.com',
                 session_events: [{ type: 'prospect_note_emailed' }, { type: 'page_emailed' }],
               },
-              { ...base, id: 'opened', first_viewed_at: '2026-11-11T12:00:00Z', view_count: 3 },
+              {
+                ...base,
+                id: 'opened',
+                first_viewed_at: '2026-11-11T12:00:00Z',
+                last_viewed_at: '2026-11-13T10:00:00Z',
+                view_count: 3,
+              },
               { ...base, id: 'booking', session_events: [{ type: 'booking_opened' }] },
               {
                 ...base,
@@ -162,6 +172,12 @@ describe('follow-up list wiring', () => {
       prospectEmail: 'tom@example.com',
       signal: { label: 'Asked you to send their note', rank: 6 },
     });
+    expect(result.actionable.find((r) => r.sessionId === 'opened')!.signal.label).toBe(
+      'Opened 3 times, last today',
+    );
+    expect(result.actionable[0]!.draft).toBe(
+      "Hi Tom,\n\nHere is your note from our conversation.\n\nZaid\n\nReply stop and I won't write again.",
+    );
     expect(result.actionable.find((r) => r.sessionId === 'mobile')).toMatchObject({
       preferContact: true,
       prospectEmail: null,
@@ -177,6 +193,7 @@ describe('follow-up list wiring', () => {
       preferContact: false,
       signal: { label: 'We emailed them their note', rank: 0 },
     });
+    expect(mocks.queries[0]!.columns).toContain('last_viewed_at');
     expect(mocks.queries[0]!.columns).toContain('prospect_submitted_email');
     expect(mocks.queries[0]!.columns).toContain('prospect_submitted_phone');
     expect(result.actionable.every((r) => r.draft && r.pagePath === '/c/abc')).toBe(true);

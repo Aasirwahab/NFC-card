@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VoiceNote } from '@/components/voice-note';
 import { DetailsForm } from '@/app/(app)/sessions/[id]/edit/details-form';
 import { FollowupSendButton } from '@/components/followup-send-button';
+import { FollowupCard } from '@/components/followup-card';
+import type { FollowupRow } from '@/lib/db/rep';
 
 type Element = ReactElement<Record<string, unknown>>;
 const h = vi.hoisted(() => ({
@@ -263,7 +265,7 @@ describe('visible send recipient', () => {
       const share = vi.fn();
       vi.stubGlobal('navigator', { share, clipboard: { writeText: vi.fn() } });
       const tree = render('send', () =>
-        FollowupSendButton({ draft: 'Hi', pagePath: '/c/abc', email, phone, preferContact: false }),
+        FollowupSendButton({ draft: 'Hi', pagePath: '/c/abc', email, phone }),
       );
       const button = child(tree, 'Button');
       expect(button.props.children).toBe(label);
@@ -275,4 +277,61 @@ describe('visible send recipient', () => {
       expect(share).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('secondary follow-up actions', () => {
+  it('shares without opening the known recipient from More', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { share, clipboard: { writeText: vi.fn() } });
+    const tree = render('share-more', () =>
+      FollowupSendButton({
+        draft: 'Hi',
+        pagePath: '/c/abc',
+        email: 'tom@example.com',
+        phone: null,
+        shareOnly: true,
+      }),
+    );
+    const button = child(tree, 'Button');
+    expect(button.props.children).toBe('Share');
+    click(button);
+    await flush();
+    expect(share).toHaveBeenCalledWith({ text: 'Hi\n\nhttps://example.com/c/abc' });
+    expect(window.location.href).toBe('');
+  });
+
+  it('copies the complete message and page link from More', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    const row: FollowupRow = {
+      sessionId: 'contact',
+      state: 'review',
+      reason: 'No meeting booked',
+      signal: { label: 'Asked you to send their note', rank: 6 },
+      pagePath: '/c/abc',
+      draft:
+        "Hi Tom,\n\nHere is your note from our conversation.\n\nZaid\n\nReply stop and I won't write again.",
+      channel: 'email',
+      prospectName: 'Tom',
+      prospectCompany: null,
+      linkedinUrl: null,
+      prospectEmail: 'tom@example.com',
+      prospectPhone: null,
+      preferContact: true,
+      sequence: 1,
+      colour: 'Blue',
+    };
+    const tree = render('copy-more', () => FollowupCard({ row }));
+    const button = nodes(tree).find((el) => el.props?.children === 'Copy')!;
+    click(button);
+    await flush();
+    expect(writeText).toHaveBeenCalledWith(
+      "Hi Tom,\n\nHere is your note from our conversation.\n\nhttps://example.com/c/abc\n\nZaid\n\nReply stop and I won't write again.",
+    );
+    expect(
+      nodes(render('copy-more', () => FollowupCard({ row }))).some(
+        (el) => el.props?.children === 'Copied',
+      ),
+    ).toBe(true);
+  });
 });
