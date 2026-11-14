@@ -48,6 +48,7 @@ describe('migrations', () => {
       'session_events',
       'sessions',
       'staff_audit_log',
+      'weekly_digests',
     ]);
   });
 
@@ -145,6 +146,7 @@ describe('migrations', () => {
       'record_booking',
       'confirm_prospect_website',
       'queue_event_digests',
+      'queue_weekly_digests',
       'release_card',
       'queue_no_tap_followups',
       'save_followup_draft',
@@ -1206,6 +1208,77 @@ describe('queue_event_digests (morning-after email)', () => {
     const fx = await eventWithCard('2026-01-10');
     await db.query(`select public.queue_event_digests($1)`, ['2026-10-06T07:00:00Z']);
     expect(await digestJobs(fx.eventId)).toEqual([]);
+  });
+});
+
+describe('queue_weekly_digests (Monday rep email)', () => {
+  async function activeRep(timezone: string) {
+    const fx = await seedFixture(db, { cards: 1 });
+    await db.query(`update public.profiles set timezone = $1 where id = $2`, [timezone, fx.userId]);
+    await db.query(`select * from public.register_card($1, $2, $3, $4, $5, null)`, [
+      crypto.randomUUID(),
+      fx.codes[0]!,
+      fx.eventId,
+      fx.userId,
+      'Zaid',
+    ]);
+    await db.query(`update public.sessions set registered_at = $1 where user_id = $2`, [
+      '2026-11-10T12:00:00Z',
+      fx.userId,
+    ]);
+    return fx;
+  }
+
+  async function weeks(userId: string) {
+    const { rows } = await db.query<{ week: string }>(
+      `select payload->>'week_start' as week from public.jobs
+        where type = 'weekly_digest' and user_id = $1 order by 1`,
+      [userId],
+    );
+    return rows.map((r) => r.week);
+  }
+
+  it('queues one digest at 08:00 on Monday in the rep’s zone, exactly once', async () => {
+    const fx = await activeRep('Europe/London');
+
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T07:59:00Z']);
+    expect(await weeks(fx.userId)).toEqual([]);
+
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T08:00:00Z']);
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T08:01:00Z']);
+    expect(await weeks(fx.userId)).toEqual(['2026-11-16']);
+  });
+
+  it('follows the rep’s own time zone, and survives one it does not know', async () => {
+    const ny = await activeRep('America/New_York');
+    const odd = await activeRep('Not/AZone');
+
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T12:59:00Z']);
+    expect(await weeks(ny.userId)).toEqual([]);
+    expect(await weeks(odd.userId)).toEqual(['2026-11-16']); // London fallback
+
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T13:00:00Z']);
+    expect(await weeks(ny.userId)).toEqual(['2026-11-16']);
+  });
+
+  it('skips reps who turned it off or have not handed out a card in 8 weeks', async () => {
+    const off = await activeRep('Europe/London');
+    await db.query(`update public.profiles set weekly_digest = false where id = $1`, [off.userId]);
+    const idle = await activeRep('Europe/London');
+    await db.query(`update public.sessions set registered_at = $1 where user_id = $2`, [
+      '2026-09-01T12:00:00Z',
+      idle.userId,
+    ]);
+
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-16T08:00:00Z']);
+    expect(await weeks(off.userId)).toEqual([]);
+    expect(await weeks(idle.userId)).toEqual([]);
+  });
+
+  it('never catches up on a Monday that has passed', async () => {
+    const fx = await activeRep('Europe/London');
+    await db.query(`select public.queue_weekly_digests($1)`, ['2026-11-18T09:00:00Z']);
+    expect(await weeks(fx.userId)).toEqual([]);
   });
 });
 

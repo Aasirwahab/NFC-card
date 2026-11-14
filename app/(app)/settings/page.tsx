@@ -17,6 +17,7 @@ import {
   PlaybookForm,
   ProfileForm,
   UnansweredQuestions,
+  WeeklyDigestForm,
 } from './settings-forms';
 
 export const metadata = { title: 'Setup' };
@@ -89,6 +90,7 @@ export default async function SettingsPage() {
       </div>
       <ProfileForm profile={profile} />
       <PitchVoiceForm profile={profile} />
+      <WeeklyDigestForm enabled={profile?.weekly_digest ?? true} />
       <section className={styles.profileCheck} aria-labelledby="public-profile-heading">
         <h2 id="public-profile-heading" className={styles.sectionLabel}>
           Public profile check
@@ -148,10 +150,12 @@ export default async function SettingsPage() {
           ))}
         </ul>
       </section>
-      <UnansweredQuestions
-        questions={unanswered.data ?? []}
-        loadError={Boolean(unanswered.error)}
-      />
+      <div id="questions" className="scroll-mt-24">
+        <UnansweredQuestions
+          questions={unanswered.data ?? []}
+          loadError={Boolean(unanswered.error)}
+        />
+      </div>
       <KnowledgeForm entries={entries} />
     </div>
   );

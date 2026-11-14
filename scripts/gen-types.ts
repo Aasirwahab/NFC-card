@@ -125,6 +125,10 @@ const FUNCTIONS = `    {
         Args: { p_now?: string };
         Returns: number;
       };
+      queue_weekly_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
       confirm_prospect_website: {
         Args: { p_session_id: string; p_user_id: string; p_website: string };
         Returns: Database['public']['Tables']['sessions']['Row'];
