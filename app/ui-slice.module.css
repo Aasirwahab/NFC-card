@@ -21,8 +21,8 @@
   background: #efeeea;
 }
 
-/* Prospect light theme: near-white ground, peach tint for rows, one hot coral. */
-.publicPage {
+/* Prospect light theme: cool white, one deep blue. `.surface.publicPage` because the selector list above compiles to :is(...) and takes the specificity of its :has() arm, which would otherwise beat a single class and bring back the rep app's cream and orange. */
+.surface.publicPage {
   --color-ground: #fbfcfe;
   --color-surface: #ffffff;
   --color-surface-2: #edf1f8;
@@ -47,7 +47,7 @@
  * the rep app (no .publicPage) stays light.
  */
 @media (prefers-color-scheme: dark) {
-  .publicPage {
+  .surface.publicPage {
     color-scheme: dark;
     --color-ground: #0d111b;
     --color-surface: #161c2a;
