@@ -26,6 +26,7 @@ export async function verifyCardTap(
     .update({ verified_at: now })
     .eq('code', code)
     .eq('status', 'available')
+    .is('screen_issued_at', null)
     .is('verified_at', null)
     .select('code');
   if (!data?.length) {
@@ -34,6 +35,7 @@ export async function verifyCardTap(
       .select('code')
       .eq('code', code)
       .eq('status', 'available')
+      .is('screen_issued_at', null)
       .not('verified_at', 'is', null)
       .maybeSingle();
     return again ? 'already_verified' : 'not_applicable';

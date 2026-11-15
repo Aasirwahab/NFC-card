@@ -10,6 +10,7 @@ import type { Row } from './types';
 import { isProspectHolding } from '@/lib/domain/prospect-answers';
 import { getProspectProblems } from '@/lib/capture/prospect-problems';
 import type { HoldingDetails } from '@/app/c/[code]/holding';
+import { screenQrExpiresAt } from '@/lib/cards/screen';
 
 /**
  * Resolving `/c/[code]` (spec §8, §16).
@@ -148,6 +149,7 @@ export type Resolved =
       audience: 'rep';
       code: string;
       cardStatus: Row<'cards'>['status'];
+      screenQrStatus: 'waiting' | 'expired' | null;
       session: RepSession | null;
     }
   | {
@@ -177,7 +179,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
 
   const { data: card, error: cardError } = await db
     .from('cards')
-    .select('id, user_id, status, written_at, verified_at')
+    .select('id, user_id, status, written_at, verified_at, screen_issued_at')
     .eq('code', code)
     .maybeSingle();
 
@@ -217,7 +219,17 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
       .eq('status', 'active')
       .maybeSingle<RepSession>();
 
-    return { audience: 'rep', code, cardStatus: card.status, session: repSession ?? null };
+    return {
+      audience: 'rep',
+      code,
+      cardStatus: card.status,
+      screenQrStatus: card.screen_issued_at
+        ? Date.now() >= screenQrExpiresAt(card.screen_issued_at)
+          ? 'expired'
+          : 'waiting'
+        : null,
+      session: repSession ?? null,
+    };
   }
 
   // -------------------------------------------------------- the prospect
@@ -247,6 +259,8 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   // and the tap still counts (`sessionId`).
   if (!session || !session.details_completed_at) {
     const face = await repFace(card.user_id);
+    const expiredScreen =
+      !session && card.screen_issued_at && Date.now() >= screenQrExpiresAt(card.screen_issued_at);
     return face
       ? {
           audience: 'owner',
@@ -254,8 +268,9 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
           ownerId: card.user_id,
           cardStatus: card.status,
           sessionId: session?.id ?? null,
-          holding:
-            (!session && card.status === 'available') || (session && !session.first_viewed_at)
+          holding: expiredScreen
+            ? null
+            : (!session && card.status === 'available') || (session && !session.first_viewed_at)
               ? { ready: false, problems: [], picked: [], expiresAt: null }
               : session && isProspectHolding(session.details_completed_at, session.first_viewed_at)
                 ? {
