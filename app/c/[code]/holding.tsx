@@ -9,7 +9,7 @@ import {
   type ContactForm,
   type ContactFormAnswer,
   answerLine,
-} from '@/lib/domain/contact-form';
+} from '@/lib/domain/contact-form-view';
 import { useRouter } from 'next/navigation';
 import { ApiError, apiGet, apiSend } from '@/lib/http/client';
 import { pollLandingStatus } from '@/lib/browser/landing-poll';

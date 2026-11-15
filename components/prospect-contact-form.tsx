@@ -1,7 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { contactFormFields, contactFormText, type ContactForm } from '@/lib/domain/contact-form';
+import {
+  contactFormFields,
+  contactFormText,
+  type ContactForm,
+} from '@/lib/domain/contact-form-view';
 import styles from '@/app/ui-slice.module.css';
 
 /** WCAG 1.3.5: let phones autofill what they know. The email-or-mobile field has no single token. */
