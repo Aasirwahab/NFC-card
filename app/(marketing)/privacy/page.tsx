@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Privacy notice',
   description: 'What INSIGNAR collects, why, and how to have it deleted.',
   robots: { index: true, follow: true },
   alternates: { canonical: '/privacy' },
+  openGraph: { title: 'Privacy notice · INSIGNAR', url: '/privacy', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE] },
 };
 
 /**

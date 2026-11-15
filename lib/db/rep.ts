@@ -168,7 +168,7 @@ export async function getContactActivity(userId: string, sessionId: string) {
   const { data } = await serviceClient()
     .from('sessions')
     .select(
-      'view_count, first_viewed_at, last_viewed_at, session_events(type, occurred_at), chat_messages(id, role, content, created_at), chat_unanswered(question, created_at), bookings(session_id, status)',
+      'view_count, first_viewed_at, last_viewed_at, session_events(type, occurred_at), chat_messages(id, role, content, created_at), chat_unanswered(id, question, created_at, resolved_at, handed_off, saved_answer), bookings(session_id, status)',
     )
     .eq('user_id', userId)
     .eq('id', sessionId)

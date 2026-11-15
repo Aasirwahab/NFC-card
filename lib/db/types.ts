@@ -231,6 +231,7 @@ export type Database = {
           role: string;
           content: string;
           created_at: string;
+          source_topics: string[];
         };
         Insert: {
           id?: number;
@@ -238,6 +239,7 @@ export type Database = {
           role: string;
           content: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Update: {
           id?: number;
@@ -245,6 +247,7 @@ export type Database = {
           role?: string;
           content?: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Relationships: [
           {
@@ -264,6 +267,8 @@ export type Database = {
           question: string;
           created_at: string;
           resolved_at: string | null;
+          handed_off: boolean;
+          saved_answer: string | null;
         };
         Insert: {
           id?: number;
@@ -272,6 +277,8 @@ export type Database = {
           question: string;
           created_at?: string;
           resolved_at?: string | null;
+          handed_off?: boolean;
+          saved_answer?: string | null;
         };
         Update: {
           id?: number;
@@ -280,6 +287,8 @@ export type Database = {
           question?: string;
           created_at?: string;
           resolved_at?: string | null;
+          handed_off?: boolean;
+          saved_answer?: string | null;
         };
         Relationships: [
           {
@@ -656,6 +665,7 @@ export type Database = {
           pitch_avoid: string | null;
           review_before_live: boolean;
           contact_form: Json | null;
+          assistant_blocked_topics: string[];
         };
         Insert: {
           id: string;
@@ -677,6 +687,7 @@ export type Database = {
           pitch_avoid?: string | null;
           review_before_live?: boolean;
           contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
         };
         Update: {
           id?: string;
@@ -698,6 +709,7 @@ export type Database = {
           pitch_avoid?: string | null;
           review_before_live?: boolean;
           contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
         };
         Relationships: [
           {
@@ -1111,6 +1123,25 @@ export type Database = {
       };
       record_chat_turn: {
         Args: { p_session_id: string; p_question: string; p_answer: string };
+        Returns: undefined;
+      };
+      answer_assistant_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
+        Returns: undefined;
+      };
+      record_assistant_turn: {
+        Args: {
+          p_session_id: string;
+          p_question: string;
+          p_answer: string;
+          p_source_topics?: string[];
+        };
         Returns: undefined;
       };
       answer_chat_question: {

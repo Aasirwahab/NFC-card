@@ -33,18 +33,18 @@ beforeEach(() => {
 });
 
 describe('answering from the knowledge save action', () => {
-  it('uses the authenticated owner and a trimmed answer in the atomic save', async () => {
+  it('uses the authenticated owner and preserves the exact rep answer in the atomic save', async () => {
     expect(
       await saveKnowledgeAction(
         {},
         answer({ user_id: 'forged-owner', question: 'forged question' }),
       ),
-    ).toEqual({ saved: true });
-    expect(mocks.rpc).toHaveBeenCalledWith('answer_chat_question', {
+    ).toEqual({ saved: true, answer: '  Two weeks.  ' });
+    expect(mocks.rpc).toHaveBeenCalledWith('answer_assistant_question', {
       p_id: 42,
       p_user_id: 'rep-id',
       p_public_question: 'How long does it take?',
-      p_answer: 'Two weeks.',
+      p_answer: '  Two weeks.  ',
       p_topic: 'faq',
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/settings');

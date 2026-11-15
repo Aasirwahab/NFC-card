@@ -30,6 +30,8 @@ const LIMITS = {
   landingMiss: { tokens: 10, window: '1 m' },
   /** POST /api/chat */
   chat: { tokens: 10, window: '1 m' },
+  /** Rep studio tests have their own budget, independent of prospect chat. */
+  assistantTest: { tokens: 30, window: '10 m' },
   /** POST /api/landing/[code]/email */
   landingEmail: { tokens: 3, window: '1 h' },
   /** Prospect chip/contact saves: independent IP and card budgets. */

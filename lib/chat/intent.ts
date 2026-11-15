@@ -57,3 +57,17 @@ export function routeKnownIntent(message: string, actions: PageAction[]): ModelR
     action: action?.id ?? null,
   };
 }
+
+export type ChatHistoryTurn = { role: 'user' | 'assistant'; content: string };
+
+/** Keep handoffs as classifier context, but never send the blocked question to the answer model. */
+export function withoutHandedOffTurns(history: ChatHistoryTurn[]): ChatHistoryTurn[] {
+  const omitted = new Set<number>();
+  history.forEach((turn, index) => {
+    if (turn.role === 'assistant' && /^.+ will answer that one personally\.$/u.test(turn.content)) {
+      omitted.add(index);
+      if (history[index - 1]?.role === 'user') omitted.add(index - 1);
+    }
+  });
+  return history.filter((_, index) => !omitted.has(index));
+}
