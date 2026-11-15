@@ -26,6 +26,8 @@ const redis =
 const LIMITS = {
   /** Screen cards are issued per authenticated rep, never per IP. */
   screenQr: { tokens: 30, window: '1 h' },
+  /** Rep contacts CSV downloads. */
+  contactsExport: { tokens: 10, window: '10 m' },
   /** GET /c/[code] */
   landing: { tokens: 30, window: '1 m' },
   /** GET /c/[code] that resolves to nothing. Tighter, because this is enumeration. */
