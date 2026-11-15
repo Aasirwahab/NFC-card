@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "prebuild": "tsx scripts/check-env.ts",
-    "postbuild": "node scripts/check-client-bundle.mjs",
+    "postbuild": "node scripts/check-client-bundle.mjs && node scripts/check-prospect-budget.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "check:env": "tsx scripts/check-env.ts",
     "check:bundle": "node scripts/check-client-bundle.mjs",
+    "check:prospect-budget": "node scripts/check-prospect-budget.mjs",
     "cards:issue": "tsx --env-file=.env.local scripts/issue-cards.ts",
     "db:types": "tsx scripts/gen-types.ts && prettier --write --log-level warn lib/db/types.ts"
   },
