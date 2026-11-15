@@ -57,7 +57,7 @@ export async function recordOwnerCardTap(tap: OwnerTap): Promise<void> {
 
     if (error) {
       // Two people tapping at once: the other tap won, and its view is recorded.
-      if (!(error.message ?? '').includes('card_already_assigned')) {
+      if (!/card_already_assigned|screen_qr_expired/.test(error.message ?? '')) {
         console.error(
           JSON.stringify({
             event: 'first_tap_register_failed',

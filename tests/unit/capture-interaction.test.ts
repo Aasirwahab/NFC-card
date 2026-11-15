@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ShowQr } from '@/components/show-qr';
+import { ApiError } from '@/lib/http/client';
 import { VoiceNote } from '@/components/voice-note';
 import { DetailsForm } from '@/app/(app)/sessions/[id]/edit/details-form';
 import { FollowupSendButton } from '@/components/followup-send-button';
@@ -13,10 +15,13 @@ const h = vi.hoisted(() => ({
   cursor: 0,
   effects: [] as (() => unknown)[],
   send: vi.fn(),
+  get: vi.fn(),
+  poll: vi.fn<(...args: unknown[]) => () => void>(() => () => {}),
   refresh: vi.fn(),
 }));
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
+  useId: () => 'qr-title',
   useState(initial: unknown) {
     const slots = h.slots[h.key]!;
     const i = h.cursor++;
@@ -48,6 +53,11 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: h.refresh }) })
 vi.mock('@/lib/http/client', async (original) => ({
   ...(await original<typeof import('@/lib/http/client')>()),
   apiSend: (...args: unknown[]) => h.send(...args),
+  apiGet: (...args: unknown[]) => h.get(...args),
+}));
+vi.mock('@/lib/browser/screen-qr', () => ({
+  keepScreenAwake: () => () => {},
+  pollScreenQr: (...args: unknown[]) => h.poll(...args),
 }));
 function render(key: string, component: () => Element) {
   h.key = key;
@@ -378,4 +388,80 @@ it('expands and collapses the whole follow-up draft', () => {
   ).not.toContain('line-clamp-3');
   click(toggle(tree));
   expect(toggle(card()).props['aria-expanded']).toBe(false);
+});
+
+describe('screen contact capture copy', () => {
+  it.each([true, false])(
+    'uses QR provenance and omits physical handover instructions (screen=%s)',
+    (screenIssued) => {
+      const tree = render('form', () =>
+        DetailsForm({
+          ...props,
+          screenIssued,
+          justRegistered: true,
+          session: { ...props.session, registered_by: 'prospect_tap', first_viewed_at: null },
+        }),
+      );
+      const textOf = (node: unknown): string =>
+        Array.isArray(node)
+          ? node.map(textOf).join('')
+          : node && typeof node === 'object'
+            ? textOf((node as Element).props?.children)
+            : typeof node === 'string' || typeof node === 'number'
+              ? String(node)
+              : '';
+      const text = textOf(tree);
+      expect(text.includes('From your QR')).toBe(screenIssued);
+      expect(text.includes('Hand the card over')).toBe(!screenIssued);
+      expect(text.includes('opened by them before you registered it')).toBe(!screenIssued);
+      expect(text.includes('Put this card back')).toBe(!screenIssued);
+    },
+  );
+});
+
+describe('screen QR dialog recovery', () => {
+  const qr = { code: 'ABCDEFGH', svg: '<svg/>', expiresAt: '2026-11-14T12:30:00Z' };
+  const show = () => render('show', () => ShowQr());
+  const buttons = (tree: Element) =>
+    nodes(tree).filter((el) => typeof el.props?.onClick === 'function');
+  it.each([429, 503, 409])('offers the appropriate next action for error %s', async (status) => {
+    vi.stubGlobal('navigator', {});
+    h.send.mockRejectedValue(
+      new ApiError(status, status === 409 ? 'profile_incomplete' : 'failure'),
+    );
+    click(buttons(show())[0]!);
+    await flush();
+    const tree = show();
+    const dialog = nodes(tree).find((el) => el.type === 'dialog')!;
+    expect(nodes(dialog).find((el) => el.type === 'h2')!.props.children).toBe(
+      'Scan to get your page',
+    );
+    const labels = buttons(dialog).map((el) => el.props.children);
+    expect(labels).toEqual(status === 503 ? ['Try again', 'Done'] : ['Done']);
+    if (status === 409) {
+      expect(nodes(dialog).find((el) => el.props?.href === '/settings')?.props.children).toBe(
+        'Add your name in Setup first',
+      );
+    }
+  });
+  it('checks a late scan without issuing another code', async () => {
+    vi.stubGlobal('navigator', {});
+    h.send.mockResolvedValue(qr);
+    h.get.mockResolvedValue({ status: 'scanned', sessionId: 'late-contact' });
+    click(buttons(show())[0]!);
+    await flush();
+    show();
+    const callbacks = (h.poll.mock.calls[0] as unknown as [string, { onExpired: () => void }])[1];
+    callbacks.onExpired();
+    let tree = show();
+    const check = buttons(tree).find((el) => el.props.children === 'Check again');
+    expect(check).toBeDefined();
+    click(check!);
+    await flush();
+    tree = show();
+    expect(
+      nodes(tree).some((el) => el.props?.href === '/sessions/late-contact/edit?registered=1'),
+    ).toBe(true);
+    expect(h.send).toHaveBeenCalledTimes(1);
+  });
 });

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { isValidCode, normaliseCode } from '@/lib/domain/codes';
 import { apiSend } from '@/lib/http/client';
+import { ShowQr } from '@/components/show-qr';
 
 type Batch = { id: string; label: string | null; size: number; created_at: string };
 
@@ -30,6 +31,7 @@ export function CardsOverview({
   return (
     <div>
       <h1 className="font-display text-ink text-2xl font-bold tracking-tight">Cards</h1>
+      <ShowQr />
 
       <div className="mt-4 flex gap-3">
         <Stat label="In stock" value={inStock} />

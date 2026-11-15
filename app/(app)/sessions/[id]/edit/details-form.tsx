@@ -62,6 +62,7 @@ export function DetailsForm({
   fallbackProblems,
   eventName,
   cardCode,
+  screenIssued = false,
   events,
   lookupEnabled,
   scanEnabled,
@@ -76,6 +77,7 @@ export function DetailsForm({
   eventName: string | null;
   /** The printed code of the card, the handle for this lead. */
   cardCode: string;
+  screenIssued?: boolean;
   events: { id: string; name: string }[];
   /** True when a search provider is configured, so the "find it" buttons can work. */
   lookupEnabled: boolean;
@@ -471,19 +473,27 @@ export function DetailsForm({
           style={{ backgroundColor: hex }}
         />
         <h1 className="text-ink text-base font-semibold">
-          Card {session.event_sequence_number} — {session.colour_tag}
+          {screenIssued ? (
+            'From your QR'
+          ) : (
+            <>
+              Card {session.event_sequence_number} — {session.colour_tag}
+            </>
+          )}
         </h1>
       </header>
 
       <p className="text-ink-3 mt-1 font-mono text-[12px] tracking-wide">{printedCode(cardCode)}</p>
       <p className="text-ink-3 mt-1 text-[13px]">
-        {eventName ? `${eventName} · ` : ''}
-        {session.registered_by === 'prospect_tap'
-          ? 'opened by them before you registered it'
-          : `registered by ${session.registered_by}`}
+        {eventName ? `${eventName}${screenIssued ? '' : ' · '}` : ''}
+        {screenIssued
+          ? null
+          : session.registered_by === 'prospect_tap'
+            ? 'opened by them before you registered it'
+            : `registered by ${session.registered_by}`}
       </p>
 
-      {justRegistered ? (
+      {justRegistered && !screenIssued ? (
         <p className="bg-ok-bg text-ok mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
           Registered. Hand the card over — you can fill this in once you have stepped away.
         </p>
@@ -495,7 +505,10 @@ export function DetailsForm({
         </p>
       ) : null}
 
-      {justRegistered && !session.details_completed_at && !session.first_viewed_at ? (
+      {justRegistered &&
+      !screenIssued &&
+      !session.details_completed_at &&
+      !session.first_viewed_at ? (
         <button
           type="button"
           onClick={() => void undoRegistration()}

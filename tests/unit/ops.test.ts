@@ -80,6 +80,7 @@ describe('stock', () => {
       lost: 1,
       needsWriting: 1,
       needsVerifying: 1,
+      screenIssued: 0,
     });
     expect(stock.get('b')?.inStock).toBe(1);
   });
@@ -88,6 +89,24 @@ describe('stock', () => {
     expect(isLowStock(5, 5)).toBe(true);
     expect(isLowStock(6, 5)).toBe(false);
     expect(isLowStock(0, 0)).toBe(true);
+  });
+
+  it('counts screen codes separately without inflating physical stock or programming work', () => {
+    const stock = stockByUser([
+      card('a', 'available', null, null),
+      ...['available', 'assigned', 'voided'].map((status) => ({
+        ...card('a', status, null, null),
+        screen_issued_at: '2026-11-14T12:00:00Z',
+      })),
+    ]).get('a');
+    expect(stock).toEqual({
+      inStock: 1,
+      handedOut: 0,
+      lost: 0,
+      needsWriting: 1,
+      needsVerifying: 0,
+      screenIssued: 3,
+    });
   });
 
   it('progress goes issued, written, verified', () => {

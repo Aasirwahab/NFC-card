@@ -17,6 +17,14 @@ const code = z
   .length(CODE_LENGTH)
   .regex(new RegExp(`^[${CODE_ALPHABET}]+$`), 'not a valid card code');
 
+// Only the server's prospect landing path may claim this provenance.
+const registeredBy = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine((value) => value !== 'prospect_tap', 'Use your name.');
+
 /**
  * POST /api/sessions/register
  *
@@ -28,7 +36,7 @@ export const registerRequestSchema = z.object({
   session_id: z.string().uuid(),
   code,
   event_id: z.string().uuid(),
-  registered_by: z.string().trim().min(1).max(120),
+  registered_by: registeredBy,
   /** The optional two-second anchor taken at the table (§10.3). */
   first_name: z.string().trim().max(80).optional(),
 });
@@ -44,7 +52,7 @@ export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 export const tapRegisterRequestSchema = z.object({
   session_id: z.string().uuid(),
   code,
-  registered_by: z.string().trim().min(1).max(120),
+  registered_by: registeredBy,
 });
 
 export type TapRegisterRequest = z.infer<typeof tapRegisterRequestSchema>;
