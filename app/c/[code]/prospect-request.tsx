@@ -6,13 +6,13 @@ import { pollRequests } from '@/lib/browser/request-poll';
 import {
   bestTimeLabels,
   channelLabels,
-  normaliseRequestContact,
+  looksLikeRequestContact,
   requestChannels,
   requestConsent,
   type BestTime,
   type RequestChannel,
   type RequestKind,
-} from '@/lib/domain/prospect-requests';
+} from '@/lib/domain/prospect-requests-view';
 import styles from '@/app/ui-slice.module.css';
 import requestStyles from '@/components/prospect-request.module.css';
 
@@ -82,7 +82,7 @@ export function ProspectRequest({ code, first }: { code: string; first: string }
       .catch(() => {});
   }
   async function submit() {
-    if (!checked || !normaliseRequestContact(channel, contact)) {
+    if (!checked || !looksLikeRequestContact(channel, contact)) {
       setError(
         channel === 'email'
           ? 'Please enter your email address and confirm below.'

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, buttonStyles } from '@/components/ui/button';
 import type { RepRequest } from '@/lib/db/requests';
-import { channelLabels, bestTimeLabels } from '@/lib/domain/prospect-requests';
+import { channelLabels, bestTimeLabels } from '@/lib/domain/prospect-requests-view';
 import { requestReplyLink } from '@/lib/followup/send';
 import { pollRequests } from '@/lib/browser/request-poll';
 import { apiGet, apiSend } from '@/lib/http/client';

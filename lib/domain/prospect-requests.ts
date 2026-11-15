@@ -1,27 +1,17 @@
 import { z } from 'zod';
 import { normaliseProspectContact } from './prospect-answers';
+import { requestChannels, type RequestChannel } from './prospect-requests-view';
 
-export const REQUEST_CONSENT_VERSION = '2026-11-14-v1';
-export const requestChannels = ['call', 'text', 'whatsapp', 'email'] as const;
-export type RequestChannel = (typeof requestChannels)[number];
-export type RequestKind = 'call' | 'details';
-export type BestTime = 'today' | 'tomorrow_morning' | 'this_week';
-
-export const channelLabels: Record<RequestChannel, string> = {
-  call: 'Call',
-  text: 'Text',
-  whatsapp: 'WhatsApp',
-  email: 'Email',
-};
-export const bestTimeLabels: Record<BestTime, string> = {
-  today: 'Today',
-  tomorrow_morning: 'Tomorrow morning',
-  this_week: 'This week',
-};
-
-export function requestConsent(first: string, channel: RequestChannel): string {
-  return `${first} will contact you once by ${channelLabels[channel]} about this. Nothing else.`;
-}
+export {
+  REQUEST_CONSENT_VERSION,
+  requestChannels,
+  channelLabels,
+  bestTimeLabels,
+  requestConsent,
+  type RequestChannel,
+  type RequestKind,
+  type BestTime,
+} from './prospect-requests-view';
 
 /** Channel is part of the consent: an email cannot silently become a text. */
 export function normaliseRequestContact(channel: RequestChannel, value: string): string | null {
