@@ -21,6 +21,7 @@ import {
   savePlaybookAction,
   saveProfileAction,
   savePitchVoiceAction,
+  saveWeeklyDigestAction,
   saveContactFormAction,
   type SettingsState,
 } from './actions';
@@ -677,6 +678,33 @@ function KnowledgeTopic({
         <SaveButton />
         <Status state={state} />
       </div>
+    </form>
+  );
+}
+
+export function WeeklyDigestForm({ enabled }: { enabled: boolean }) {
+  const [state, action] = useActionState(saveWeeklyDigestAction, {});
+  return (
+    <form action={action}>
+      <Panel title="Your Monday email">
+        <label className="flex min-h-11 items-start gap-3">
+          <input
+            type="checkbox"
+            name="weekly_digest"
+            defaultChecked={enabled}
+            className="mt-1 h-5 w-5"
+          />
+          <span>
+            <span className="text-ink text-sm font-medium">Send me a weekly digest</span>
+            <span className="text-ink-3 block text-[13px]">
+              Monday at 8am: who opened your page and has not booked, follow-ups ready to send and
+              questions waiting for you. Nothing is sent in a quiet week.
+            </span>
+          </span>
+        </label>
+        <Status state={state} />
+        <SaveButton />
+      </Panel>
     </form>
   );
 }

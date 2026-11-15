@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 21 tables by scripts/gen-types.ts.
+ * Generated from 22 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -669,6 +669,7 @@ export type Database = {
           review_before_live: boolean;
           contact_form: Json | null;
           assistant_blocked_topics: string[];
+          weekly_digest: boolean;
         };
         Insert: {
           id: string;
@@ -691,6 +692,7 @@ export type Database = {
           review_before_live?: boolean;
           contact_form?: Json | null;
           assistant_blocked_topics?: string[];
+          weekly_digest?: boolean;
         };
         Update: {
           id?: string;
@@ -713,6 +715,7 @@ export type Database = {
           review_before_live?: boolean;
           contact_form?: Json | null;
           assistant_blocked_topics?: string[];
+          weekly_digest?: boolean;
         };
         Relationships: [
           {
@@ -1046,6 +1049,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      weekly_digests: {
+        Row: {
+          user_id: string;
+          week_start: string;
+          queued_at: string;
+        };
+        Insert: {
+          user_id: string;
+          week_start: string;
+          queued_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          week_start?: string;
+          queued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'weekly_digests_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -1142,6 +1171,10 @@ export type Database = {
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      queue_weekly_digests: {
         Args: { p_now?: string };
         Returns: number;
       };

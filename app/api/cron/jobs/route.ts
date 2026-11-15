@@ -16,8 +16,8 @@ import { bearerMatches } from '@/lib/security/bearer';
  *   1. REAP — a job `running` with a lock older than ten minutes belongs to a
  *      worker that died. Back to queued, or dead when its attempts are spent.
  *   2. SWEEP — kick workers for anything claimable.
- *   3. SCHEDULE — queue any morning-after event emails and no-tap follow-up
- *      drafts that have come due (both idempotent; see their migrations), and
+ *   3. SCHEDULE — queue any morning-after event emails, Monday rep digests and
+ *      no-tap follow-up drafts that have come due (both idempotent; see their migrations), and
  *      once a day run the retention purge (§23).
  *   4. WATCH — more than three jobs queued for over fifteen minutes means the
  *      kick and the sweep are both failing (§24.2). Alert.
@@ -45,6 +45,13 @@ export async function GET(request: Request) {
   if (digestError) {
     console.error(
       JSON.stringify({ event: 'queue_event_digests_failed', error: digestError.message }),
+    );
+  }
+
+  const { data: weekly, error: weeklyError } = await serviceClient().rpc('queue_weekly_digests');
+  if (weeklyError) {
+    console.error(
+      JSON.stringify({ event: 'queue_weekly_digests_failed', error: weeklyError.message }),
     );
   }
 
@@ -99,6 +106,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     reaped: reaped.length,
     digestsQueued: digests ?? 0,
+    weeklyQueued: weekly ?? 0,
     followupsQueued: followups ?? 0,
     purged,
     dead: reaped.filter((j) => j.outcome === 'dead').length,

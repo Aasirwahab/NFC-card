@@ -59,6 +59,25 @@ export async function savePitchVoiceAction(
   return { saved: true };
 }
 
+/** The Monday digest switch. Its own form, so no other save can flip it by omission. */
+export async function saveWeeklyDigestAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  const { data, error } = await serviceClient()
+    .from('profiles')
+    .update({ weekly_digest: formData.get('weekly_digest') === 'on' })
+    .eq('id', rep.userId)
+    .select('id');
+
+  if (error) return { error: 'Could not save your email setting.' };
+  if (!data?.length) return { error: 'Save your name first, then choose your emails.' };
+
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
 /** Each rep owns the optional form shown before their note is ready. */
 export async function saveContactFormAction(
   _previous: SettingsState,
