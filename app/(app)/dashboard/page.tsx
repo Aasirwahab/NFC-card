@@ -60,6 +60,16 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
         </p>
       </div>
 
+      {sessions.length > 0 ? (
+        <a
+          href="/api/contacts/export"
+          download
+          className="border-line bg-surface text-ink-2 mt-3 inline-flex h-11 items-center rounded-lg border px-4 text-sm font-medium"
+        >
+          Export contacts (CSV)
+        </a>
+      ) : null}
+
       {summary.length ? (
         <nav
           aria-label="Contact summary"
