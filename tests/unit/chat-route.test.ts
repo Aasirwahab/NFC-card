@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   scopes: [] as [string, string, unknown][],
   orders: [] as [string, string][],
   historyError: false,
+  existing: false,
 }));
 vi.mock('ai', async (importOriginal) => ({
   ...(await importOriginal<typeof import('ai')>()),
@@ -55,6 +56,7 @@ beforeEach(() => {
   mocks.scopes = [];
   mocks.orders = [];
   mocks.historyError = false;
+  mocks.existing = false;
   mocks.limit.mockResolvedValue({ allowed: true });
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -63,7 +65,17 @@ beforeEach(() => {
   });
   mocks.insert.mockResolvedValue({ error: null });
   mocks.from.mockImplementation((table: string) => {
-    if (table === 'chat_unanswered') return { insert: mocks.insert };
+    if (table === 'chat_unanswered')
+      return {
+        insert: mocks.insert,
+        select() {
+          return this;
+        },
+        eq() {
+          return this;
+        },
+        limit: async () => ({ data: mocks.existing ? [{ id: 1 }] : [], error: null }),
+      };
     const data =
       table === 'profiles'
         ? {
@@ -401,7 +413,7 @@ describe('assistant studio shared path', () => {
     });
     expect(mocks.rpc).toHaveBeenCalledWith('release_chat_response', { p_session_id: sessionId });
   });
-  it('blocks mixed pricing questions before either model or cap and marks the handoff', async () => {
+  it('blocks mixed pricing questions without any model call, spends one answer and marks the handoff', async () => {
     mocks.blockedTopics = ['pricing'];
     expect(await (await ask('Call me with a price')).json()).toMatchObject({
       reply: 'Zaid will answer that one personally.',
@@ -409,7 +421,7 @@ describe('assistant studio shared path', () => {
       sourceLine: null,
     });
     expect(mocks.generateText).not.toHaveBeenCalled();
-    expect(mocks.rpc.mock.calls.some(([name]) => name === 'claim_chat_response')).toBe(false);
+    expect(mocks.rpc).toHaveBeenCalledWith('claim_chat_response', { p_session_id: sessionId });
     expect(mocks.insert).toHaveBeenCalledWith({
       session_id: sessionId,
       user_id: userId,
@@ -427,25 +439,47 @@ describe('assistant studio shared path', () => {
     expect(mocks.generateText.mock.calls[0]![0].instructions).toContain('Classify only.');
     expect(JSON.stringify(mocks.generateText.mock.calls)).not.toContain('We help with setup.');
   });
-  it.each([5, 6])('does not add blocked handoffs after %s answers', async (count) => {
+  it.each([5, 6])('skips the classifier and queue once %s answers are used', async (count) => {
     mocks.responseCount = count;
+    mocks.used = null;
     mocks.blockedTopics = ['pricing'];
-    for (const question of ['What is the price?', 'Can I get a discount?']) {
+    for (const question of ['What is the price?', 'How much will I owe?']) {
       expect(await (await ask(question)).json()).toMatchObject({
-        handedOff: true,
+        reply: expect.stringContaining('Zaid'),
         remaining: 0,
         sourceLine: null,
       });
     }
     expect(mocks.insert).not.toHaveBeenCalled();
     expect(mocks.generateText).not.toHaveBeenCalled();
+    expect(mocks.rpc.mock.calls.some(([name]) => name === 'record_chat_turn')).toBe(false);
+  });
+  it('lets a blocked turn consume the cap and stops once the claim is refused', async () => {
+    mocks.blockedTopics = ['pricing'];
+    mocks.responseCount = 4;
+    mocks.used = 5;
+    expect(await (await ask('What is the price?')).json()).toMatchObject({
+      handedOff: true,
+      remaining: 0,
+    });
+    expect(mocks.insert).toHaveBeenCalledOnce();
+    mocks.insert.mockClear();
+    mocks.used = null;
+    expect(await (await ask('What is the cost?')).json()).toMatchObject({ remaining: 0 });
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+  it('does not queue a duplicate blocked question for the same session', async () => {
+    mocks.blockedTopics = ['pricing'];
+    mocks.existing = true;
+    expect(await (await ask('What is the price?')).json()).toMatchObject({ handedOff: true });
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.rpc).toHaveBeenCalledWith('record_chat_turn', expect.anything());
   });
   it('fails closed on classifier errors without reaching the answer model', async () => {
     mocks.blockedTopics = ['legal'];
     mocks.generateText.mockRejectedValue(new Error('provider failed'));
     expect(await (await ask('Who signs it?')).json()).toMatchObject({ handedOff: true });
     expect(mocks.generateText).toHaveBeenCalledOnce();
-    expect(mocks.rpc.mock.calls.some(([name]) => name === 'claim_chat_response')).toBe(false);
   });
   it('refuses test requests without authentication and before any data read', async () => {
     expect((await testAsk()).status).toBe(401);
@@ -542,7 +576,7 @@ it('classifies contextual follow-ups before answering, including redacted histor
     role: 'user',
     content: 'What does the service cost? [email redacted]',
   });
-  expect(mocks.rpc.mock.calls.some(([name]) => name === 'claim_chat_response')).toBe(false);
+  expect(mocks.rpc.mock.calls.some(([name]) => name === 'claim_chat_response')).toBe(true);
 });
 
 it('never reintroduces a handed-off question into the answer model history', async () => {

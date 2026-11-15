@@ -166,6 +166,29 @@ export async function POST(request: Request) {
     blockedTopics = rules.data;
   }
 
+  // One queue row per distinct question per session, so repeats cannot flood the rep.
+  async function queueUnanswered(
+    s: { id: string; user_id: string },
+    stored: string,
+    handedOff: boolean,
+  ) {
+    const question = stored.trim().slice(0, MAX_QUESTION_CHARS);
+    const seen = await db
+      .from('chat_unanswered')
+      .select('id')
+      .eq('session_id', s.id)
+      .eq('question', question)
+      .limit(1);
+    if (seen.error || (seen.data ?? []).length) return;
+    const { error } = await db.from('chat_unanswered').insert({
+      session_id: s.id,
+      user_id: s.user_id,
+      question,
+      ...(handedOff ? { handed_off: true } : {}),
+    });
+    if (error) console.error(JSON.stringify({ event: 'chat_unanswered_failed', sessionId: s.id }));
+  }
+
   const actions = availableActions(snapshot, { emailEnabled: emailConfigured() });
   const context = chatContext(snapshot, actions, blockedTopics);
   let historyUnavailable = false;
@@ -185,11 +208,14 @@ export async function POST(request: Request) {
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: redactContacts(m.content) }));
   }
   // Indirect follow-ups need the same conversation the answer model would see.
-  const history = blockedTopics.length ? await readHistory() : null;
+  // Once the session's answers are used up, nothing below may spend a model call.
+  const capUsed = !!session && session.chat_response_count >= CHAT_CAP;
+  const history = blockedTopics.length && !capUsed ? await readHistory() : null;
   if (historyUnavailable) return fail('chat_unavailable', 502);
   const smallTalk = smallTalkReply(parsed.data.message, context.repFirstName, context.businessName);
   const blocked =
     smallTalk === null &&
+    !capUsed &&
     (await isBlockedQuestion(parsed.data.message, blockedTopics, history ?? []));
   const intent = blocked ? null : routeKnownIntent(parsed.data.message, actions);
   // What we keep never contains a phone number or email the visitor typed.
@@ -197,8 +223,24 @@ export async function POST(request: Request) {
 
   // A greeting or thanks is answered with fixed text and spends nothing (§18.1).
   if (blocked || smallTalk !== null || intent !== null) {
+    let count = session?.chat_response_count ?? 0;
+    if (blocked && session) {
+      // A handed-off turn spends one of the session's five, so it cannot repeat without limit.
+      const claim = await db.rpc('claim_chat_response', { p_session_id: session.id });
+      if (claim.error) {
+        console.error(JSON.stringify({ event: 'chat_claim_failed', sessionId: session.id }));
+        return fail('chat_unavailable', 502);
+      }
+      if (claim.data === null)
+        return json({
+          reply: capReachedReply(context.repFirstName),
+          remaining: 0,
+          sourceLine: null,
+        });
+      count = claim.data;
+    }
     // Once the five are used, a greeting must not invite another question.
-    const remaining = Math.max(0, CHAT_CAP - (session?.chat_response_count ?? 0));
+    const remaining = Math.max(0, CHAT_CAP - count);
     // A fixed router answer costs nothing, so it is still given once the five are used.
     const reply = blocked
       ? `${context.repFirstName} will answer that one personally.`
@@ -224,16 +266,7 @@ export async function POST(request: Request) {
           }),
         );
       }
-      if (blocked && remaining > 0) {
-        const { error } = await db.from('chat_unanswered').insert({
-          session_id: session.id,
-          user_id: session.user_id,
-          question: storedQuestion.trim().slice(0, MAX_QUESTION_CHARS),
-          handed_off: true,
-        });
-        if (error)
-          console.error(JSON.stringify({ event: 'chat_unanswered_failed', sessionId: session.id }));
-      }
+      if (blocked) await queueUnanswered(session, storedQuestion, true);
     }
     return json({
       reply,
@@ -331,16 +364,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!modelFailed && (checked.outcome === 'unknown' || checked.outcome === 'partial')) {
-      const { error } = await db.from('chat_unanswered').insert({
-        session_id: session.id,
-        user_id: session.user_id,
-        question: storedQuestion.trim().slice(0, MAX_QUESTION_CHARS),
-      });
-      if (error) {
-        console.error(JSON.stringify({ event: 'chat_unanswered_failed', sessionId: session.id }));
-      }
-    }
+    if (!modelFailed && (checked.outcome === 'unknown' || checked.outcome === 'partial'))
+      await queueUnanswered(session, storedQuestion, false);
   }
   return json({
     reply: checked.text,
