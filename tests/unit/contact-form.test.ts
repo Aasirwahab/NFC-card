@@ -177,3 +177,18 @@ it('provides the three complete, valid preset configurations', () => {
   });
   expect(stay).toEqual(DEFAULT_CONTACT_FORM);
 });
+
+describe('contact-form-view', () => {
+  it('keeps the hand-written default equal to what the schema produces', async () => {
+    const { contactFormSchema } = await import('@/lib/domain/contact-form');
+    const { DEFAULT_CONTACT_FORM } = await import('@/lib/domain/contact-form-view');
+    expect(DEFAULT_CONTACT_FORM).toEqual(contactFormSchema.parse({}));
+  });
+
+  it('never imports zod at runtime, so the prospect page stays light', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync('lib/domain/contact-form-view.ts', 'utf8');
+    expect(source).not.toMatch(/from 'zod'/);
+    expect(source).not.toMatch(/^import \{[^}]*\} from '\.\/contact-form'/m);
+  });
+});
