@@ -62,6 +62,21 @@ describe('server environment (§22.3)', () => {
     expect(parsed.MODEL_API_KEY).toBeUndefined();
   });
 
+  it('treats MODEL_TRANSCRIBE as optional but needing a key when set', () => {
+    expect(serverEnvSchema.parse(valid).MODEL_TRANSCRIBE).toBeUndefined();
+    expect(
+      serverEnvSchema.safeParse({ ...valid, MODEL_TRANSCRIBE: 'google/gemini-3.5-flash-lite' })
+        .success,
+    ).toBe(false);
+    expect(
+      serverEnvSchema.safeParse({
+        ...valid,
+        MODEL_TRANSCRIBE: 'google/gemini-3.5-flash-lite',
+        MODEL_API_KEY: 'k',
+      }).success,
+    ).toBe(true);
+  });
+
   it('turns the chat kill switch into a boolean', () => {
     expect(serverEnvSchema.parse({ ...valid, CHAT_ENABLED: 'false' }).CHAT_ENABLED).toBe(false);
     expect(serverEnvSchema.safeParse({ ...valid, CHAT_ENABLED: 'yes' }).success).toBe(false);

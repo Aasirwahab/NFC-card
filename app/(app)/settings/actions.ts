@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { contactFormSchema } from '@/lib/domain/contact-form';
 import { requireRep } from '@/lib/db/server';
 import { blank, profileSchema } from '@/lib/schemas/profile';
 import { checkBookingLink } from '@/lib/booking/check';
@@ -21,7 +22,7 @@ import { serviceClient } from '@/lib/db/service';
  * 'url_import' and 'pdf_import' as valid values.
  */
 
-export type SettingsState = { error?: string; saved?: boolean };
+export type SettingsState = { error?: string; saved?: boolean; answer?: string };
 
 const pitchVoiceSchema = z.object({
   pitch_tone: z.enum(['warm', 'direct', 'formal']).default('warm'),
@@ -54,6 +55,50 @@ export async function savePitchVoiceAction(
   if (error) return { error: 'Could not save your pitch voice.' };
   if (!data?.length) return { error: 'Save your name first, then set your voice.' };
 
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
+/** The Monday digest switch. Its own form, so no other save can flip it by omission. */
+export async function saveWeeklyDigestAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  const { data, error } = await serviceClient()
+    .from('profiles')
+    .update({ weekly_digest: formData.get('weekly_digest') === 'on' })
+    .eq('id', rep.userId)
+    .select('id');
+
+  if (error) return { error: 'Could not save your email setting.' };
+  if (!data?.length) return { error: 'Save your name first, then choose your emails.' };
+
+  revalidatePath('/settings');
+  return { saved: true };
+}
+
+/** Each rep owns the optional form shown before their note is ready. */
+export async function saveContactFormAction(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const rep = await requireRep();
+  let config: unknown;
+  try {
+    config = JSON.parse(String(formData.get('contact_form') ?? ''));
+  } catch {
+    return { error: 'Check your contact form and try again.' };
+  }
+  const parsed = contactFormSchema.safeParse(config);
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { data, error } = await serviceClient()
+    .from('profiles')
+    .update({ contact_form: parsed.data })
+    .eq('id', rep.userId)
+    .select('id');
+  if (error) return { error: 'Could not save your contact form.' };
+  if (!data?.length) return { error: 'Save your name first, then set your contact form.' };
   revalidatePath('/settings');
   return { saved: true };
 }
@@ -130,12 +175,12 @@ const unansweredId = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTE
 const knowledgeSchema = z
   .object({
     topic: z.enum(['services', 'pricing', 'faq', 'about', 'niche', 'timeline', 'proof']),
-    content: z.string().trim().max(20_000),
+    content: z.string().max(20_000),
     unanswered_id: unansweredId.optional(),
     /** The rep's general rewording of a prospect's question; the original never leaves chat_unanswered. */
     public_question: z.string().trim().max(300).optional(),
   })
-  .refine((value) => !value.unanswered_id || value.content.length > 0, 'Enter an answer.')
+  .refine((value) => !value.unanswered_id || value.content.trim().length > 0, 'Enter an answer.')
   .refine(
     (value) => !value.unanswered_id || Boolean(value.public_question),
     'Rewrite the question in general terms.',
@@ -154,7 +199,7 @@ export async function saveKnowledgeAction(
   const { topic, content } = parsed.data;
 
   if (parsed.data.unanswered_id) {
-    const { error } = await db.rpc('answer_chat_question', {
+    const { error } = await db.rpc('answer_assistant_question', {
       p_id: parsed.data.unanswered_id,
       p_user_id: rep.userId,
       p_public_question: parsed.data.public_question!,
@@ -169,7 +214,8 @@ export async function saveKnowledgeAction(
       };
     }
     revalidatePath('/settings');
-    return { saved: true };
+    revalidatePath('/sessions', 'layout');
+    return { saved: true, answer: content };
   }
 
   // One entry per topic in v1. The table allows several per topic for the
@@ -183,8 +229,10 @@ export async function saveKnowledgeAction(
     .maybeSingle();
 
   const { error } = existing
-    ? await db.from('knowledge_base').update({ content }).eq('id', existing.id)
-    : await db.from('knowledge_base').insert({ user_id: rep.userId, topic, content });
+    ? await db.from('knowledge_base').update({ content: content.trim() }).eq('id', existing.id)
+    : await db
+        .from('knowledge_base')
+        .insert({ user_id: rep.userId, topic, content: content.trim() });
 
   if (error) return { error: 'Could not save that.' };
 

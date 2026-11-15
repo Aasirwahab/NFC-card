@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiGet } from '@/lib/http/client';
+import { pollLandingStatus } from '@/lib/browser/landing-poll';
 
 /**
  * The `queued` / `processing` render state (spec §16).
@@ -14,7 +14,7 @@ import { apiGet } from '@/lib/http/client';
  *
  * It polls a STATUS-ONLY route every 3 seconds and GIVES UP AT 90 SECONDS,
  * rendering the template pitch it was handed at render time — so the give-up path
- * costs no network at all.
+ * stops regular polling. Returning to the tab still checks once for a finished note.
  *
  * Why not Supabase Realtime: subscribing the prospect's browser to the sessions
  * row needs an anon-key connection and an RLS policy on the one table holding
@@ -29,44 +29,27 @@ export function Crafting({ code, fallbackPitch }: { code: string; fallbackPitch:
   const router = useRouter();
   const [gaveUp, setGaveUp] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const poll = setInterval(async () => {
-      // A backgrounded tab does not need the answer yet; the next tick after it returns will.
-      if (cancelled || document.visibilityState === 'hidden') return;
-
-      try {
-        // Same-origin, status only: { status: "queued" | "completed" | ... }.
-        // No prospect data crosses this wire.
-        const { status } = await apiGet<{ status: string }>(
-          `/api/landing/${encodeURIComponent(code)}/status`,
-        );
-
-        if (status === 'completed' || status === 'failed' || status === 'held') {
-          clearInterval(poll);
-          // Re-render on the server, which reads the freshly committed pitch.
-          router.refresh();
-        }
-      } catch {
-        // Offline, or the poll was refused. Keep waiting; the give-up timer is
-        // the backstop and the prospect sees no error either way.
-      }
-    }, POLL_INTERVAL_MS);
-
-    // The give-up timer owns the deadline on its own — no elapsed-time maths in
-    // the poll, and nothing impure during render.
-    const giveUp = setTimeout(() => {
-      clearInterval(poll);
-      if (!cancelled) setGaveUp(true);
-    }, GIVE_UP_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(giveUp);
-      clearInterval(poll);
-    };
-  }, [code, router]);
+  useEffect(
+    () =>
+      pollLandingStatus(code, {
+        intervalMs: POLL_INTERVAL_MS,
+        timeoutMs: GIVE_UP_MS,
+        onStatus: (status) => {
+          if (
+            status === 'completed' ||
+            status === 'failed' ||
+            status === 'held' ||
+            status === 'portfolio'
+          ) {
+            router.refresh();
+            return true;
+          }
+          return false;
+        },
+        onTimeout: () => setGaveUp(true),
+      }),
+    [code, router],
+  );
 
   if (gaveUp) {
     return (
@@ -90,7 +73,7 @@ export function Crafting({ code, fallbackPitch }: { code: string; fallbackPitch:
           {[0, 1, 2].map((index) => (
             <span
               key={index}
-              className="bg-accent/45 h-1.5 w-1.5 rounded-full"
+              className="bg-accent/45 h-1.5 w-1.5 rounded-full motion-reduce:animate-none!"
               style={{
                 animation: 'insignar-pulse 1.4s ease-in-out infinite',
                 animationDelay: `${index * 0.18}s`,

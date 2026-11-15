@@ -113,6 +113,7 @@ describe('structured reply boundary', () => {
       outcome,
       reply: 'A short reply.',
       action: null,
+      topics: [],
     });
   });
   it.each([

@@ -7,6 +7,9 @@ import { env } from '@/lib/env';
 import { modelFor } from '@/lib/ai/models';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
+import { ProspectRequestInbox } from '@/components/prospect-request-inbox';
+import { listProspectRequests } from '@/lib/db/requests';
+import { WhatTheyDid } from '@/components/what-they-did';
 
 export const metadata = { title: 'Add details' };
 export const dynamic = 'force-dynamic';
@@ -30,18 +33,19 @@ export default async function EditSessionPage({
   const session = await getSessionForRep(rep.userId, id);
   if (!session) notFound();
 
-  const [event, events, { data: card }, playbookProblems] = await Promise.all([
+  const [event, events, { data: card }, playbookProblems, requests] = await Promise.all([
     getEvent(rep.userId, session.event_id),
     listEvents(rep.userId),
     serviceClient()
       .from('cards')
-      .select('code')
+      .select('code, screen_issued_at')
       .eq('id', session.card_id)
       .eq('user_id', rep.userId)
       .maybeSingle(),
     // Fetched alongside the rest rather than after: whether it is needed depends on
     // the event, and a wasted small query costs less than a second round trip.
     listPlaybookProblems(rep.userId),
+    listProspectRequests(rep.userId, id),
   ]);
 
   // No problems on the event (Unsorted, or none set up): offer the rep's playbook problems instead.
@@ -50,6 +54,7 @@ export default async function EditSessionPage({
   return (
     <div>
       <BackLink href="/dashboard">Today</BackLink>
+      <ProspectRequestInbox initial={requests} sessionId={id} />
       <div className="mt-3">
         <DetailsForm
           session={session}
@@ -57,13 +62,16 @@ export default async function EditSessionPage({
           fallbackProblems={fallbackProblems}
           eventName={event?.name ?? null}
           cardCode={card?.code ?? ''}
+          screenIssued={Boolean(card?.screen_issued_at)}
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
           scanEnabled={Boolean(env.MODEL_VISION)}
+          voiceEnabled={Boolean(env.MODEL_TRANSCRIBE)}
           aiEnabled={modelFor('chat').id !== 'mock'}
           justRegistered={registered === '1'}
         />
       </div>
+      <WhatTheyDid userId={rep.userId} session={session} cardCode={card?.code ?? null} />
     </div>
   );
 }

@@ -36,6 +36,7 @@ const jsonLd = {
     {
       '@type': 'Organization',
       name: 'INSIGNAR',
+      description: meta.description,
       ...(siteUrl ? { url: siteUrl, logo: `${siteUrl}/icon.png` } : {}),
     },
     {
@@ -50,7 +51,7 @@ const jsonLd = {
 
 export default function InsignarPage() {
   return (
-    <div className="ins" data-m="pre">
+    <main className="ins" data-m="pre">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
@@ -161,6 +162,6 @@ export default function InsignarPage() {
           ))}
         </div>
       </section>
-    </div>
+    </main>
   );
 }

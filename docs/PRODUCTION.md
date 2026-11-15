@@ -18,7 +18,25 @@ Long-term fix: move Supabase and Vercel functions to London (`eu-west-2` / `lhr1
 
 ## Settings in Vercel (production), names only
 
-`MODEL_PROVIDER=openrouter`, `MODEL_API_KEY`, `MODEL_PITCH`, `MODEL_CHAT`, `MODEL_VISION`, `JEV_ENABLED`, `SEARCH_PROVIDER` and `SEARCH_API_KEY` (SerpApi, free tier about 250 searches a month), `STAFF_EMAILS` (opens `/ops`), `NEXT_PUBLIC_APP_URL`, Supabase and Upstash keys, `WORKER_SECRET`, `CRON_SECRET`, `CHAT_ENABLED`, `JOB_CONCURRENCY`, `JOB_BATCH`. **Not set yet:** `RESEND_API_KEY` and `EMAIL_FROM` (email), `MODEL_RESEARCH` (optional). Settings only reach a deployment built after they were saved: redeploy after changing one.
+`MODEL_PROVIDER=openrouter`, `MODEL_API_KEY`, `MODEL_PITCH`, `MODEL_CHAT`, `MODEL_VISION`, `MODEL_TRANSCRIBE` (optional, voice notes), `JEV_ENABLED`, `SEARCH_PROVIDER` and `SEARCH_API_KEY` (SerpApi, free tier about 250 searches a month), `STAFF_EMAILS` (opens `/ops`), `NEXT_PUBLIC_APP_URL`, Supabase and Upstash keys, `WORKER_SECRET`, `CRON_SECRET`, `CHAT_ENABLED`, `JOB_CONCURRENCY`, `JOB_BATCH`. **Not set yet:** `RESEND_API_KEY` and `EMAIL_FROM` (email), `MODEL_RESEARCH` (optional). Settings only reach a deployment built after they were saved: redeploy after changing one.
+
+## Release: tap first
+
+Before deploying, in this order:
+
+1. Apply `20261106090000_followup_state.sql`, then `20261113000000_prospect_answers.sql`. No additional migration is needed for pilot-request retention; the existing daily purge deletes requests after 12 months without activity.
+2. Set `MODEL_TRANSCRIBE` for voice notes (optional; without it the mic button hides).
+3. Set `RESEND_API_KEY` and `EMAIL_FROM` for automatic note emails and tap alerts (optional; without them the rep sends from the follow-up list).
+
+To roll back, revert the deploy first, then run the rollback SQL in the migration headers, in reverse order: prospect answers, then follow-up state.
+
+## Voice notes ("Say it once")
+
+Add `MODEL_TRANSCRIBE` in Vercel (needs `MODEL_API_KEY`; redeploy after saving). Unset, the mic button is hidden and reps see "Tip: tap the mic on your keyboard and say it." The browser records up to 60 seconds, converts it to 16 kHz mono WAV, and `POST /api/capture/transcribe` passes it to the model as an audio file part; the words land in the note box and the existing "Sort it for me" read runs on them.
+
+Candidate ids (checked 2026-11-13 against OpenRouter's public models list, which shows audio input for both): `google/gemini-3.5-flash-lite` (cheapest, already the family used for card scans) or `google/gemini-3.8-flash` (better on noisy rooms, probably). Both appear in OpenRouter's zero-data-retention endpoint list. **Not verified:** that a real audio call to either works through our key with `zdr: true`, how accurate they are in a loud room, the cost per note, or that Vercel AI Gateway mode (the default `MODEL_PROVIDER`) passes WAV audio through; the SDK's OpenRouter provider has no transcription model, so this uses a chat model with audio input rather than a speech-to-text endpoint. If a model rejects the audio, the rep sees "Could not turn that into words" and can type.
+
+Audio is never stored: it is held in memory for one call, not written to storage or the database, and not logged (failures log the error type only). The model call uses the same zero-data-retention routing as every other model call. The privacy notice is being updated for voice notes in the same release by another worker; this branch does not change it.
 
 ## Known failure modes
 

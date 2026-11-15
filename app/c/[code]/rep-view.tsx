@@ -44,6 +44,20 @@ export function RepView({
       <main className="flex flex-1 flex-col justify-center py-8">
         {resolved.session ? (
           <AlreadyRegistered session={resolved.session} />
+        ) : resolved.screenQrStatus ? (
+          <div>
+            <p className="text-ink text-lg font-medium">
+              {resolved.screenQrStatus === 'expired'
+                ? 'This QR has expired. Show a new one.'
+                : 'This QR is waiting for your contact to scan.'}
+            </p>
+            <Link
+              href="/dashboard"
+              className="text-accent mt-4 inline-flex min-h-11 items-center underline"
+            >
+              Today
+            </Link>
+          </div>
         ) : resolved.cardStatus === 'voided' ? (
           <VoidedCard code={resolved.code} />
         ) : (

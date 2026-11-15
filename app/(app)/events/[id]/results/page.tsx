@@ -31,15 +31,16 @@ export default async function EventResultsPage({ params }: PageProps<'/events/[i
         ← Events
       </Link>
       <h1 className="font-display text-ink mt-3 text-2xl font-bold tracking-tight">{event.name}</h1>
-      <p className="text-ink-3 mt-1 text-[13px]">
-        {event.event_date ?? 'No date set'} · Results ·{' '}
+      <p className="text-ink-3 mt-1 text-[13px]">{event.event_date ?? 'No date set'} · Results</p>
+      {r.registered > 0 ? (
         <a
-          href={`/api/events/${event.id}/export`}
-          className="hover:text-ink-2 underline underline-offset-2"
+          href={`/api/contacts/export?event=${event.id}`}
+          download
+          className="border-line bg-surface text-ink-2 mt-3 inline-flex h-11 items-center rounded-lg border px-4 text-sm font-medium"
         >
-          Download leads (CSV)
+          Export this event (CSV)
         </a>
-      </p>
+      ) : null}
 
       {r.registered === 0 ? (
         <div className="border-line bg-surface mt-6 rounded-xl border border-dashed p-6 text-center">

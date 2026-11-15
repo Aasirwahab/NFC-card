@@ -17,7 +17,12 @@ import { ApiError, apiSend } from '@/lib/http/client';
  * checking their page never spends the prospect's questions.
  */
 
-type Turn = { role: 'assistant' | 'user'; text: string; actionId?: PageActionId };
+type Turn = {
+  role: 'assistant' | 'user';
+  text: string;
+  actionId?: PageActionId;
+  sourceLine?: string | null;
+};
 
 export function ChatWidget({
   code,
@@ -80,15 +85,24 @@ export function ChatWidget({
     setBusy(true);
 
     try {
-      const result = await apiSend<{ reply: string; remaining: number; actionId?: PageActionId }>(
-        '/api/chat',
-        'POST',
+      const result = await apiSend<{
+        reply: string;
+        remaining: number;
+        actionId?: PageActionId;
+        sourceLine?: string | null;
+      }>('/api/chat', 'POST', {
+        code,
+        message,
+      });
+      setTurns((t) => [
+        ...t,
         {
-          code,
-          message,
+          role: 'assistant',
+          text: result.reply,
+          actionId: result.actionId,
+          sourceLine: result.sourceLine,
         },
-      );
-      setTurns((t) => [...t, { role: 'assistant', text: result.reply, actionId: result.actionId }]);
+      ]);
       setRemaining(result.remaining);
     } catch (error) {
       setTurns((t) => [...t, { role: 'assistant', text: explain(error, repFirstName) }]);
@@ -142,6 +156,9 @@ export function ChatWidget({
                   >
                     {turn.text}
                   </p>
+                  {turn.sourceLine ? (
+                    <p className="text-ink-3 mt-1 px-3 text-xs wrap-anywhere">{turn.sourceLine}</p>
+                  ) : null}
                   {action ? (
                     <button
                       type="button"
@@ -210,15 +227,10 @@ export function ChatWidget({
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="border-line text-ink-2 flex min-h-12 w-full items-center justify-between gap-2 border-t py-3 text-left text-[15px]"
+          className="border-line text-ink flex min-h-[52px] w-full items-center justify-center gap-2 border-t py-3 text-[15px] font-semibold"
         >
-          <span className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            Questions first?
-          </span>
-          <span className="text-ink font-semibold">
-            Ask {repFirstName}&rsquo;s assistant &rarr;
-          </span>
+          <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Ask {repFirstName}&rsquo;s AI assistant &rarr;
         </button>
       ) : null}
     </>

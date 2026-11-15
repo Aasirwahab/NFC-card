@@ -16,8 +16,12 @@ import { EmailMe } from './email-me';
 import { linkedinHref } from '@/lib/domain/linkedin';
 import { LinkedInConnect } from './linkedin-connect';
 import { RemoveDetails } from './remove-details';
+import { RemovalGate } from './removal-gate';
 import { Crafting } from './crafting';
 import { HeldWatcher } from './held-watcher';
+import { MadeWith } from './made-with';
+import { ProspectRequest } from './prospect-request';
+import { TabTitle } from './tab-title';
 
 /**
  * The prospect landing page (spec §16). THIS IS THE PRODUCT — everything else
@@ -80,152 +84,167 @@ export function ProspectView({
   // claim about when it will be ready. Removing details and the privacy links stay.
   if (held) {
     return (
-      <div className={`${styles.surface} ${styles.publicPage}`}>
-        <Header rep={rep} business={business} />
-        <main className="flex-1">
-          {!preview ? <HeldWatcher code={code} /> : null}
-          <h1 className={styles.headline}>{first} is preparing this page</h1>
-          <p className={styles.companyLine}>It is not ready to show yet.</p>
-          <div className={styles.cta}>
-            <SaveContact code={code} repName={first} primary />
-            <div className={styles.quietActions}>
-              {linkedin ? (
-                <LinkedInConnect code={code} href={linkedin} repName={first} preview={preview} />
-              ) : null}
+      <RemovalGate>
+        <div className={`${styles.surface} ${styles.publicPage}`}>
+          <Header rep={rep} business={business} />
+          <main className="flex-1">
+            {!preview ? <HeldWatcher code={code} /> : null}
+            <h1 className={styles.headline}>{first} is preparing this page</h1>
+            <p className={styles.companyLine}>It is not ready to show yet.</p>
+            <div className={styles.cta}>
+              <SaveContact code={code} repName={first} primary />
+              <div className={styles.quietActions}>
+                {linkedin ? (
+                  <LinkedInConnect code={code} href={linkedin} repName={first} preview={preview} />
+                ) : null}
+              </div>
             </div>
-          </div>
-        </main>
-        <Footer removeCode={preview ? undefined : code} />
-      </div>
+          </main>
+          {!preview ? <ProspectRequest code={code} first={first} /> : null}
+          <Footer
+            first={first}
+            eventCode={preview ? undefined : code}
+            removeCode={preview ? undefined : code}
+          />
+        </div>
+      </RemovalGate>
     );
   }
 
   return (
     // A private note from one person: recognition first, one action, nothing that competes with it.
-    <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
-      <Header rep={rep} business={business} />
+    <RemovalGate>
+      <ProspectShell className={`${styles.surface} ${styles.publicPage} ${styles.prospectPage}`}>
+        <Header rep={rep} business={business} />
 
-      <main className="flex-1">
-        {/* Greeting first; everything below it arrives a moment later (see .arrive). */}
-        <h1 className={styles.headline}>
-          {prospectFirst
-            ? `Hi ${prospectFirst}`
-            : lead
-              ? `About ${midSentence(lead)}`
-              : `Nice to meet you`}
-        </h1>
-        {/* Only what the system knows: whose card this is, and the place if the rep named one. */}
-        <p className={styles.metaLine}>
-          {publicEvent ? `A note from ${first}, after ${publicEvent}` : `A note from ${first}`}
-        </p>
-        <div className={styles.arrive}>
-          {prospectFirst && lead ? (
-            <h2 className={styles.topicLine}>About {midSentence(lead)}</h2>
-          ) : null}
-          {session.prospect_company || topics.length > 1 ? (
-            <p className={styles.companyLine}>
-              {[
-                session.prospect_company,
-                topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          ) : null}
-        </div>
-
-        <section
-          className={styles.pitchSection}
-          aria-label={`A note from ${firstName(rep.fullName)}`}
-        >
-          {view.state === 'completed' ? (
-            <Pitch text={view.pitch} />
-          ) : view.state === 'crafting' ? (
-            <Crafting code={code} fallbackPitch={fallbackPitch} />
-          ) : view.state === 'failed' ? (
-            <Pitch text={fallbackPitch} />
-          ) : (
-            <PendingBody
-              eventName={publicEvent}
-              business={business}
-              hasBooking={Boolean(bookingLink)}
-            />
-          )}
-        </section>
-
-        <section className={styles.cta}>
-          {bookingLink ? (
-            <Booking
-              code={code}
-              sessionId={session.id}
-              prospectName={session.prospect_name}
-              link={bookingLink}
-              repName={first}
-              preview={preview}
-            />
-          ) : linkedin ? (
-            // No calendar: LinkedIn is the one action, kept in thumb reach while reading.
-            <StickyAction enabled={!preview}>
-              <LinkedInConnect
-                code={code}
-                href={linkedin}
-                repName={first}
-                preview={Boolean(preview)}
-                primary
-              />
-            </StickyAction>
-          ) : (
-            <StickyAction enabled={!preview}>
-              <SaveContact
-                code={code}
-                repName={first}
-                primary
-                label={
-                  lead
-                    ? `Save ${first}’s contact to follow up about ${midSentence(lead)}`
-                    : undefined
-                }
-              />
-            </StickyAction>
-          )}
-          {/* Quiet alternatives: one main action, these never compete with it. */}
-          <div className={styles.quietActions}>
-            {bookingLink || linkedin ? <SaveContact code={code} repName={first} /> : null}
-            {bookingLink && linkedin ? (
-              <LinkedInConnect
-                code={code}
-                href={linkedin}
-                repName={first}
-                preview={Boolean(preview)}
-              />
+        <main className="flex-1">
+          {/* Greeting first; everything below it arrives a moment later (see .arrive). */}
+          <h1 className={styles.headline} data-len={nameSize(prospectFirst)}>
+            {prospectFirst
+              ? `Hi ${prospectFirst}`
+              : lead
+                ? `About ${midSentence(lead)}`
+                : `Nice to meet you`}
+          </h1>
+          {/* Only what the system knows: whose card this is, and the place if the rep named one. */}
+          <p className={styles.metaLine}>
+            {publicEvent ? `A note from ${first}, after ${publicEvent}` : `A note from ${first}`}
+          </p>
+          <div className={styles.arrive}>
+            {prospectFirst && lead ? (
+              <h2 className={styles.topicLine}>About {midSentence(lead)}</h2>
+            ) : null}
+            {session.prospect_company || topics.length > 1 ? (
+              <p className={styles.companyLine}>
+                {[
+                  session.prospect_company,
+                  topics.length > 1 ? `Also: ${topics.slice(1).join(', ')}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
             ) : null}
           </div>
-        </section>
 
-        {playbook && view.state !== 'pending' ? (
-          <PlaybookBlock playbook={playbook} repName={first} />
-        ) : null}
+          <section
+            className={styles.pitchSection}
+            aria-label={`A note from ${firstName(rep.fullName)}`}
+          >
+            {view.state === 'completed' ? (
+              <Pitch text={view.pitch} />
+            ) : view.state === 'crafting' ? (
+              <Crafting code={code} fallbackPitch={fallbackPitch} />
+            ) : view.state === 'failed' ? (
+              <Pitch text={fallbackPitch} />
+            ) : (
+              <PendingBody
+                eventName={publicEvent}
+                business={business}
+                hasBooking={Boolean(bookingLink)}
+              />
+            )}
+          </section>
 
-        {business && services.length > 0 && view.state !== 'crafting' ? (
-          <SolutionPoints services={services} companyName={business.companyName} />
-        ) : null}
+          {!preview ? <ProspectRequest code={code} first={first} /> : null}
 
-        <div className={styles.chatRegion}>
-          <ChatWidget
-            code={code}
-            repFirstName={first}
-            opening={openingLine(firstName(rep.fullName), lead)}
-            enabled={env.CHAT_ENABLED}
-            actions={actions}
-            preview={preview}
-          />
-        </div>
-      </main>
+          <section className={styles.cta}>
+            {bookingLink ? (
+              <Booking
+                code={code}
+                sessionId={session.id}
+                prospectName={session.prospect_name}
+                link={bookingLink}
+                repName={first}
+                preview={preview}
+              />
+            ) : linkedin ? (
+              // No calendar: LinkedIn is the one action, kept in thumb reach while reading.
+              <StickyAction enabled={!preview}>
+                <LinkedInConnect
+                  code={code}
+                  href={linkedin}
+                  repName={first}
+                  preview={Boolean(preview)}
+                  primary
+                />
+              </StickyAction>
+            ) : (
+              <StickyAction enabled={!preview}>
+                <SaveContact
+                  code={code}
+                  repName={first}
+                  primary
+                  label={
+                    lead
+                      ? `Save ${first}’s contact to follow up about ${midSentence(lead)}`
+                      : undefined
+                  }
+                />
+              </StickyAction>
+            )}
+            {/* Quiet alternatives: one main action, these never compete with it. */}
+            <div className={styles.quietActions}>
+              {bookingLink || linkedin ? <SaveContact code={code} repName={first} /> : null}
+              {bookingLink && linkedin ? (
+                <LinkedInConnect
+                  code={code}
+                  href={linkedin}
+                  repName={first}
+                  preview={Boolean(preview)}
+                />
+              ) : null}
+            </div>
+          </section>
 
-      <Footer removeCode={preview ? undefined : code}>
-        {emailConfigured() && !preview ? <EmailMe code={code} repFirstName={first} /> : null}
-      </Footer>
-    </ProspectShell>
+          {playbook && view.state !== 'pending' ? (
+            <PlaybookBlock playbook={playbook} repName={first} />
+          ) : null}
+
+          {business && services.length > 0 && view.state !== 'crafting' ? (
+            <SolutionPoints services={services} companyName={business.companyName} />
+          ) : null}
+
+          <div className={styles.chatRegion}>
+            <ChatWidget
+              code={code}
+              repFirstName={first}
+              opening={openingLine(firstName(rep.fullName), lead)}
+              enabled={env.CHAT_ENABLED}
+              actions={actions}
+              preview={preview}
+            />
+          </div>
+        </main>
+
+        <Footer
+          first={first}
+          eventCode={preview ? undefined : code}
+          removeCode={preview ? undefined : code}
+        >
+          {emailConfigured() && !preview ? <EmailMe code={code} repFirstName={first} /> : null}
+        </Footer>
+      </ProspectShell>
+    </RemovalGate>
   );
 }
 
@@ -269,6 +288,12 @@ function titleLine(title: string | null, company: string | null): string {
   return [t, c].filter(Boolean).join(' · ');
 }
 
+/** Longer names get a smaller greeting so it holds to one or two lines (see .headline in the CSS). */
+function nameSize(name: string | null): 'mid' | 'long' | 'xlong' | undefined {
+  const n = name?.length ?? 0;
+  return n > 20 ? 'xlong' : n > 11 ? 'long' : n > 7 ? 'mid' : undefined;
+}
+
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || fullName;
 }
@@ -291,6 +316,7 @@ export function Header({
 }) {
   return (
     <header className="flex items-center gap-3.5">
+      <TabTitle name={rep.fullName} />
       {rep.photoUrl ? (
         /*
          * A plain <img> on purpose. photo_url is an arbitrary URL the rep typed,
@@ -441,7 +467,11 @@ export function SaveContact({
 export function Footer({
   removeCode,
   children,
+  first = 'Your contact',
+  eventCode,
 }: {
+  first?: string;
+  eventCode?: string;
   removeCode?: string;
   children?: React.ReactNode;
 }) {
@@ -470,9 +500,7 @@ export function Footer({
       </div>
       {removeCode ? <RemoveDetails code={removeCode} /> : null}
       <p className="mt-4 w-full basis-full text-[12px]">
-        <Link href="/?ref=card" className="text-ink-3">
-          Made with INSIGNAR
-        </Link>
+        <MadeWith first={first} code={eventCode} />
       </p>
     </footer>
   );

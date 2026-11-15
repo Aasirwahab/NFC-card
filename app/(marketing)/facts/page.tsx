@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'INSIGNAR facts',
+  title: 'Plain facts',
   description:
     'What INSIGNAR is, who it is for, how it works and what stage it is at. Plain statements, no marketing.',
   // The root layout is noindex; this reference page is public on purpose.
   robots: { index: true, follow: true },
   alternates: { canonical: '/facts' },
+  openGraph: { title: 'INSIGNAR: plain facts', url: '/facts', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE] },
 };
 
 /** Plain, checkable statements only: no superlatives, ratings or unreleased features. */
@@ -33,7 +36,7 @@ const facts: [string, string][] = [
   ],
   [
     'Stage',
-    'Pre-launch. A founding pilot is open by request for UK teams. There are no published prices, customer ratings or third-party certifications.',
+    'Pre-launch. A founding pilot is open by request for UK teams. There are no customer ratings or third-party certifications. See the pricing page for what it costs.',
   ],
   ['Contact', 'Request a pilot using the form on the home page.'],
 ];

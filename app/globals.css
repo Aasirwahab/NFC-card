@@ -3,8 +3,8 @@
 /*
  * INSIGNAR design tokens.
  *
- * One brand system with the beta page: a warm neutral ground, near-black ink and a
- * single coral accent for the primary action; Archivo for display, IBM Plex Sans for
+ * One brand system: a cool white ground, dark ink and a
+ * single deep blue accent for the primary action; Archivo for display, IBM Plex Sans for
  * text, IBM Plex Mono for codes and sequence numbers.
  *
  * Two audiences, one system:
@@ -14,19 +14,19 @@
  */
 
 @theme {
-  --color-ground: #f6f3ec;
-  --color-surface: #fffdf9;
-  --color-surface-2: #efeae0;
-  --color-line: #ddd6c8;
-  --color-line-soft: #e9e3d6;
+  --color-ground: #fbfcfe;
+  --color-surface: #ffffff;
+  --color-surface-2: #edf1f8;
+  --color-line: #d9e0ee;
+  --color-line-soft: #e6ebf5;
 
-  --color-ink: #14110f;
-  --color-ink-2: #45403a;
-  --color-ink-3: #6f685f;
+  --color-ink: #0f1626;
+  --color-ink-2: #3a4458;
+  --color-ink-3: #5f6a80;
 
-  --color-accent: #d63c2a;
-  --color-accent-hover: #b93122;
-  --color-accent-soft: #f8dcd6;
+  --color-accent: #1f46d1;
+  --color-accent-hover: #1738a8;
+  --color-accent-soft: #e3eafc;
   --color-on-accent: #ffffff;
 
   --color-ok: #2b7f4a;
@@ -86,4 +86,23 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Rep overrides live here while the shared prospect stylesheet is being edited separately. */
+html body:has(.rep-app) {
+  background: var(--color-ground);
+}
+
+.rep-app > #rep-navigation a {
+  min-height: 60px;
+  justify-content: center;
+  border-top: 2px solid transparent;
+  color: var(--color-ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rep-app > #rep-navigation a[aria-current='page'] {
+  border-top-color: var(--color-accent);
+  color: var(--color-accent);
 }

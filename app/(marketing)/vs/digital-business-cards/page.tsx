@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PRICE } from '@/app/(marketing)/pricing/copy';
+import { OG_IMAGE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Digital business card vs introduction software',
   description:
-    'A digital business card shares your details. Introduction software follows up on what the other person told you. What differs, and when each fits.',
+    'A digital business card shares your details. Introduction software follows up on what they told you. What differs, what it costs, and when each fits.',
   robots: { index: true, follow: true },
   alternates: { canonical: '/vs/digital-business-cards' },
+  openGraph: {
+    title: 'Digital business card vs introduction software · INSIGNAR',
+    url: '/vs/digital-business-cards',
+    images: [OG_IMAGE],
+  },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE] },
 };
 
 const rows: [string, string, string][] = [
@@ -72,6 +80,25 @@ export default function ComparePage() {
         If you meet a small number of people whose problem you could actually help with, a contact
         card gives them nothing to act on. INSIGNAR turns what they said into a short page that ends
         in one step: book a meeting.
+      </p>
+
+      <h2 className="font-display text-ink mt-8 text-xl font-bold">
+        Why not a one-off NFC card with free software?
+      </h2>
+      <p className="text-ink-2 mt-2">
+        You can, and for many people it is the better buy. A one-off card with free software costs
+        you the card once. INSIGNAR costs £{PRICE.perRepPerMonth} per rep per month, or £
+        {PRICE.founding.total} for the first {PRICE.founding.months} months in the founding offer.
+      </p>
+      <p className="text-ink-2 mt-3">
+        What the extra money buys: a card shares your details, while INSIGNAR gives the person a
+        page written about their own problem, and tells you what they opened and asked so you know
+        who to call first. If you only need people to save your details, pay once for the card.
+        INSIGNAR has no customers yet, so we cannot show results; see{' '}
+        <Link href="/pricing" className="underline underline-offset-2">
+          pricing
+        </Link>{' '}
+        for what is included.
       </p>
 
       <p className="text-ink-2 mt-8 text-sm">

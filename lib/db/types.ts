@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 19 tables by scripts/gen-types.ts.
+ * Generated from 22 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -184,6 +184,7 @@ export type Database = {
           written_at: string | null;
           verified_at: string | null;
           tag_uid: string | null;
+          screen_issued_at: string | null;
         };
         Insert: {
           id?: string;
@@ -195,6 +196,7 @@ export type Database = {
           written_at?: string | null;
           verified_at?: string | null;
           tag_uid?: string | null;
+          screen_issued_at?: string | null;
         };
         Update: {
           id?: string;
@@ -206,6 +208,7 @@ export type Database = {
           written_at?: string | null;
           verified_at?: string | null;
           tag_uid?: string | null;
+          screen_issued_at?: string | null;
         };
         Relationships: [
           {
@@ -231,6 +234,7 @@ export type Database = {
           role: string;
           content: string;
           created_at: string;
+          source_topics: string[];
         };
         Insert: {
           id?: number;
@@ -238,6 +242,7 @@ export type Database = {
           role: string;
           content: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Update: {
           id?: number;
@@ -245,6 +250,7 @@ export type Database = {
           role?: string;
           content?: string;
           created_at?: string;
+          source_topics?: string[];
         };
         Relationships: [
           {
@@ -264,6 +270,8 @@ export type Database = {
           question: string;
           created_at: string;
           resolved_at: string | null;
+          handed_off: boolean;
+          saved_answer: string | null;
         };
         Insert: {
           id?: number;
@@ -272,6 +280,8 @@ export type Database = {
           question: string;
           created_at?: string;
           resolved_at?: string | null;
+          handed_off?: boolean;
+          saved_answer?: string | null;
         };
         Update: {
           id?: number;
@@ -280,6 +290,8 @@ export type Database = {
           question?: string;
           created_at?: string;
           resolved_at?: string | null;
+          handed_off?: boolean;
+          saved_answer?: string | null;
         };
         Relationships: [
           {
@@ -395,7 +407,7 @@ export type Database = {
           {
             foreignKeyName: 'events_user_id_fkey';
             columns: ['user_id'];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -655,6 +667,9 @@ export type Database = {
           pitch_hook: string | null;
           pitch_avoid: string | null;
           review_before_live: boolean;
+          contact_form: Json | null;
+          assistant_blocked_topics: string[];
+          weekly_digest: boolean;
         };
         Insert: {
           id: string;
@@ -675,6 +690,9 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
+          weekly_digest?: boolean;
         };
         Update: {
           id?: string;
@@ -695,12 +713,94 @@ export type Database = {
           pitch_hook?: string | null;
           pitch_avoid?: string | null;
           review_before_live?: boolean;
+          contact_form?: Json | null;
+          assistant_blocked_topics?: string[];
+          weekly_digest?: boolean;
         };
         Relationships: [
           {
             foreignKeyName: 'profiles_id_fkey';
             columns: ['id'];
             isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      prospect_requests: {
+        Row: {
+          id: string;
+          session_id: string;
+          kind: string;
+          channel: string;
+          contact_value: string;
+          best_time: string | null;
+          consent_version: string;
+          consent_at: string;
+          requester_token_hash: string;
+          status: string;
+          done_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          kind: string;
+          channel: string;
+          contact_value: string;
+          best_time?: string | null;
+          consent_version: string;
+          consent_at?: string;
+          requester_token_hash: string;
+          status?: string;
+          done_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          kind?: string;
+          channel?: string;
+          contact_value?: string;
+          best_time?: string | null;
+          consent_version?: string;
+          consent_at?: string;
+          requester_token_hash?: string;
+          status?: string;
+          done_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'prospect_requests_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      screen_card_codes: {
+        Row: {
+          code: string;
+          user_id: string | null;
+          issued_at: string;
+        };
+        Insert: {
+          code: string;
+          user_id?: string | null;
+          issued_at: string;
+        };
+        Update: {
+          code?: string;
+          user_id?: string | null;
+          issued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'screen_card_codes_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -781,6 +881,15 @@ export type Database = {
           pitch_guidance: string | null;
           pitch_approved_at: string | null;
           pitch_approved_revision: number | null;
+          followup_sent_at: string | null;
+          followup_outcome: string | null;
+          last_viewed_at: string | null;
+          prospect_picked_problems: string[] | null;
+          prospect_submitted_email: string | null;
+          prospect_submitted_phone: string | null;
+          prospect_consent_at: string | null;
+          prospect_answer_token_hash: string | null;
+          prospect_form_answers: Json | null;
         };
         Insert: {
           id: string;
@@ -824,6 +933,15 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
+          last_viewed_at?: string | null;
+          prospect_picked_problems?: string[] | null;
+          prospect_submitted_email?: string | null;
+          prospect_submitted_phone?: string | null;
+          prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Update: {
           id?: string;
@@ -867,12 +985,21 @@ export type Database = {
           pitch_guidance?: string | null;
           pitch_approved_at?: string | null;
           pitch_approved_revision?: number | null;
+          followup_sent_at?: string | null;
+          followup_outcome?: string | null;
+          last_viewed_at?: string | null;
+          prospect_picked_problems?: string[] | null;
+          prospect_submitted_email?: string | null;
+          prospect_submitted_phone?: string | null;
+          prospect_consent_at?: string | null;
+          prospect_answer_token_hash?: string | null;
+          prospect_form_answers?: Json | null;
         };
         Relationships: [
           {
             foreignKeyName: 'sessions_card_id_fkey';
             columns: ['card_id'];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: 'cards';
             referencedColumns: ['id'];
           },
@@ -922,9 +1049,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      weekly_digests: {
+        Row: {
+          user_id: string;
+          week_start: string;
+          queued_at: string;
+        };
+        Insert: {
+          user_id: string;
+          week_start: string;
+          queued_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          week_start?: string;
+          queued_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'weekly_digests_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
+      issue_screen_card: {
+        Args: { p_user_id: string; p_code: string };
+        Returns: { code: string; screen_issued_at: string }[];
+      };
+      ops_card_stock: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          in_stock: number;
+          handed_out: number;
+          lost: number;
+          needs_writing: number;
+          needs_verifying: number;
+          screen_issued: number;
+        }[];
+      };
       register_card: {
         Args: {
           p_session_id: string;
@@ -950,6 +1119,23 @@ export type Database = {
       };
       mark_followup_sent: {
         Args: { p_session_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      replace_prospect_request: {
+        Args: {
+          p_session_id: string;
+          p_kind: string;
+          p_channel: string;
+          p_contact_value: string;
+          p_best_time: string | null;
+          p_consent_version: string;
+          p_requester_token_hash: string;
+          p_answer_token_hash: string | null;
+        };
+        Returns: Database['public']['Tables']['prospect_requests']['Row'];
+      };
+      mark_prospect_request_done: {
+        Args: { p_session_id: string; p_request_id: string; p_user_id: string };
         Returns: boolean;
       };
       delete_session: {
@@ -985,6 +1171,10 @@ export type Database = {
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      queue_weekly_digests: {
         Args: { p_now?: string };
         Returns: number;
       };
@@ -1081,6 +1271,25 @@ export type Database = {
       };
       record_chat_turn: {
         Args: { p_session_id: string; p_question: string; p_answer: string };
+        Returns: undefined;
+      };
+      answer_assistant_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
+        Returns: undefined;
+      };
+      record_assistant_turn: {
+        Args: {
+          p_session_id: string;
+          p_question: string;
+          p_answer: string;
+          p_source_topics?: string[];
+        };
         Returns: undefined;
       };
       answer_chat_question: {

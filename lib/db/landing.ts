@@ -1,4 +1,5 @@
 import 'server-only';
+import { parseContactForm, type ContactForm } from '@/lib/domain/contact-form';
 import { decideAudience } from '@/lib/domain/audience';
 import { heldForReview, viewForSession, type ProspectView } from '@/lib/domain/render-state';
 import type { ContactCard } from '@/lib/domain/vcard';
@@ -6,6 +7,10 @@ import { publicEventName, templatePitch } from '@/lib/domain/pitch';
 import { parseBookingUrl } from '@/lib/booking/link';
 import { serviceClient } from './service';
 import type { Row } from './types';
+import { isProspectHolding } from '@/lib/domain/prospect-answers';
+import { getProspectProblems } from '@/lib/capture/prospect-problems';
+import type { HoldingDetails } from '@/app/c/[code]/holding';
+import { screenQrExpiresAt } from '@/lib/cards/screen';
 
 /**
  * Resolving `/c/[code]` (spec §8, §16).
@@ -90,6 +95,7 @@ export type RepSession = Pick<
 
 export type RepProfile = {
   fullName: string;
+  contactForm?: ContactForm;
   title: string | null;
   photoUrl: string | null;
   /** The rep's Cal.com event (§19.1). Null: no booking embed, and no dead button. */
@@ -135,6 +141,7 @@ export type Resolved =
       cardStatus: Row<'cards'>['status'];
       /** A live session with no details yet: the tap counts, the page stays the portfolio. */
       sessionId: string | null;
+      holding?: HoldingDetails | null;
       rep: RepProfile;
       business: BusinessProfile | null;
     }
@@ -142,6 +149,7 @@ export type Resolved =
       audience: 'rep';
       code: string;
       cardStatus: Row<'cards'>['status'];
+      screenQrStatus: 'waiting' | 'expired' | null;
       session: RepSession | null;
     }
   | {
@@ -171,7 +179,7 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
 
   const { data: card, error: cardError } = await db
     .from('cards')
-    .select('id, user_id, status, written_at, verified_at')
+    .select('id, user_id, status, written_at, verified_at, screen_issued_at')
     .eq('code', code)
     .maybeSingle();
 
@@ -211,16 +219,34 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
       .eq('status', 'active')
       .maybeSingle<RepSession>();
 
-    return { audience: 'rep', code, cardStatus: card.status, session: repSession ?? null };
+    return {
+      audience: 'rep',
+      code,
+      cardStatus: card.status,
+      screenQrStatus: card.screen_issued_at
+        ? Date.now() >= screenQrExpiresAt(card.screen_issued_at)
+          ? 'expired'
+          : 'waiting'
+        : null,
+      session: repSession ?? null,
+    };
   }
 
   // -------------------------------------------------------- the prospect
-  const { data: session } = await db
+  const { data: sessionRow } = await db
     .from('sessions')
-    .select(PROSPECT_SESSION_COLUMNS)
+    .select(`${PROSPECT_SESSION_COLUMNS}, prospect_answer_token_hash`)
     .eq('card_id', card.id)
     .eq('status', 'active')
-    .maybeSingle<ProspectSession>();
+    .maybeSingle<ProspectSession & { prospect_answer_token_hash: string | null }>();
+
+  let session: ProspectSession | null = null;
+  let answered = false;
+  if (sessionRow) {
+    const { prospect_answer_token_hash, ...publicSession } = sessionRow;
+    answered = Boolean(prospect_answer_token_hash);
+    session = publicSession;
+  }
 
   // A known card with no live session is the rep's own business card (2026-09-25
   // review). This deliberately relaxes §22.2's "byte-identical to an unknown
@@ -233,6 +259,8 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
   // and the tap still counts (`sessionId`).
   if (!session || !session.details_completed_at) {
     const face = await repFace(card.user_id);
+    const expiredScreen =
+      !session && card.screen_issued_at && Date.now() >= screenQrExpiresAt(card.screen_issued_at);
     return face
       ? {
           audience: 'owner',
@@ -240,6 +268,19 @@ export async function resolveCode(code: string, repId: string | null): Promise<R
           ownerId: card.user_id,
           cardStatus: card.status,
           sessionId: session?.id ?? null,
+          holding: expiredScreen
+            ? null
+            : (!session && card.status === 'available') || (session && !session.first_viewed_at)
+              ? { ready: false, problems: [], picked: [], expiresAt: null }
+              : session && isProspectHolding(session.details_completed_at, session.first_viewed_at)
+                ? {
+                    ready: true,
+                    problems: await getProspectProblems(session.user_id),
+                    picked: [],
+                    readOnly: answered,
+                    expiresAt: Date.parse(session.first_viewed_at!) + 24 * 60 * 60 * 1000,
+                  }
+                : null,
           ...face,
         }
       : // A real card whose owner has no profile yet. Not a miss: a prospect must not
@@ -321,7 +362,9 @@ async function repFace(
   const [{ data: profile }, { data: business }] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, title, photo_url, booking_url, linkedin_url, review_before_live')
+      .select(
+        'full_name, title, photo_url, booking_url, linkedin_url, review_before_live, contact_form',
+      )
       .eq('id', userId)
       .maybeSingle(),
     db
@@ -336,6 +379,7 @@ async function repFace(
   return {
     rep: {
       fullName: profile.full_name,
+      contactForm: parseContactForm(profile.contact_form),
       title: profile.title,
       photoUrl: profile.photo_url,
       bookingUrl: profile.booking_url,

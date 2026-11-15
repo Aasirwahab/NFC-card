@@ -1,6 +1,5 @@
 import 'server-only';
 import { serviceClient } from '@/lib/db/service';
-import { primaryProblem } from '@/lib/domain/pitch';
 import type { FollowupData, FollowupDeps } from './handler';
 
 /** Production wiring for the followup handler. */
@@ -11,26 +10,26 @@ export function productionFollowupDeps(): FollowupDeps {
       const { data: s } = await db
         .from('sessions')
         .select(
-          'status, first_viewed_at, user_id, event_id, prospect_name, linkedin_url, prospect_email, problems, custom_problems',
+          'status, first_viewed_at, followup_sent_at, followup_outcome, user_id, prospect_name, linkedin_url, prospect_email, problems',
         )
         .eq('id', sessionId)
         .maybeSingle();
       if (!s) return null;
 
-      const [{ data: profile }, { data: business }, { data: event }] = await Promise.all([
+      const [{ data: profile }, { data: business }] = await Promise.all([
         db.from('profiles').select('full_name').eq('id', s.user_id).maybeSingle(),
         db.from('business_profiles').select('company_name').eq('user_id', s.user_id).maybeSingle(),
-        db.from('events').select('name').eq('id', s.event_id).maybeSingle(),
       ]);
 
       return {
         status: s.status,
         firstViewedAt: s.first_viewed_at,
+        followupClosed: Boolean(s.followup_sent_at || s.followup_outcome),
         prospectName: s.prospect_name,
         linkedinUrl: s.linkedin_url,
         prospectEmail: s.prospect_email,
-        problem: primaryProblem({ problems: s.problems, customProblems: s.custom_problems }),
-        eventName: event?.name ?? null,
+        // Only a problem the rep ticked: never their free text.
+        problem: s.problems.find((p) => p.trim().length > 0) ?? null,
         repFullName: profile?.full_name?.trim() || 'the team',
         businessName: business?.company_name ?? null,
       };

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import styles from '@/app/ui-slice.module.css';
-import { CreditCard, LayoutGrid, Settings, Tags } from 'lucide-react';
+import { RepNavigation } from '@/components/rep-navigation';
 import { Wordmark } from '@/components/brand';
 import { TimezoneSync } from '@/components/timezone-sync';
 import { isStaffEmail } from '@/lib/auth/staff-check';
@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   const isStaff = isStaffEmail(rep.email, env.STAFF_EMAILS);
 
   return (
-    <div className={`${styles.appShell} flex min-h-dvh flex-col`}>
+    <div className={`${styles.appShell} rep-app flex min-h-dvh flex-col`}>
       <TimezoneSync />
       <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
@@ -46,26 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-5 pb-28">{children}</main>
 
-      <nav className="border-line-soft bg-surface/95 fixed inset-x-0 bottom-0 border-t backdrop-blur">
-        <div className="mx-auto grid max-w-2xl grid-cols-4 pb-[env(safe-area-inset-bottom,0px)]">
-          <NavItem href="/dashboard" label="Today" icon={<LayoutGrid className="h-5 w-5" />} />
-          <NavItem href="/events" label="Events" icon={<Tags className="h-5 w-5" />} />
-          <NavItem href="/cards" label="Cards" icon={<CreditCard className="h-5 w-5" />} />
-          <NavItem href="/settings" label="Setup" icon={<Settings className="h-5 w-5" />} />
-        </div>
-      </nav>
+      <RepNavigation />
     </div>
-  );
-}
-
-function NavItem({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-accent flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium"
-    >
-      {icon}
-      {label}
-    </Link>
   );
 }

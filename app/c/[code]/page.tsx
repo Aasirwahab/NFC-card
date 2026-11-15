@@ -78,8 +78,8 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
 
   // A staff tap on a freshly written sticker is the programming check (/ops). It
   // files no lead and records no view. Anyone else falls straight through.
+  const staff = rep ? await getStaff() : null;
   if (rep) {
-    const staff = await getStaff();
     if (staff) {
       const tap = await verifyCardTap(code, staff.email);
       if (tap !== 'not_applicable') {
@@ -139,19 +139,28 @@ export default async function CardPage({ params, searchParams }: PageProps<'/c/[
     // a first tap by a prospect still files the lead so the rep can complete it.
     const userAgent = requestHeaders.get('user-agent');
     const deviceCookie = (await cookies()).get(REP_DEVICE_COOKIE)?.value;
-    after(() =>
-      recordOwnerCardTap({
-        code,
-        ownerId: resolved.ownerId,
-        cardStatus: resolved.cardStatus,
-        sessionId: resolved.sessionId,
+    if (!staff)
+      after(() =>
+        recordOwnerCardTap({
+          code,
+          ownerId: resolved.ownerId,
+          cardStatus: resolved.cardStatus,
+          sessionId: resolved.sessionId,
+          userAgent,
+          ip,
+          src,
+          deviceCookie,
+        }),
+      );
+    const prospect =
+      !staff &&
+      shouldRecordTap({
+        audience: 'prospect',
         userAgent,
-        ip,
-        src,
-        deviceCookie,
-      }),
-    );
-    return <OwnerCard resolved={resolved} />;
+        firstInWindow: true,
+        ownerDevice: deviceCookie === resolved.ownerId,
+      });
+    return <OwnerCard resolved={resolved} prospect={prospect} />;
   }
 
   // ---------------------------------------------------------- a real tap

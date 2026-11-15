@@ -62,6 +62,14 @@ type Relationship = {
  * handful of declarations it replaces.
  */
 const FUNCTIONS = `    {
+      issue_screen_card: {
+        Args: { p_user_id: string; p_code: string };
+        Returns: { code: string; screen_issued_at: string }[];
+      };
+      ops_card_stock: {
+        Args: Record<string, never>;
+        Returns: { user_id: string; in_stock: number; handed_out: number; lost: number; needs_writing: number; needs_verifying: number; screen_issued: number }[];
+      };
       register_card: {
         Args: {
           p_session_id: string;
@@ -87,6 +95,23 @@ const FUNCTIONS = `    {
       };
       mark_followup_sent: {
         Args: { p_session_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      replace_prospect_request: {
+        Args: {
+          p_session_id: string;
+          p_kind: string;
+          p_channel: string;
+          p_contact_value: string;
+          p_best_time: string | null;
+          p_consent_version: string;
+          p_requester_token_hash: string;
+          p_answer_token_hash: string | null;
+        };
+        Returns: Database['public']['Tables']['prospect_requests']['Row'];
+      };
+      mark_prospect_request_done: {
+        Args: { p_session_id: string; p_request_id: string; p_user_id: string };
         Returns: boolean;
       };
       delete_session: {
@@ -122,6 +147,10 @@ const FUNCTIONS = `    {
         Returns: Database['public']['Tables']['sessions']['Row'];
       };
       queue_event_digests: {
+        Args: { p_now?: string };
+        Returns: number;
+      };
+      queue_weekly_digests: {
         Args: { p_now?: string };
         Returns: number;
       };
@@ -213,6 +242,25 @@ const FUNCTIONS = `    {
       };
       record_chat_turn: {
         Args: { p_session_id: string; p_question: string; p_answer: string };
+        Returns: undefined;
+      };
+      answer_assistant_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
+        Returns: undefined;
+      };
+      record_assistant_turn: {
+        Args: {
+          p_session_id: string;
+          p_question: string;
+          p_answer: string;
+          p_source_topics?: string[];
+        };
         Returns: undefined;
       };
       answer_chat_question: {
@@ -335,6 +383,7 @@ async function main() {
              select 1 from pg_index i
               where i.indrelid = fk.conrelid
                 and i.indisunique
+                and i.indpred is null
                 and i.indkey::int2[] @> fk.conkey
                 and fk.conkey @> i.indkey::int2[]
            ) as is_one_to_one
