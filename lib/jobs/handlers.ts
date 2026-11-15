@@ -10,6 +10,8 @@ import { productionNotifyContactDeps } from '@/lib/notify/contact-deps';
 import { createEventDigestHandler } from '@/lib/notify/digest';
 import { productionEventDigestDeps } from '@/lib/notify/digest-deps';
 import { productionNotifyTapDeps } from '@/lib/notify/deps';
+import { createWeeklyDigestHandler } from '@/lib/notify/weekly';
+import { productionWeeklyDigestDeps } from '@/lib/notify/weekly-deps';
 import { createNotifyTapHandler } from '@/lib/notify/tap';
 import type { Handlers } from './types';
 
@@ -53,6 +55,10 @@ const notifyTap: Handlers[string] = (context) =>
 const eventDigest: Handlers[string] = (context) =>
   createEventDigestHandler(productionEventDigestDeps())(context);
 
+/** `weekly_digest` — the Monday rep email (2026-11-14). Always registered, like event_digest. */
+const weeklyDigest: Handlers[string] = (context) =>
+  createWeeklyDigestHandler(productionWeeklyDigestDeps())(context);
+
 /**
  * `followup` — the no-tap draft (§19.3). A deterministic template, no model call,
  * so it is always registered.
@@ -66,11 +72,13 @@ export const handlers: Handlers = enrichEnabled
       notify_tap: notifyTap,
       notify_contact: notifyContact,
       event_digest: eventDigest,
+      weekly_digest: weeklyDigest,
       followup,
     }
   : {
       notify_tap: notifyTap,
       notify_contact: notifyContact,
       event_digest: eventDigest,
+      weekly_digest: weeklyDigest,
       followup,
     };

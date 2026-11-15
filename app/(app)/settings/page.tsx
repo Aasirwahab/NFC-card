@@ -19,6 +19,7 @@ import {
   PlaybookForm,
   ProfileForm,
   UnansweredQuestions,
+  WeeklyDigestForm,
 } from './settings-forms';
 
 export const metadata = { title: 'Setup' };
@@ -91,6 +92,7 @@ export default async function SettingsPage() {
       </div>
       <ProfileForm profile={profile} />
       <PitchVoiceForm profile={profile} />
+      <WeeklyDigestForm enabled={profile?.weekly_digest ?? true} />
       <ContactFormEditor
         config={parseContactForm(profile?.contact_form)}
         first={profile?.full_name.trim().split(/\s+/)[0] || 'you'}
@@ -154,10 +156,12 @@ export default async function SettingsPage() {
           ))}
         </ul>
       </section>
-      <UnansweredQuestions
-        questions={unanswered.data ?? []}
-        loadError={Boolean(unanswered.error)}
-      />
+      <div id="questions" className="scroll-mt-24">
+        <UnansweredQuestions
+          questions={unanswered.data ?? []}
+          loadError={Boolean(unanswered.error)}
+        />
+      </div>
       <KnowledgeForm entries={entries} />
     </div>
   );
