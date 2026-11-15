@@ -34,6 +34,8 @@ const LIMITS = {
   landingEmail: { tokens: 3, window: '1 h' },
   /** Prospect chip/contact saves: independent IP and card budgets. */
   prospectAnswers: { tokens: 30, window: '1 m' },
+  /** Contact saves per card: each one can alert the rep, so a longer window than chip saves. */
+  prospectContact: { tokens: 5, window: '1 h' },
   /** Rep-side lookups (company site, LinkedIn candidates): each one is a paid search call. */
   lookup: { tokens: 30, window: '10 m' },
   /** Photographing a business card: its own budget, so lookups as you type never block a scan. */

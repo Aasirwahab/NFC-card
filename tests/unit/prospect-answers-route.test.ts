@@ -358,4 +358,15 @@ describe('prospect answer writes', () => {
     expect((await submit({ problems: [] })).status).toBe(429);
     expect(mocks.update).not.toHaveBeenCalled();
   });
+  it('limits contact saves per card with 429, but not problem picks', async () => {
+    mocks.rate.mockImplementation(async (name) => ({ allowed: name !== 'prospectContact' }));
+    const limited = await submit({ contact: 'a@example.com', consent: true });
+    expect(limited.status).toBe(429);
+    expect(mocks.rate).toHaveBeenCalledWith('prospectContact', 'card:ABCDEFGH');
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+    mocks.rate.mockClear();
+    expect((await submit({ problems: ['Problem A'] })).status).toBe(200);
+    expect(mocks.rate).not.toHaveBeenCalledWith('prospectContact', expect.anything());
+  });
 });

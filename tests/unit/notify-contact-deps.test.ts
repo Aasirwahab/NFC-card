@@ -6,6 +6,8 @@ const h = vi.hoisted(() => ({
   error: null as { code: string } | null,
   userError: null as Error | null,
   getUser: vi.fn(),
+  event: null as { occurred_at: string } | null,
+  inserted: [] as unknown[],
 }));
 vi.mock('@/lib/db/service', () => ({
   serviceClient: () => ({
@@ -16,10 +18,22 @@ vi.mock('@/lib/db/service', () => ({
       eq() {
         return this;
       },
+      order() {
+        return this;
+      },
+      limit() {
+        return this;
+      },
+      insert: async (row: unknown) => {
+        h.inserted.push(row);
+        return { error: null };
+      },
       maybeSingle: async () =>
         table === 'sessions'
           ? { data: h.session, error: h.error }
-          : { data: { full_name: 'Sam Smith' }, error: null },
+          : table === 'session_events'
+            ? { data: h.event, error: null }
+            : { data: { full_name: 'Sam Smith' }, error: null },
     }),
     auth: {
       admin: {
@@ -40,6 +54,8 @@ vi.mock('@/lib/env', () => ({ env: { NEXT_PUBLIC_APP_URL: 'https://example.com' 
 beforeEach(() => {
   vi.clearAllMocks();
   h.error = null;
+  h.event = null;
+  h.inserted = [];
   h.userError = null;
   h.session = {
     status: 'active',
@@ -86,5 +102,13 @@ describe('production contact alert data', () => {
     h.error = null;
     h.userError = new Error('offline');
     await expect(productionNotifyContactDeps().load('session')).rejects.toThrow(/rep load failed/);
+  });
+  it('reads the last alert time and records a sent alert as a session event', async () => {
+    const deps = productionNotifyContactDeps();
+    expect(await deps.lastAlertAt('session')).toBeNull();
+    h.event = { occurred_at: '2026-11-14T12:00:00Z' };
+    expect(await deps.lastAlertAt('session')).toBe('2026-11-14T12:00:00Z');
+    await deps.recordAlert('session');
+    expect(h.inserted).toEqual([{ session_id: 'session', type: 'contact_alert_sent' }]);
   });
 });

@@ -10,6 +10,8 @@ import type { Job, JobContext } from '@/lib/jobs/types';
 
 const SESSION = '11111111-1111-4111-8111-111111111111';
 
+const NOW = Date.parse('2026-11-14T12:30:00.000Z');
+
 const tom: ContactAlertData = {
   status: 'active',
   to: 'zaid@tma.example',
@@ -21,9 +23,10 @@ const tom: ContactAlertData = {
   consentAt: '2026-11-14T12:00:00.000Z',
 };
 
-function harness(data: ContactAlertData | null) {
+function harness(data: ContactAlertData | null, lastAlert: string | null = null, nowMs = NOW) {
   const sent: OutgoingEmail[] = [];
   const logs: { event: string; details: Record<string, unknown> }[] = [];
+  const recorded: string[] = [];
   const checkpoints = new Map<string, unknown>();
 
   const handler = createNotifyContactHandler({
@@ -33,6 +36,11 @@ function harness(data: ContactAlertData | null) {
       return 'sent';
     },
     appUrl: 'https://taplead.app',
+    lastAlertAt: async () => lastAlert,
+    recordAlert: async (id) => {
+      recorded.push(id);
+    },
+    now: () => nowMs,
     log: (event, details) => logs.push({ event, details }),
   });
 
@@ -51,7 +59,7 @@ function harness(data: ContactAlertData | null) {
       },
     }) as unknown as JobContext;
 
-  return { handler, context, sent, logs };
+  return { handler, context, sent, logs, recorded };
 }
 
 describe('the notify_contact handler', () => {
@@ -107,6 +115,28 @@ describe('the notify_contact handler', () => {
       expect(sent).toEqual([]);
     },
   );
+  it('records a sent alert and skips a second one within 10 minutes, logging it', async () => {
+    const first = harness(tom);
+    await first.handler(first.context());
+    expect(first.recorded).toEqual([SESSION]);
+
+    const recent = new Date(NOW - 9 * 60_000).toISOString();
+    const second = harness(tom, recent);
+    await second.handler(second.context());
+    expect(second.sent).toEqual([]);
+    expect(second.recorded).toEqual([]);
+    expect(second.logs[0]).toMatchObject({
+      event: 'contact_alert_skipped',
+      details: { reason: 'recent_alert' },
+    });
+  });
+  it('sends again once the last alert is more than 10 minutes old', async () => {
+    const old = new Date(NOW - 11 * 60_000).toISOString();
+    const { handler, context, sent, recorded } = harness(tom, old);
+    await handler(context());
+    expect(sent).toHaveLength(1);
+    expect(recorded).toEqual([SESSION]);
+  });
   it('fails permanently for a job with no session', async () => {
     const { handler, context } = harness(tom);
     await expect(handler(context(null))).rejects.toThrow(/no session/);

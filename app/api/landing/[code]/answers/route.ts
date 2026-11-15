@@ -46,6 +46,12 @@ async function answers(request: Request, context: Context, write: boolean) {
   ]);
   if (!ipLimit.allowed || !cardLimit.allowed || !missesLeft) return fail('rate_limited', 429);
 
+  if (parsed?.success && parsed.data.contact !== undefined) {
+    // Each contact save can alert the rep, so it has its own, longer budget per card.
+    const contactLimit = await checkRateLimit('prospectContact', `card:${code}`);
+    if (!contactLimit.allowed) return fail('rate_limited', 429);
+  }
+
   const db = serviceClient();
   const { data: card, error: cardError } = await db
     .from('cards')

@@ -39,6 +39,24 @@ export function productionNotifyContactDeps(): NotifyContactDeps {
         consentAt: session.prospect_consent_at,
       };
     },
+    async lastAlertAt(sessionId) {
+      const { data, error } = await db
+        .from('session_events')
+        .select('occurred_at')
+        .eq('session_id', sessionId)
+        .eq('type', 'contact_alert_sent')
+        .order('occurred_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(`contact alert history load failed: ${error.code}`);
+      return data?.occurred_at ?? null;
+    },
+    async recordAlert(sessionId) {
+      const { error } = await db
+        .from('session_events')
+        .insert({ session_id: sessionId, type: 'contact_alert_sent' });
+      if (error) throw new Error(`contact alert record failed: ${error.code}`);
+    },
     send: sendEmail,
     appUrl: env.NEXT_PUBLIC_APP_URL,
     log(event, details) {
