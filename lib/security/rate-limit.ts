@@ -24,6 +24,8 @@ const redis =
 
 /** The §22.2 table, as code. */
 const LIMITS = {
+  /** Rep contacts CSV downloads. */
+  contactsExport: { tokens: 10, window: '10 m' },
   /** GET /c/[code] */
   landing: { tokens: 30, window: '1 m' },
   /** GET /c/[code] that resolves to nothing. Tighter, because this is enumeration. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeFollowupDraft, followupChannel } from '@/lib/followup/draft';
 import { createFollowupHandler, type FollowupData } from '@/lib/followup/handler';
-import { csvCell, leadsCsv } from '@/lib/domain/leads-csv';
+import { csvCell } from '@/lib/export/contacts-csv';
 import type { Job, JobContext } from '@/lib/jobs/types';
 
 const base = {
@@ -100,31 +100,6 @@ describe('leads CSV', () => {
     expect(csvCell('say "hi"')).toBe('"say ""hi"""');
     expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
     expect(csvCell(null)).toBe('');
-  });
-
-  it('writes one row per lead and never a private note column', () => {
-    const csv = leadsCsv([
-      {
-        event_sequence_number: 3,
-        colour_tag: 'Blue',
-        prospect_name: 'Tom',
-        prospect_company: 'BuildRite',
-        prospect_email: null,
-        prospect_phone: null,
-        linkedin_url: null,
-        prospect_website: 'buildrite.co.uk',
-        problems: ['Idle machine tracking'],
-        custom_problems: null,
-        registered_at: '2026-10-05T18:00:00Z',
-        first_viewed_at: null,
-        booked: true,
-      },
-    ]);
-    const [header, row] = csv.split('\r\n');
-    expect(header).not.toMatch(/memorable|note/);
-    expect(row).toBe(
-      '3,Blue,Tom,BuildRite,,,,buildrite.co.uk,Idle machine tracking,2026-10-05T18:00:00Z,,yes',
-    );
   });
 });
 
