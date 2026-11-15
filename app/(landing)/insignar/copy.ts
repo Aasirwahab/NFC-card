@@ -17,7 +17,7 @@ export const hero = {
     'Say it once, in under a minute. INSIGNAR builds a private page about their problem, what it costs them and how you would fix it. Only the person you give the card to sees it.',
   primary: 'Request a founding pilot',
   secondary: 'Watch the film',
-  assure: 'Founding pilot for UK teams: four weeks, ten numbered cards per rep.',
+  assure: 'Founding pilot for UK teams: 90 days, 20 numbered cards per rep.',
   chipCaption: 'What they told you',
   chipQuote: 'Tickets double after every release.',
   fig: 'Card A·07. Handed over at 19:42, tapped at 07:58 the next morning.',
@@ -100,42 +100,24 @@ export const card = {
 
 export const page = {
   title: 'This is what lands on their phone.',
-  lead: 'A page about their problem: what it costs them and how you would fix it.',
+  lead: 'A short note about their problem, from you, with one button.',
   figs: 'Example page for Daniel at Northwind',
-  header: 'For Daniel, Northwind',
+  rep: 'Maya Okafor',
+  repLine: 'Account executive, Brightpath',
   example: 'Example',
-  initial: 'D',
+  initial: 'M',
   time: '07:58',
   url: 'Private page for Daniel',
   hint: 'Scroll the phone to read the whole page.',
-  one: {
-    h: 'Your problem',
-    q: '“Tickets double after every release.”',
-    by: 'You, at the event',
-  },
-  two: {
-    h: 'What it costs your team',
-    range: '£38k to £92k a year',
-    sources: ['Built from your figures and public data. You confirm it.'],
-    confirmed: 'Rep confirmed by Maya Okafor',
-  },
-  three: { h: 'What we checked', q: 'Northwind ships every two weeks, so the pattern repeats.' },
-  four: {
-    h: 'A team like yours',
-    p: 'A support team of 40 with the same pattern. One case, not a logo wall.',
-  },
-  five: {
-    h: 'How we fix it',
-    steps: [
-      'Find the cause in your release notes.',
-      'Fix it with your team.',
-      'Check the next release together.',
-    ],
-    book: 'Book 20 minutes',
-    forward: 'Forward to your team',
-    remove: 'Remove my details',
-    ai: '',
-  },
+  greeting: 'Hi Daniel',
+  from: 'A note from Maya, after SaaS North',
+  topic: 'About tickets after releases',
+  note: [
+    'Good to meet you. You said tickets double after every release, and that stuck with me.',
+    'I looked at how teams like Northwind usually handle it. There is a simple first step, and I would be glad to walk you through it.',
+  ],
+  book: 'Book a meeting with Maya',
+  remove: 'Remove my details',
   concept: 'CONCEPT',
   trust: [
     { h: 'They can delete it.', p: 'Every page has a button that removes their details.' },
@@ -181,7 +163,7 @@ export const five = {
 
 export const pilot = {
   title: 'Your next ten introductions, done properly.',
-  offer: ['Ten numbered cards per rep', 'Four weeks', 'A written scorecard at the end'],
+  offer: ['20 numbered cards per rep', '90 days', 'A written scorecard at the end'],
   outline: '',
   trust: 'You record. INSIGNAR prepares the page. You choose who gets the card.',
   form: {
@@ -229,7 +211,10 @@ export const nav = {
 export const footer = {
   line: 'INSIGNAR. Make every introduction count.',
   privacy: 'Privacy',
+  pricing: 'Pricing',
+  terms: 'Terms',
   readFilm: 'Read the film',
   facts: 'Facts',
   compare: 'vs digital business cards',
+  followUp: 'Follow up after events',
 };

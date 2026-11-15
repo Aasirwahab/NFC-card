@@ -1,13 +1,14 @@
 import type { MetadataRoute } from 'next';
+import { PUBLIC_PAGES } from '@/lib/site';
 
-/** Public pages. Add /privacy once the controller details are real. */
+/** Public pages, from lib/site.ts. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
   if (!base) return [];
-  return [
-    { url: `${base}/`, changeFrequency: 'monthly', priority: 1 },
-    { url: `${base}/facts`, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/vs/digital-business-cards`, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/how-it-works`, changeFrequency: 'monthly', priority: 0.4 },
-  ];
+  return PUBLIC_PAGES.map(({ path, lastModified, priority }) => ({
+    url: path === '/' ? `${base}/` : `${base}${path}`,
+    lastModified,
+    changeFrequency: 'monthly',
+    priority,
+  }));
 }

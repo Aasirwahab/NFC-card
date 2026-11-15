@@ -62,8 +62,10 @@ export async function apiSend<T>(
   path: string,
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
+  options?: Pick<RequestInit, 'keepalive'>,
 ): Promise<T> {
   const response = await apiFetch(path, {
+    ...options,
     method,
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),

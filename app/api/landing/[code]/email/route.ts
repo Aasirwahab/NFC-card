@@ -16,9 +16,8 @@ import { checkRateLimit, clientIp, peekRateLimit } from '@/lib/security/rate-lim
 /**
  * POST /api/landing/[code]/email — "Email me this page" (spec §19.2).
  *
- * The one transactional path to a prospect in v1: they type THEIR OWN address and
- * ask for the page. That explicit request is what keeps it clean — there is no
- * other outbound email to prospects (§19.2).
+ * The prospect types their own address and asks for the page. An address left on
+ * the holding page is not emailed automatically; only this request sends the page.
  *
  * Two limits, because a card is a bearer token: 3 an hour per IP (§22.2), and 3 a
  * day per card, so nobody holding a card can use it to send our email to a list

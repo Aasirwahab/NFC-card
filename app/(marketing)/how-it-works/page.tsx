@@ -1,6 +1,14 @@
-export const metadata = {
+import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/site';
+
+export const metadata: Metadata = {
   title: 'How it works',
-  description: 'What happens when you tap a INSIGNAR card.',
+  description:
+    'What you see when someone hands you an INSIGNAR card and you tap it: who wrote the page, what it uses, and how to have your details removed.',
+  robots: { index: true, follow: true },
+  alternates: { canonical: '/how-it-works' },
+  openGraph: { title: 'How it works · INSIGNAR', url: '/how-it-works', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE] },
 };
 
 /**
@@ -45,9 +53,9 @@ export default function HowItWorksPage() {
 
       <Section title="Then we wrote the page">
         <p>
-          The page you saw was written before you tapped and stored, which is why it loaded
-          instantly. It is tied to the problem you actually raised. If the research turned up
-          nothing useful, you got a simpler page rather than something invented.
+          Your note may be ready when you tap, or appear afterwards once the person you met has
+          written down your conversation. It is tied to the problem you actually raised. If the
+          research turned up nothing useful, you got a simpler page rather than something invented.
         </p>
       </Section>
 

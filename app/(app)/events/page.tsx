@@ -30,7 +30,7 @@ export default async function EventsPage() {
           <p className="text-ink font-medium">No events yet</p>
           <p className="text-ink-2 mt-1.5 text-sm">
             An event holds the niches and the problems you pick from when adding details. Without
-            one, leads go under &ldquo;Unsorted&rdquo;.
+            one, contacts go under &ldquo;Unsorted&rdquo;.
           </p>
         </div>
       ) : (
@@ -39,16 +39,31 @@ export default async function EventsPage() {
             <li key={event.id}>
               <Link
                 href={`/events/${event.id}/results`}
-                className="border-line bg-surface hover:border-ink-3 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3"
+                className="border-line bg-surface hover:border-ink-3 flex flex-col items-start gap-1 rounded-xl border px-3.5 py-3"
               >
-                <div className="min-w-0">
-                  <p className="text-ink truncate text-[15px] font-medium">{event.name}</p>
+                <div className="w-full min-w-0">
+                  <p className="text-ink line-clamp-2 text-[15px] font-medium wrap-anywhere">
+                    {event.name}
+                  </p>
                   <p className="text-ink-3 mt-0.5 text-[13px]">
-                    {[event.event_date, event.location].filter(Boolean).join(' · ') ||
-                      'No date set'}
+                    {[
+                      event.event_date
+                        ? new Intl.DateTimeFormat('en-GB', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            timeZone: 'UTC',
+                          })
+                            .format(new Date(`${event.event_date}T00:00:00Z`))
+                            .replace(',', '')
+                        : null,
+                      event.location,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'No date set'}
                   </p>
                 </div>
-                <span className="text-ink-3 shrink-0 font-mono text-[11px]">
+                <span className="text-ink-3 text-[12px]">
                   {event.next_card_sequence - 1}
                   {event.target_cards ? ` of ${event.target_cards}` : ''} handed out · results →
                 </span>

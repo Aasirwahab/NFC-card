@@ -3,9 +3,15 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { ProspectContactForm } from '@/components/prospect-contact-form';
+import {
+  CONTACT_FORM_PRESETS,
+  CONTACT_BUILT_INS,
+  parseContactForm,
+  type ContactForm,
+} from '@/lib/domain/contact-form';
 import { apiSend } from '@/lib/http/client';
 import { Field, Input, Textarea } from '@/components/ui/field';
-import { PhotoUpload } from './photo-upload';
 import {
   saveBusinessAction,
   deletePlaybookAction,
@@ -14,6 +20,7 @@ import {
   savePlaybookAction,
   saveProfileAction,
   savePitchVoiceAction,
+  saveContactFormAction,
   type SettingsState,
 } from './actions';
 
@@ -55,7 +62,7 @@ function Panel({
 }) {
   return (
     <section className="border-line bg-surface shadow-card rounded-xl border p-4">
-      <h2 className="font-display text-ink font-semibold tracking-tight">{title}</h2>
+      <h2 className="font-display text-ink font-semibold">{title}</h2>
       {hint ? <p className="text-ink-2 mt-1 text-[13px] leading-snug">{hint}</p> : null}
       <div className="mt-4 flex flex-col gap-4">{children}</div>
     </section>
@@ -98,31 +105,8 @@ export function ProfileForm({
   const [state, action] = useActionState(saveProfileAction, {});
 
   return (
-    <form action={action}>
-      <Panel title="You" hint="This is the face and name on every page your cards open.">
-        <Field label="Full name" htmlFor="full_name">
-          <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ''} required />
-        </Field>
-
-        <Field label="Job title" htmlFor="title">
-          <Input id="title" name="title" defaultValue={profile?.title ?? ''} />
-        </Field>
-
-        <PhotoUpload name={profile?.full_name ?? ''} photoUrl={profile?.photo_url ?? null} />
-
-        <Field label="LinkedIn" htmlFor="linkedin_url">
-          <Input
-            id="linkedin_url"
-            name="linkedin_url"
-            type="url"
-            defaultValue={profile?.linkedin_url ?? ''}
-          />
-        </Field>
-
-        <Field label="Phone" htmlFor="phone">
-          <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
-        </Field>
-
+    <form action={action} className="flex flex-col gap-5">
+      <Panel title="Booking link">
         <Field
           label="Booking link"
           hint="Your booking link. Prospects book straight from their page; leave it blank to hide booking."
@@ -135,6 +119,28 @@ export function ProfileForm({
             placeholder="https://cal.com/you/15min"
             defaultValue={profile?.booking_url ?? ''}
           />
+        </Field>
+      </Panel>
+      <Panel title="You" hint="This is the face and name on every page your cards open.">
+        <Field label="Full name" htmlFor="full_name">
+          <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ''} required />
+        </Field>
+
+        <Field label="Job title" htmlFor="title">
+          <Input id="title" name="title" defaultValue={profile?.title ?? ''} />
+        </Field>
+
+        <Field label="LinkedIn" htmlFor="linkedin_url">
+          <Input
+            id="linkedin_url"
+            name="linkedin_url"
+            type="url"
+            defaultValue={profile?.linkedin_url ?? ''}
+          />
+        </Field>
+
+        <Field label="Phone" htmlFor="phone">
+          <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
         </Field>
 
         <Field
@@ -279,6 +285,274 @@ export function PitchVoiceForm({
         <SaveButton label="Save voice" />
       </Panel>
     </form>
+  );
+}
+
+export function ContactFormEditor({ config, first }: { config: ContactForm; first: string }) {
+  const [state, action] = useActionState(saveContactFormAction, {});
+  const [draft, setDraft] = useState(config);
+  const [presetNotice, setPresetNotice] = useState('');
+  const focusQuestion = useRef<string | null>(null);
+  const configToSave = {
+    ...draft,
+    questions: draft.questions.map((q) => ({
+      ...q,
+      options: q.type === 'choice' ? q.options.map((option) => option.trim()).filter(Boolean) : [],
+    })),
+  };
+  const labels = { name: 'Name', company: 'Company', jobTitle: 'Job title', message: 'Message' };
+  function updateQuestion(index: number, patch: Partial<ContactForm['questions'][number]>) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)),
+    }));
+  }
+  return (
+    <Panel
+      title="Your contact form"
+      hint="Choose what prospects can share before your note is ready. Filling in the form is optional. Their email or UK mobile is required if they submit it."
+    >
+      <form action={action} className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Contact form presets">
+          {CONTACT_FORM_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className="border-line text-ink min-h-11 rounded-lg border px-3 text-sm"
+              onClick={() => {
+                setDraft(structuredClone(preset.config));
+                focusQuestion.current = null;
+                setPresetNotice('Preset applied. Save to use it.');
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <p aria-live="polite" className="text-ink-3 text-sm">
+          {presetNotice}
+        </p>
+        <input type="hidden" name="contact_form" value={JSON.stringify(configToSave)} />
+        <label className="flex min-h-11 items-center gap-3">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={draft.enabled}
+            onChange={(e) => setDraft((c) => ({ ...c, enabled: e.target.checked }))}
+            className="accent-accent h-5 w-5"
+          />
+          <span className="text-ink text-sm font-medium">Show the form</span>
+        </label>
+        <p className="text-ink-3 text-sm">Use {'{first}'} for your first name in the copy.</p>
+        <Field label="Title" htmlFor="form-title">
+          <Input
+            id="form-title"
+            value={draft.title}
+            maxLength={80}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, title: e.target.value }))}
+          />
+        </Field>
+        <Field label="Introduction" htmlFor="form-intro">
+          <Textarea
+            id="form-intro"
+            value={draft.intro}
+            rows={2}
+            maxLength={200}
+            onChange={(e) => setDraft((c) => ({ ...c, intro: e.target.value }))}
+          />
+        </Field>
+        <Field label="Button text" htmlFor="form-button">
+          <Input
+            id="form-button"
+            value={draft.button}
+            maxLength={40}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, button: e.target.value }))}
+          />
+        </Field>
+        <Field label="Contact field label" htmlFor="form-contact-label">
+          <Input
+            id="form-contact-label"
+            value={draft.contactLabel}
+            maxLength={60}
+            required
+            onChange={(e) => setDraft((c) => ({ ...c, contactLabel: e.target.value }))}
+          />
+        </Field>
+        <fieldset className="min-w-0">
+          <legend className="text-ink mb-2 text-sm font-semibold">Fields to ask</legend>
+          {CONTACT_BUILT_INS.map((key) => (
+            <div
+              key={key}
+              className="border-line flex flex-wrap items-center justify-between gap-x-4 border-b py-1"
+            >
+              <span className="text-ink text-sm">{labels[key]}</span>
+              <div className="flex gap-4">
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    id={`form-${key}-ask`}
+                    type="checkbox"
+                    checked={draft.fields[key].ask}
+                    aria-label={`Ask for ${labels[key].toLowerCase()}`}
+                    onChange={(e) =>
+                      setDraft((c) => ({
+                        ...c,
+                        fields: {
+                          ...c.fields,
+                          [key]: {
+                            ask: e.target.checked,
+                            required: e.target.checked && c.fields[key].required,
+                          },
+                        },
+                      }))
+                    }
+                    className="accent-accent h-5 w-5"
+                  />
+                  Ask
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    id={`form-${key}-required`}
+                    type="checkbox"
+                    checked={draft.fields[key].required}
+                    disabled={!draft.fields[key].ask}
+                    aria-label={`Require ${labels[key].toLowerCase()}`}
+                    onChange={(e) =>
+                      setDraft((c) => ({
+                        ...c,
+                        fields: {
+                          ...c.fields,
+                          [key]: { ...c.fields[key], required: e.target.checked },
+                        },
+                      }))
+                    }
+                    className="accent-accent h-5 w-5"
+                  />
+                  Required
+                </label>
+              </div>
+            </div>
+          ))}
+        </fieldset>
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="text-ink text-sm font-semibold">Custom questions</legend>
+          {draft.questions.map((q, index) => (
+            <fieldset key={q.id} className="border-line flex min-w-0 flex-col gap-3 border-t pt-4">
+              <legend className="text-ink-2 px-1 text-sm">Question {index + 1}</legend>
+              <Field label="Question label" htmlFor={`question-label-${index}`}>
+                <Input
+                  id={`question-label-${index}`}
+                  ref={(node) => {
+                    if (node && focusQuestion.current === q.id) {
+                      node.focus();
+                      focusQuestion.current = null;
+                    }
+                  }}
+                  value={q.label}
+                  maxLength={80}
+                  required
+                  onChange={(e) => updateQuestion(index, { label: e.target.value })}
+                />
+              </Field>
+              <Field label="Type" htmlFor={`question-type-${index}`}>
+                <select
+                  id={`question-type-${index}`}
+                  value={q.type}
+                  onChange={(e) =>
+                    updateQuestion(index, {
+                      type: e.target.value as 'text' | 'choice',
+                      options: e.target.value === 'text' ? [] : q.options,
+                    })
+                  }
+                  className="border-line bg-surface text-ink h-12 w-full rounded-lg border px-3 text-base"
+                >
+                  <option value="text">Text</option>
+                  <option value="choice">Choice</option>
+                </select>
+              </Field>
+              {q.type === 'choice' ? (
+                <Field
+                  label="Options"
+                  htmlFor={`question-options-${index}`}
+                  hint="One per line. Add two to six different choices, up to 40 characters each."
+                >
+                  <Textarea
+                    id={`question-options-${index}`}
+                    rows={3}
+                    value={q.options.join('\n')}
+                    required
+                    onChange={(e) => updateQuestion(index, { options: e.target.value.split('\n') })}
+                  />
+                </Field>
+              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) => updateQuestion(index, { required: e.target.checked })}
+                    className="accent-accent h-5 w-5"
+                  />
+                  Required
+                </label>
+                <button
+                  type="button"
+                  aria-label={`Remove question ${index + 1}`}
+                  onClick={() => {
+                    setDraft((c) => ({
+                      ...c,
+                      questions: c.questions.filter((_, i) => i !== index),
+                    }));
+                  }}
+                  className="text-crit min-h-11 px-2 text-sm underline underline-offset-2"
+                >
+                  Remove
+                </button>
+              </div>
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            disabled={draft.questions.length >= 3}
+            onClick={() => {
+              if (draft.questions.length >= 3) return;
+              const id = `q-${crypto.randomUUID().slice(0, 16)}`;
+              focusQuestion.current = id;
+              setDraft((c) => ({
+                ...c,
+                questions: [
+                  ...c.questions,
+                  { id, label: '', type: 'text', options: [], required: false },
+                ],
+              }));
+            }}
+            className="border-line text-ink min-h-11 rounded-lg border px-3 text-sm disabled:opacity-50"
+          >
+            Add a question
+          </button>
+        </fieldset>
+        <Status state={state} />
+        <div className="flex flex-wrap items-center gap-3">
+          <SaveButton label="Save contact form" />
+          <button
+            type="button"
+            onClick={() => setDraft(parseContactForm(null))}
+            className="text-accent min-h-11 px-2 text-sm underline underline-offset-2"
+          >
+            Reset to default
+          </button>
+        </div>
+      </form>
+      <div className="border-line min-w-0 border-t pt-4">
+        <h3 className="text-ink mb-3 text-sm font-semibold">Preview</h3>
+        {draft.enabled ? (
+          <ProspectContactForm config={configToSave} first={first} values={{}} preview />
+        ) : (
+          <p className="text-ink-3 text-sm">The contact form is hidden.</p>
+        )}
+      </div>
+    </Panel>
   );
 }
 
@@ -530,6 +804,7 @@ export function PlaybookForm({
   draftEnabled: boolean;
 }) {
   const [starting, setStarting] = useState<string | null>(null);
+  const addEntry = useRef<HTMLDetailsElement>(null);
 
   return (
     <Panel
@@ -566,12 +841,19 @@ export function PlaybookForm({
         </div>
       ) : null}
 
-      <details open={starting !== null} className="border-line-soft border-t pt-3">
+      <details ref={addEntry} open={starting !== null} className="border-line-soft border-t pt-3">
         <summary className="text-accent min-h-11 cursor-pointer py-3 text-[15px] font-medium">
           Add an entry
         </summary>
         <PlaybookEntry
           key={starting ?? 'new'}
+          onSaved={() => {
+            setStarting(null);
+            if (addEntry.current) {
+              addEntry.current.open = false;
+              addEntry.current.querySelector('summary')?.focus();
+            }
+          }}
           entry={{ id: '', problem: starting ?? '', why: null, checks: [], resource_url: null }}
           draftEnabled={draftEnabled}
         />
@@ -580,8 +862,20 @@ export function PlaybookForm({
   );
 }
 
-function PlaybookEntry({ entry, draftEnabled }: { entry: PlaybookRow; draftEnabled: boolean }) {
-  const [state, action] = useActionState(savePlaybookAction, {});
+function PlaybookEntry({
+  entry,
+  draftEnabled,
+  onSaved,
+}: {
+  entry: PlaybookRow;
+  draftEnabled: boolean;
+  onSaved?: () => void;
+}) {
+  const [state, action] = useActionState(async (previous: SettingsState, data: FormData) => {
+    const result = await savePlaybookAction(previous, data);
+    if (result.saved) onSaved?.();
+    return result;
+  }, {});
   const [problem, setProblem] = useState(entry.problem);
   const [why, setWhy] = useState(entry.why ?? '');
   const [checks, setChecks] = useState<string[]>([

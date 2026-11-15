@@ -70,3 +70,10 @@ export function visionModel(): ResolvedModel | null {
   if (!id || id === 'mock' || !gateway) return null;
   return { id, model: gateway(id) as LanguageModel };
 }
+
+/** The voice-note model, or null when voice notes are not configured. */
+export function transcribeModel(): ResolvedModel | null {
+  const id = env.MODEL_TRANSCRIBE;
+  if (!id || id === 'mock' || !gateway) return null;
+  return { id, model: gateway(id) as LanguageModel };
+}

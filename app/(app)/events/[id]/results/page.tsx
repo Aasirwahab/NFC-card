@@ -37,7 +37,7 @@ export default async function EventResultsPage({ params }: PageProps<'/events/[i
           href={`/api/events/${event.id}/export`}
           className="hover:text-ink-2 underline underline-offset-2"
         >
-          Download leads (CSV)
+          Download contacts (CSV)
         </a>
       </p>
 

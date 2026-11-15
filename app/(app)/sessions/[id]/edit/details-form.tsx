@@ -12,6 +12,8 @@ import type { Niche } from '@/lib/db/rep';
 import type { Row } from '@/lib/db/types';
 import { LookupPicker, type LookupPickerApi } from '@/components/lookup-picker';
 import { shrinkToJpeg } from '@/lib/browser/image';
+import { VoiceNote, VOICE_TIP } from '@/components/voice-note';
+import { appendNote, noteFits } from '@/lib/capture/voice';
 import type { CardFields } from '@/lib/capture/card';
 import type { NoteFill } from '@/lib/capture/note';
 import {
@@ -39,6 +41,7 @@ import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
+import { TheyToldUs } from './they-told-us';
 
 /**
  * The capture form (spec §10.2, §21).
@@ -62,6 +65,7 @@ export function DetailsForm({
   events,
   lookupEnabled,
   scanEnabled,
+  voiceEnabled,
   aiEnabled,
   justRegistered,
 }: {
@@ -77,6 +81,8 @@ export function DetailsForm({
   lookupEnabled: boolean;
   /** True when a card-reading model is configured. */
   scanEnabled: boolean;
+  /** True when a transcription model is configured (the mic button). */
+  voiceEnabled: boolean;
   aiEnabled: boolean;
   justRegistered: boolean;
 }) {
@@ -94,14 +100,7 @@ export function DetailsForm({
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
-  // The "More about the conversation" section starts open when it already holds something.
-  const [moreOpen, setMoreOpen] = useState(
-    () =>
-      parseNicheList(session.niche, niches).length > 0 ||
-      (session.problems ?? []).length > 0 ||
-      !!(session.custom_problems ?? '').trim() ||
-      !!(session.memorable_info ?? '').trim(),
-  );
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // After a card scan: fields that agree with the card, and ones that differ (the rep decides).
   const [cardSnap, setCardSnap] = useState<Partial<Record<ReconciledField, string | null>>>({});
@@ -109,6 +108,16 @@ export function DetailsForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Voice note: on while configured and this browser lets us record. `voiceRuns` makes the note box read what was said.
+  const [voice, setVoice] = useState(voiceEnabled);
+  const [voiceRuns, setVoiceRuns] = useState(0);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [sorting, setSorting] = useState(false);
+  const captureBusy = (voice && voiceBusy) || sorting;
+  const voiceOff = useCallback(() => {
+    setVoiceBusy(false);
+    setVoice(false);
+  }, []);
 
   // The newest field values, for callbacks that finish later (a scan, a lookup): a
   // callback made at click time would otherwise see the form as it was then.
@@ -167,8 +176,6 @@ export function DetailsForm({
           (x): x is string => typeof x === 'string' && x.trim() !== '',
         );
         if (kept.length > 0) setCustomProblems(kept.join('\n'));
-        if (d.niche || kept.length > 0 || (Array.isArray(d.problems) && d.problems.length > 0))
-          setMoreOpen(true);
         setRestored(true);
       });
     } catch {
@@ -342,6 +349,7 @@ export function DetailsForm({
   });
 
   async function save() {
+    if (captureBusy) return;
     const sent = formJson;
     setSaving(true);
     setError(null);
@@ -502,6 +510,116 @@ export function DetailsForm({
           AI help is off right now. Type the details; nothing is lost.
         </p>
       ) : null}
+
+      <TheyToldUs
+        session={session}
+        niches={niches}
+        fallbackProblems={fallbackProblems}
+        current={{ email, phone, problems, selectedNiches }}
+        onContact={(field, value) => applyField(field, value)}
+        onProblems={(next) => {
+          setSelectedNiches(next.selectedNiches);
+          setProblems(next.problems);
+        }}
+      />
+
+      <div className="mt-4 flex flex-col gap-4">
+        {quickSelect.length > 0 ? (
+          <fieldset>
+            <legend className="text-ink-2 w-full text-sm font-medium">
+              What did they raise?
+              <span
+                className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
+                aria-live="polite"
+              >
+                {tickedCount} of {MAX_TICKED_PROBLEMS}
+              </span>
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {problemChips.shown.map((problem) => {
+                const selected = problems.includes(problem);
+                return (
+                  <button
+                    key={problem}
+                    type="button"
+                    onClick={() => {
+                      dismissKeyboard();
+                      toggleProblem(problem);
+                    }}
+                    aria-pressed={selected}
+                    aria-disabled={!selected && atLimit}
+                    className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
+                      selected
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : atLimit
+                          ? 'border-line bg-surface text-ink-3 opacity-50'
+                          : 'border-line bg-surface text-ink-2'
+                    }`}
+                  >
+                    {problem}
+                  </button>
+                );
+              })}
+              {problemChips.hiddenCount > 0 || moreProblems ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreProblems((v) => !v)}
+                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
+                >
+                  {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
+                </button>
+              ) : null}
+            </div>
+          </fieldset>
+        ) : null}
+
+        <NoteBox
+          value={customProblems}
+          setValue={setCustomProblems}
+          voiceTip={!voice}
+          autoRun={voiceRuns}
+          onBusy={setSorting}
+          niches={noteNiches(niches, fallbackProblems)}
+          onFill={(fill) => {
+            const fillIfEmpty = (value: string) => (current: string) =>
+              current.trim() ? current : value;
+            if (fill.name) setName(fillIfEmpty(fill.name));
+            if (fill.company) setCompany(fillIfEmpty(fill.company));
+            // Never swap a niche the rep already worked in.
+            const swap =
+              fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
+            if (swap) setSelectedNiches([fill.niche!]);
+            // Only problems whose chip will be on screen may be ticked, five at most.
+            const visible = chipProblemsForAll(
+              niches,
+              swap ? [fill.niche!] : latest.current.selectedNiches,
+              fallbackProblems,
+            );
+            if (fill.problems.length > 0) {
+              setProblems((current) =>
+                keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
+                  0,
+                  MAX_TICKED_PROBLEMS,
+                ),
+              );
+            }
+          }}
+        />
+
+        {voice ? (
+          <VoiceNote
+            onUnavailable={voiceOff}
+            onBusy={setVoiceBusy}
+            onText={(text) => {
+              if (!noteFits(latest.current.customProblems, text)) return false;
+              setCustomProblems(appendNote(latest.current.customProblems, text));
+              setSorting(true);
+              setVoiceRuns((n) => n + 1);
+              return true;
+            }}
+          />
+        ) : null}
+      </div>
 
       <CardScan
         scanEnabled={scanEnabled}
@@ -764,85 +882,6 @@ export function DetailsForm({
               </fieldset>
             ) : null}
 
-            {quickSelect.length > 0 ? (
-              <fieldset>
-                <legend className="text-ink-2 w-full text-sm font-medium">
-                  What did they raise?
-                  <span
-                    className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
-                    aria-live="polite"
-                  >
-                    {tickedCount} of {MAX_TICKED_PROBLEMS}
-                  </span>
-                </legend>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {problemChips.shown.map((problem) => {
-                    const selected = problems.includes(problem);
-                    return (
-                      <button
-                        key={problem}
-                        type="button"
-                        onClick={() => {
-                          dismissKeyboard();
-                          toggleProblem(problem);
-                        }}
-                        aria-pressed={selected}
-                        aria-disabled={!selected && atLimit}
-                        className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
-                          selected
-                            ? 'border-accent bg-accent-soft text-accent'
-                            : atLimit
-                              ? 'border-line bg-surface text-ink-3 opacity-50'
-                              : 'border-line bg-surface text-ink-2'
-                        }`}
-                      >
-                        {problem}
-                      </button>
-                    );
-                  })}
-                  {problemChips.hiddenCount > 0 || moreProblems ? (
-                    <button
-                      type="button"
-                      onClick={() => setMoreProblems((v) => !v)}
-                      className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
-                    >
-                      {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
-                    </button>
-                  ) : null}
-                </div>
-              </fieldset>
-            ) : null}
-
-            <NoteBox
-              value={customProblems}
-              setValue={setCustomProblems}
-              niches={noteNiches(niches, fallbackProblems)}
-              onFill={(fill) => {
-                const fillIfEmpty = (value: string) => (current: string) =>
-                  current.trim() ? current : value;
-                if (fill.name) setName(fillIfEmpty(fill.name));
-                if (fill.company) setCompany(fillIfEmpty(fill.company));
-                // Never swap a niche the rep already worked in.
-                const swap =
-                  fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
-                if (swap) setSelectedNiches([fill.niche!]);
-                // Only problems whose chip will be on screen may be ticked, five at most.
-                const visible = chipProblemsForAll(
-                  niches,
-                  swap ? [fill.niche!] : latest.current.selectedNiches,
-                  fallbackProblems,
-                );
-                if (fill.problems.length > 0) {
-                  setProblems((current) =>
-                    keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
-                      0,
-                      MAX_TICKED_PROBLEMS,
-                    ),
-                  );
-                }
-              }}
-            />
-
             <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
 
             <Field
@@ -912,9 +951,8 @@ export function DetailsForm({
         </details>
       </div>
 
-      {/* Always in reach: pinned just above the tab bar (3.75rem), with the result of Saving beside it,
-          so a long form never hides the button or its feedback. -mx-4/px-4 match the rep surface padding. */}
-      <div className="border-line-soft bg-surface/95 sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-10 -mx-4 mt-4 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+      {/* The tab bar is hidden here, leaving Save within thumb reach. */}
+      <div className="border-line-soft bg-surface/95 sticky bottom-0 z-10 -mx-4 mt-4 flex flex-col gap-2 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur">
         {error ? (
           <p
             className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium"
@@ -936,8 +974,8 @@ export function DetailsForm({
             Next card
           </Link>
         ) : null}
-        <Button size="block" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save details'}
+        <Button size="block" onClick={save} disabled={saving || captureBusy}>
+          {saving ? 'Saving…' : captureBusy ? 'Finish your voice note first' : 'Save details'}
         </Button>
       </div>
     </div>
@@ -1110,31 +1148,49 @@ function CardScan({
  * The rep's own words about what came up, under the chips. They are saved with the lead as
  * it stands. "Sort it for me" is optional: it ticks chips that already exist and fills a
  * blank name or company, and never changes the words. The keyboard's own microphone does
- * any dictating, so no audio reaches us.
+ * any dictating when the mic button is off; the mic button's audio is discarded after it is
+ * turned into words.
  */
 function NoteBox({
   value,
   setValue,
+  voiceTip,
+  autoRun,
+  onBusy,
   niches,
   onFill,
 }: {
   value: string;
   setValue: (value: string) => void;
+  /** Voice notes are off: point at the keyboard's own microphone. */
+  voiceTip: boolean;
+  /** Goes up each time a spoken note was added: read the note as if it had been typed. */
+  autoRun: number;
+  onBusy: (busy: boolean) => void;
   niches: { name: string; problems: string[] }[];
   onFill: (fill: NoteFill) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const running = useRef(0);
   const [message, setMessage] = useState<string | null>(null);
 
   async function run() {
     dismissKeyboard();
+    running.current += 1;
     setBusy(true);
+    onBusy(true);
     setMessage(null);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const fill = await apiSend<NoteFill>('/api/capture/note', 'POST', {
-        line: value.slice(0, 600),
-        niches,
-      });
+      const fill = await Promise.race([
+        apiSend<NoteFill>('/api/capture/note', 'POST', {
+          line: value.slice(0, 600),
+          niches,
+        }),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error('Sorting timed out')), 30_000);
+        }),
+      ]);
       const parts = [
         fill.name ? 'name' : null,
         fill.company ? 'company' : null,
@@ -1160,9 +1216,22 @@ function NoteBox({
           : 'Could not sort that. Your words are still in the box: tap Save details to keep them.',
       );
     } finally {
-      setBusy(false);
+      clearTimeout(timeout);
+      running.current -= 1;
+      if (running.current === 0) {
+        setBusy(false);
+        onBusy(false);
+      }
     }
   }
+
+  // A spoken note was just added: read it exactly as if it had been typed.
+  const handledRuns = useRef(autoRun);
+  useEffect(() => {
+    if (autoRun === handledRuns.current) return;
+    handledRuns.current = autoRun;
+    void run();
+  });
 
   return (
     <section className="border-accent/40 bg-accent-soft/40 rounded-xl border p-3">
@@ -1181,6 +1250,7 @@ function NoteBox({
         maxLength={1000}
         className="mt-1 min-h-0 text-base"
       />
+      {voiceTip ? <p className="text-ink-3 mt-1 text-[13px]">{VOICE_TIP}</p> : null}
       {value.trim().length >= 3 ? (
         <button
           type="button"

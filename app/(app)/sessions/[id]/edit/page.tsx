@@ -7,6 +7,7 @@ import { env } from '@/lib/env';
 import { modelFor } from '@/lib/ai/models';
 import { requireRep } from '@/lib/db/server';
 import { DetailsForm } from './details-form';
+import { WhatTheyDid } from '@/components/what-they-did';
 
 export const metadata = { title: 'Add details' };
 export const dynamic = 'force-dynamic';
@@ -60,10 +61,12 @@ export default async function EditSessionPage({
           events={events.map((e) => ({ id: e.id, name: e.name }))}
           lookupEnabled={Boolean(env.SEARCH_PROVIDER)}
           scanEnabled={Boolean(env.MODEL_VISION)}
+          voiceEnabled={Boolean(env.MODEL_TRANSCRIBE)}
           aiEnabled={modelFor('chat').id !== 'mock'}
           justRegistered={registered === '1'}
         />
       </div>
+      <WhatTheyDid userId={rep.userId} session={session} cardCode={card?.code ?? null} />
     </div>
   );
 }

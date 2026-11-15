@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Mic } from 'lucide-react';
 import styles from '@/app/ui-slice.module.css';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { COLOUR_HEX, type ColourTag } from '@/lib/domain/colours';
@@ -35,11 +34,6 @@ export function SessionRow({ session }: { session: SessionListItem }) {
       </div>
 
       <div className="flex max-w-[30%] shrink-0 flex-col items-end gap-1">
-        {!session.details_completed_at ? (
-          <span className={styles.captureIcon} aria-hidden="true">
-            <Mic className="h-5 w-5" />
-          </span>
-        ) : null}
         <StatusPill session={session} />
         {session.first_viewed_at ? (
           <span className="text-ok text-[11px] font-medium">Tapped</span>
