@@ -1,7 +1,25 @@
 import { z } from 'zod';
+import {
+  CONTACT_BUILT_INS,
+  DEFAULT_CONTACT_FORM,
+  contactFormFields,
+  contactFormText,
+  type ContactFormAnswer,
+} from './contact-form-view';
+
+// The validation-free half lives in contact-form-view so the prospect page's browser
+// bundle never pulls in zod. Re-exported here so server code keeps one import.
+export {
+  CONTACT_BUILT_INS,
+  DEFAULT_CONTACT_FORM,
+  answerLine,
+  contactFormFields,
+  contactFormText,
+  type ContactFormAnswer,
+  type ContactFormField,
+} from './contact-form-view';
 
 const fieldSchema = z.object({ ask: z.boolean(), required: z.boolean() }).strict();
-export const CONTACT_BUILT_INS = ['name', 'company', 'jobTitle', 'message'] as const;
 const questionSchema = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,23}$/),
@@ -83,8 +101,6 @@ export const contactFormSchema = z
   });
 
 export type ContactForm = z.infer<typeof contactFormSchema>;
-export type ContactFormAnswer = { label: string; value: string };
-export const DEFAULT_CONTACT_FORM: ContactForm = contactFormSchema.parse({});
 
 export const CONTACT_FORM_PRESETS: { label: string; config: ContactForm }[] = [
   {
@@ -131,59 +147,6 @@ export function parseContactForm(json: unknown): ContactForm {
   return parsed.success ? parsed.data : contactFormSchema.parse({});
 }
 
-export function contactFormText(text: string, first: string): string {
-  return text.replaceAll('{first}', () => first);
-}
-
-export type ContactFormField = {
-  key: string;
-  label: string;
-  type: 'contact' | 'text' | 'choice' | 'message';
-  required: boolean;
-  options: string[];
-};
-
-export function contactFormFields(config: ContactForm, first: string): ContactFormField[] {
-  const labels = {
-    name: 'Name',
-    company: 'Company',
-    jobTitle: 'Job title',
-    message: `What would you like from ${first}?`,
-  };
-  const builtIn = (key: (typeof CONTACT_BUILT_INS)[number]): ContactFormField[] =>
-    config.fields[key].ask
-      ? [
-          {
-            key,
-            label: labels[key],
-            type: key === 'message' ? 'message' : 'text',
-            required: config.fields[key].required,
-            options: [],
-          },
-        ]
-      : [];
-  return [
-    {
-      key: 'contact',
-      label: contactFormText(config.contactLabel, first),
-      type: 'contact',
-      required: true,
-      options: [],
-    },
-    ...builtIn('name'),
-    ...builtIn('company'),
-    ...builtIn('jobTitle'),
-    ...config.questions.map((q) => ({
-      key: `question:${q.id}`,
-      label: contactFormText(q.label, first),
-      type: q.type,
-      required: q.required,
-      options: q.options,
-    })),
-    ...builtIn('message'),
-  ];
-}
-
 export function validateContactFormAnswers(
   config: ContactForm,
   values: Record<string, string>,
@@ -218,11 +181,4 @@ export function validateContactFormAnswers(
 export function parseContactFormAnswers(json: unknown): ContactFormAnswer[] {
   const parsed = z.array(z.object({ label: z.string(), value: z.string() })).safeParse(json);
   return parsed.success ? parsed.data : [];
-}
-
-/** "Name: Tom", but "Interested in? Reviews" when the label already ends in punctuation. */
-export function answerLine(answer: ContactFormAnswer): string {
-  return /[?:!.]$/.test(answer.label.trim())
-    ? `${answer.label.trim()} ${answer.value}`
-    : `${answer.label}: ${answer.value}`;
 }
