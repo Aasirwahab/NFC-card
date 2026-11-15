@@ -5,6 +5,7 @@ import {
   chatContext,
   chatInstructions,
   checkReply,
+  sourceLine,
   isHandOffReply,
   openingLine,
   modelReplySchema,
@@ -39,7 +40,7 @@ const snapshot = {
     services: ['Plant hire automation'],
     pricing: null,
   },
-  knowledge: [{ topic: 'onboarding', content: 'Setup takes two weeks.' }],
+  knowledge: [{ topic: 'timeline', content: 'Setup takes two weeks.' }],
   event: { name: 'Plant Hire Expo' },
 } as unknown as Snapshot;
 
@@ -68,6 +69,33 @@ describe('chatContext', () => {
   it('never carries the private note — not even for tone', () => {
     const all = JSON.stringify(context) + chatInstructions(context);
     expect(all).not.toMatch(/arsenal|kids/i);
+  });
+
+  it('removes blocked pricing from the model context and rejects pricing citations', () => {
+    const blocked = chatContext(
+      {
+        ...snapshot,
+        business: { ...snapshot.business!, pricing: { monthly: '£499' } },
+        knowledge: [...snapshot.knowledge, { topic: 'pricing', content: 'From £299 a month.' }],
+      },
+      [],
+      ['pricing'],
+    );
+    expect(blocked.pricing).toBeNull();
+    expect(blocked.topics).not.toContain('pricing');
+    expect(chatInstructions(blocked)).not.toMatch(/299|499/);
+    expect(blocked.knowledge).toContain('Setup takes two weeks.');
+    const checked = checkReply(
+      {
+        outcome: 'answered',
+        reply: 'Plans start from £299 a month.',
+        action: null,
+        topics: ['pricing'],
+      },
+      blocked,
+    );
+    expect(checked.ok).toBe(false);
+    expect(sourceLine(blocked, checked)).toBeNull();
   });
 
   it('carries what the business wrote down and the problem they raised', () => {
@@ -120,6 +148,7 @@ describe('checkReply (§18.2)', () => {
     expect(result).toEqual({
       ok: true,
       outcome: 'answered',
+      topics: [],
       text: 'Setup takes about two weeks. Zaid can walk you through it.',
     });
   });

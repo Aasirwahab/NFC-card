@@ -240,6 +240,25 @@ const FUNCTIONS = `    {
         Args: { p_session_id: string; p_question: string; p_answer: string };
         Returns: undefined;
       };
+      answer_assistant_question: {
+        Args: {
+          p_id: number;
+          p_user_id: string;
+          p_public_question: string;
+          p_answer: string;
+          p_topic?: string;
+        };
+        Returns: undefined;
+      };
+      record_assistant_turn: {
+        Args: {
+          p_session_id: string;
+          p_question: string;
+          p_answer: string;
+          p_source_topics?: string[];
+        };
+        Returns: undefined;
+      };
       answer_chat_question: {
         Args: {
           p_id: number;
