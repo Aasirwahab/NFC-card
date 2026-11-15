@@ -8,6 +8,7 @@ import { LinkedInConnect } from './linkedin-connect';
 import { Footer, Header, SaveContact } from './prospect-view';
 import { Holding } from './holding';
 import { RemovalGate } from './removal-gate';
+import { ProspectRequest } from './prospect-request';
 
 /**
  * "One card, two jobs" (2026-09-25 review).
@@ -57,6 +58,7 @@ export function OwnerCard({
               details={resolved.holding}
               contactForm={rep.contactForm}
             >
+              {resolved.holding.ready ? <ProspectRequest code={code} first={first} /> : null}
               <div className={styles.holdActions}>
                 <SaveContact code={code} repName={first} primary />
               </div>

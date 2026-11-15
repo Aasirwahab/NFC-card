@@ -4,7 +4,7 @@
  * Run `npm run db:types` after changing anything in supabase/migrations/.
  * CI fails if this file is out of date with the migrations.
  *
- * Generated from 20 tables by scripts/gen-types.ts.
+ * Generated from 21 tables by scripts/gen-types.ts.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -398,7 +398,7 @@ export type Database = {
           {
             foreignKeyName: 'events_user_id_fkey';
             columns: ['user_id'];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -712,6 +712,59 @@ export type Database = {
           },
         ];
       };
+      prospect_requests: {
+        Row: {
+          id: string;
+          session_id: string;
+          kind: string;
+          channel: string;
+          contact_value: string;
+          best_time: string | null;
+          consent_version: string;
+          consent_at: string;
+          requester_token_hash: string;
+          status: string;
+          done_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          kind: string;
+          channel: string;
+          contact_value: string;
+          best_time?: string | null;
+          consent_version: string;
+          consent_at?: string;
+          requester_token_hash: string;
+          status?: string;
+          done_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          kind?: string;
+          channel?: string;
+          contact_value?: string;
+          best_time?: string | null;
+          consent_version?: string;
+          consent_at?: string;
+          requester_token_hash?: string;
+          status?: string;
+          done_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'prospect_requests_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       screen_card_codes: {
         Row: {
           code: string;
@@ -931,7 +984,7 @@ export type Database = {
           {
             foreignKeyName: 'sessions_card_id_fkey';
             columns: ['card_id'];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: 'cards';
             referencedColumns: ['id'];
           },
@@ -1025,6 +1078,23 @@ export type Database = {
       };
       mark_followup_sent: {
         Args: { p_session_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      replace_prospect_request: {
+        Args: {
+          p_session_id: string;
+          p_kind: string;
+          p_channel: string;
+          p_contact_value: string;
+          p_best_time: string | null;
+          p_consent_version: string;
+          p_requester_token_hash: string;
+          p_answer_token_hash: string | null;
+        };
+        Returns: Database['public']['Tables']['prospect_requests']['Row'];
+      };
+      mark_prospect_request_done: {
+        Args: { p_session_id: string; p_request_id: string; p_user_id: string };
         Returns: boolean;
       };
       delete_session: {

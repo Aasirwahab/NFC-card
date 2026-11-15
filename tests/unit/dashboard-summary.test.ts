@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, expect, it, vi } from 'vitest';
 import DashboardPage from '@/app/(app)/dashboard/page';
 
-const mocks = vi.hoisted(() => ({ sessions: vi.fn(), followups: vi.fn() }));
+const mocks = vi.hoisted(() => ({ sessions: vi.fn(), followups: vi.fn(), requests: vi.fn() }));
+vi.mock('@/lib/db/requests', () => ({ listProspectRequests: mocks.requests }));
 vi.mock('@/lib/db/server', () => ({ requireRep: async () => ({ userId: 'rep' }) }));
 vi.mock('@/lib/db/rep', () => ({
   listEvents: async () => [],
@@ -17,6 +18,7 @@ vi.mock('@/components/session-row', () => ({ SessionRow: () => null }));
 vi.mock('@/components/tap-guide', () => ({ TapGuide: () => null }));
 
 beforeEach(() => {
+  mocks.requests.mockResolvedValue([]);
   mocks.sessions.mockResolvedValue([]);
   mocks.followups.mockResolvedValue({ actionable: [], history: [] });
 });
@@ -78,4 +80,33 @@ it('keeps caught-up wording for existing contacts with no missing details', asyn
     await DashboardPage({ searchParams: Promise.resolve({}) } as never),
   );
   expect(html).toContain('All caught up.');
+});
+
+it('puts explicit requests above the summary and every ordinary signal, including when filtered', async () => {
+  mocks.requests.mockResolvedValue([
+    {
+      id: 'r1',
+      sessionId: 's1',
+      kind: 'details',
+      channel: 'text',
+      contact: '+447700900123',
+      bestTime: 'today',
+      prospectName: 'Tom',
+      repFullName: 'Sam',
+      businessName: 'Acme',
+      eventName: 'Expo',
+      pagePath: '/c/ABCD2345',
+    },
+  ]);
+  mocks.sessions.mockResolvedValue([
+    { id: 's1', details_completed_at: 'saved', prospect_email: 'tom@example.com' },
+  ]);
+  const html = renderToStaticMarkup(
+    await DashboardPage({ searchParams: Promise.resolve({ event: 'another-event' }) } as never),
+  );
+  expect(html.indexOf('aria-label="Contact requests"')).toBeLessThan(
+    html.indexOf('aria-label="Contact summary"'),
+  );
+  expect(html).toContain('asked you to send the details');
+  expect(html).not.toContain('All caught up.');
 });

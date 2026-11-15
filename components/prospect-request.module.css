@@ -1,0 +1,37 @@
+.sheet {
+  position: fixed;
+  inset: auto 0 max(0.75rem, env(safe-area-inset-bottom)) 0;
+  width: calc(100% - 1.5rem);
+  max-width: 30rem;
+  max-height: calc(100dvh - 2rem);
+  margin-inline: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 1.25rem;
+}
+.sheet::backdrop {
+  background: rgb(10 24 52 / 35%);
+}
+.sheet fieldset {
+  min-width: 0;
+}
+.newRequest {
+  animation: request-arrived 2.5s ease-out both;
+}
+@keyframes request-arrived {
+  from {
+    background-color: var(--color-accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .newRequest {
+    animation: none;
+  }
+}
