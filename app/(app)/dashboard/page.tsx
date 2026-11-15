@@ -12,6 +12,8 @@ import {
   listSessions,
   type SessionListItem,
 } from '@/lib/db/rep';
+import { ProspectRequestInbox } from '@/components/prospect-request-inbox';
+import { listProspectRequests } from '@/lib/db/requests';
 import { requireRep } from '@/lib/db/server';
 
 export const metadata = { title: 'Today' };
@@ -22,11 +24,12 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   const { event } = await searchParams;
   const eventId = typeof event === 'string' ? event : undefined;
 
-  const [events, sessions, allFollowups, progress] = await Promise.all([
+  const [events, sessions, allFollowups, progress, requests] = await Promise.all([
     listEvents(rep.userId),
     listSessions(rep.userId, { eventId }),
     listFollowups(rep.userId),
     getSetupProgress(rep.userId),
+    listProspectRequests(rep.userId),
   ]);
   const shown = new Set(sessions.map((s) => s.id));
   const followups = {
@@ -59,6 +62,8 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           {sessions.length} contact{sessions.length === 1 ? '' : 's'} · {tapped} opened
         </p>
       </div>
+
+      <ProspectRequestInbox initial={requests} />
 
       {summary.length ? (
         <nav
@@ -103,7 +108,10 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           <Group id="other-contacts" title="Everything else" sessions={rest} />
         </div>
       )}
-      {sessions.length > 0 && needsDetails.length === 0 && followups.actionable.length === 0 ? (
+      {sessions.length > 0 &&
+      needsDetails.length === 0 &&
+      followups.actionable.length === 0 &&
+      requests.length === 0 ? (
         <p className="text-ink mt-5 font-medium">All caught up.</p>
       ) : null}
 

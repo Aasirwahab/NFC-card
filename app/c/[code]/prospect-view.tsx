@@ -20,6 +20,7 @@ import { RemovalGate } from './removal-gate';
 import { Crafting } from './crafting';
 import { HeldWatcher } from './held-watcher';
 import { MadeWith } from './made-with';
+import { ProspectRequest } from './prospect-request';
 import { TabTitle } from './tab-title';
 
 /**
@@ -99,6 +100,7 @@ export function ProspectView({
               </div>
             </div>
           </main>
+          {!preview ? <ProspectRequest code={code} first={first} /> : null}
           <Footer
             first={first}
             eventCode={preview ? undefined : code}
@@ -162,6 +164,8 @@ export function ProspectView({
               />
             )}
           </section>
+
+          {!preview ? <ProspectRequest code={code} first={first} /> : null}
 
           <section className={styles.cta}>
             {bookingLink ? (
