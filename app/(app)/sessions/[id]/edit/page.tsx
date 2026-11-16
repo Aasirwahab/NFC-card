@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { BackLink } from '@/components/back-link';
 import { eventHasProblems } from '@/lib/capture/chips';
 import { getEvent, getSessionForRep, listEvents, listPlaybookProblems } from '@/lib/db/rep';
 import { serviceClient } from '@/lib/db/service';
@@ -49,8 +48,7 @@ export default async function EditSessionPage({
 
   return (
     <div>
-      <BackLink href="/dashboard">Today</BackLink>
-      <div className="mt-3">
+      <div>
         <DetailsForm
           session={session}
           niches={event?.niches ?? []}

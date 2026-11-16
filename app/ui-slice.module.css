@@ -38,16 +38,17 @@
   background: var(--color-ground);
 }
 
-:global(body):has(.publicPage) {
+:global(body):has(.publicPage):not(:has([data-rep-preview])) {
   background: #fbfcfe;
 }
 
 /*
  * Prospect pages follow the phone's light/dark setting. Same tokens, darker values;
- * the rep app (no .publicPage) stays light.
+ * the rep app, including its preview of a prospect page, stays light.
  */
 @media (prefers-color-scheme: dark) {
-  .publicPage {
+  /* Not inside the rep's preview: the rep app is light-only, so a preview there stays light too. */
+  .publicPage:not(:global([data-rep-preview]) *) {
     color-scheme: dark;
     --color-ground: #0d111b;
     --color-surface: #161c2a;
@@ -64,8 +65,8 @@
     --color-crit: #ff8f80;
   }
 
-  :global(body):has(.publicPage),
-  :global(html):has(.publicPage) {
+  :global(body):has(.publicPage):not(:has([data-rep-preview])),
+  :global(html):has(.publicPage):not(:has([data-rep-preview])) {
     background: #0d111b;
     color-scheme: dark;
   }
@@ -535,12 +536,10 @@
   margin-block: 12px 4px;
 }
 
+/* Calm capture: the rep is mid-conversation, so labels whisper and only ticked chips carry colour. */
 .capture :is(label:not([for='quick-note']), legend) {
-  font-family: var(--font-plex-mono), monospace;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--color-ink-3);
 }
 
@@ -551,10 +550,39 @@
   font-weight: 400;
 }
 
+.capture button[aria-pressed='false'] {
+  background: transparent;
+  border-color: var(--color-line);
+  color: var(--color-ink-2);
+}
+
 .capture button[aria-pressed='true'] {
-  background: var(--color-accent);
+  background: var(--color-accent-soft);
   border-color: var(--color-accent);
-  color: white;
+  color: var(--color-ink);
+}
+
+/* A tick as well as colour, so a chosen chip reads without relying on colour alone. */
+.capture button[aria-pressed='true']::before {
+  content: '✓ ';
+  color: var(--color-accent);
+}
+
+.capture legend[data-strong] {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+/* The note grows with what is typed instead of starting as a big box. */
+.capture textarea#quick-note {
+  min-height: 72px;
+  field-sizing: content;
+}
+
+/* Capture is a focus screen: no app header or tabs, just the form and its Save bar. */
+:global(body):has(.capture) :global([data-app-chrome]) {
+  display: none;
 }
 
 .optionalDetails {

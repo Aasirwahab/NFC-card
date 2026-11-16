@@ -139,6 +139,16 @@ describe('LinkedIn lookup recall', () => {
     expect(searchCompany('.com')).toBe('.com');
   });
 
+  it('finds someone from a first name and company, but never as Likely', async () => {
+    const found = await run('Zaidh', 'Webvoxel');
+    const hit = found.candidates.find(
+      (c) => c.url === 'https://www.linkedin.com/in/zaidh-zameer-1',
+    );
+    expect(hit?.label).toBe('exact_match');
+    expect(found.candidates[0]?.url).toBe(hit?.url);
+    expect(found.likelyUrl).toBeNull();
+  });
+
   it('keeps a lone namesake from being recommended', async () => {
     const found = await run('Sarah Jones', null);
     expect(found.likelyUrl).toBeNull();

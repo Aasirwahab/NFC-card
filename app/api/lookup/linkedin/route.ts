@@ -6,17 +6,16 @@ import { checkRateLimit } from '@/lib/security/rate-limit';
 import { searchClient } from '@/lib/search/server';
 import { SearchUnavailableError } from '@/lib/search/types';
 
-const bodySchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .max(120)
-    .regex(/\S+\s+\S+/, 'a first and last name'),
-  company: z.string().trim().max(160).optional(),
-  /** The industry and problems the rep picked: business text that helps order namesakes. */
-  niche: z.string().trim().max(80).optional(),
-  problems: z.array(z.string().trim().min(1).max(200)).max(5).optional(),
-});
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    company: z.string().trim().max(160).optional(),
+    /** The industry and problems the rep picked: business text that helps order namesakes. */
+    niche: z.string().trim().max(80).optional(),
+    problems: z.array(z.string().trim().min(1).max(200)).max(5).optional(),
+  })
+  // A first name alone is a search only with the company beside it.
+  .refine((b) => /\S+\s+\S+/.test(b.name) || (b.company ?? '').length >= 2, 'name and company');
 
 /** Search vendors can take a while; the default would cut the lookup short. */
 export const maxDuration = 30;

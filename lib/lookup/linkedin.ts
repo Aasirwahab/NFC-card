@@ -103,7 +103,10 @@ export function nameRelation(typed: string, candidateName: string): NameRelation
   const tLast = t[t.length - 1]!;
   const cFirst = c[0]!;
   const cLast = c[c.length - 1]!;
-  if (t.length === 1 || c.length === 1) return 'different'; // a lone name is never enough
+  if (c.length === 1) return 'different'; // a lone name on a profile is never enough
+  // Only a first name typed (with the company): a matching first name is at most "close",
+  // so it can be suggested but never becomes "Likely" on its own.
+  if (t.length === 1) return sameFirst(tFirst, cFirst) === 'different' ? 'different' : 'close';
   if (tLast !== cLast) return 'different';
   return sameFirst(tFirst, cFirst);
 }

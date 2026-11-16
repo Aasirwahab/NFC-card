@@ -72,3 +72,9 @@ export function profileBadge(isLikely: boolean, label: string): string | undefin
   if (label === 'namesake') return 'Different company';
   return undefined;
 }
+
+/** Enough to look for someone's LinkedIn: a first and last name, or a first name and the company. PURE. */
+export function profileSearchable(name: string, company: string): boolean {
+  const n = name.trim();
+  return /\S+\s+\S+/.test(n) || (n.length >= 2 && company.trim().length >= 2);
+}

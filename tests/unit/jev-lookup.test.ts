@@ -132,7 +132,9 @@ describe('names', () => {
     expect(nameRelation('Rob Williams', 'Robert Williams')).toBe('alias');
     expect(nameRelation('Sarah Whitlock', 'Sarah Whitlock-Jones')).toBe('different');
     expect(nameRelation('Sarah Whitlock', 'Tony Whitlock')).toBe('different');
-    expect(nameRelation('Sarah', 'Sarah Whitlock')).toBe('different');
+    expect(nameRelation('Sarah', 'Sarah Whitlock')).toBe('close');
+    expect(nameRelation('Sarah', 'Tony Whitlock')).toBe('different');
+    expect(nameRelation('Sarah', 'Sarah')).toBe('different');
     expect(nameRelation('Dr Sarah Whitlock MRICS', 'Sarah Whitlock')).toBe('same');
   });
 
