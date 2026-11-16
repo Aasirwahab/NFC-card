@@ -38,16 +38,17 @@
   background: var(--color-ground);
 }
 
-:global(body):has(.publicPage) {
+:global(body):has(.publicPage):not(:has([data-rep-preview])) {
   background: #fbfcfe;
 }
 
 /*
  * Prospect pages follow the phone's light/dark setting. Same tokens, darker values;
- * the rep app (no .publicPage) stays light.
+ * the rep app, including its preview of a prospect page, stays light.
  */
 @media (prefers-color-scheme: dark) {
-  .publicPage {
+  /* Not inside the rep's preview: the rep app is light-only, so a preview there stays light too. */
+  .publicPage:not(:global([data-rep-preview]) *) {
     color-scheme: dark;
     --color-ground: #0d111b;
     --color-surface: #161c2a;
@@ -64,8 +65,8 @@
     --color-crit: #ff8f80;
   }
 
-  :global(body):has(.publicPage),
-  :global(html):has(.publicPage) {
+  :global(body):has(.publicPage):not(:has([data-rep-preview])),
+  :global(html):has(.publicPage):not(:has([data-rep-preview])) {
     background: #0d111b;
     color-scheme: dark;
   }

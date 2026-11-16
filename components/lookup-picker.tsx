@@ -30,13 +30,14 @@ export type LookupPickerApi = {
 };
 
 /**
- * "Find it for me" for a field: one button, up to a handful of candidates, the rep
+ * Quiet help for a field: the parent starts the search in the background (a pause in
+ * typing, leaving a field, a card scan); candidates show only when found and the rep
  * taps the right one. Suggests only; it never fills anything on its own.
  */
 export function LookupPicker({
-  buttonLabel,
+  busyText,
+  foundText,
   disabled,
-  disabledReason,
   path,
   body,
   queryText,
@@ -45,10 +46,12 @@ export function LookupPicker({
   onReady,
   filled = false,
 }: {
-  buttonLabel: string;
+  /** One muted line while a search runs ("Looking for their LinkedIn…"). */
+  busyText: string;
+  /** Heading over the candidates ("Is this them?"). */
+  foundText: string;
+  /** Not enough typed yet to search: nothing is shown. */
   disabled: boolean;
-  /** One short line shown while the button is disabled: what is missing. */
-  disabledReason: string;
   path: string;
   body: () => Record<string, unknown>;
   /** The request as the rep would say it ("Sarah Lee at Acme"): shown with the results, and what "changed" means. */
@@ -127,32 +130,40 @@ export function LookupPicker({
   const shownItems = fresh ? items : null;
 
   return (
-    <div className="mt-2">
-      <button
-        type="button"
-        disabled={disabled || busy}
-        onClick={() => void run()}
-        className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink-3 h-11 rounded-lg border px-3 text-sm font-medium disabled:opacity-50"
-      >
-        {busy ? 'Looking…' : filled ? 'Search again' : buttonLabel}
-      </button>
-
-      {disabled && !busy ? <p className="text-ink-3 mt-1 text-[13px]">{disabledReason}</p> : null}
-
-      {fresh && failure ? (
-        <p className="text-crit mt-2 text-[13px]" role="alert">
-          {failureText(failure)}
+    <div className="mt-1.5 text-[13px]">
+      {busy ? (
+        <p className="text-ink-3" role="status">
+          {busyText}
         </p>
       ) : null}
 
-      {fresh && !busy && shownItems !== null && shownItems.length === 0 ? (
-        <p className="text-ink-3 mt-2 text-[13px]" role="status">
-          {emptyText(askedFor)}
+      {/* A background search that found nothing or failed stays quiet: one muted line. */}
+      {fresh && !busy && (failure || (shownItems !== null && shownItems.length === 0)) ? (
+        <p className="text-ink-3" role="status">
+          {failure ? failureText(failure) : emptyText(askedFor)}{' '}
+          <button
+            type="button"
+            onClick={() => void run()}
+            className="text-ink-2 underline underline-offset-2"
+          >
+            Search again
+          </button>
         </p>
+      ) : null}
+
+      {/* Nothing searched for what is typed now: a small manual way in, never a big button. */}
+      {!busy && !filled && !disabled && !fresh ? (
+        <button
+          type="button"
+          onClick={() => void run()}
+          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
+        >
+          Find it
+        </button>
       ) : null}
 
       {shownItems && shownItems.length > 0 ? (
-        <p className="text-ink-3 mt-2 text-[13px]">Results for {askedFor}</p>
+        <p className="text-ink-2 font-medium">{foundText}</p>
       ) : null}
 
       {shownItems && shownItems.length > 0 ? (

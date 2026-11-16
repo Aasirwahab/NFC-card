@@ -108,7 +108,10 @@ export default async function PreviewPage({ params }: PageProps<'/sessions/[id]/
         rating={rating ? { rating: rating.rating, reason: rating.reason } : null}
       />
 
-      <div className="border-line shadow-lifted bg-ground mt-6 overflow-hidden rounded-[28px] border">
+      <div
+        data-rep-preview
+        className="border-line shadow-lifted bg-ground mt-6 overflow-hidden rounded-[28px] border"
+      >
         <ProspectView resolved={resolved} preview />
       </div>
     </div>

@@ -34,7 +34,7 @@ import {
   visibleChips,
 } from '@/lib/capture/chips';
 import type { SiteLookup } from '@/lib/lookup/company';
-import { profileBadge } from '@/lib/lookup/picker-state';
+import { profileBadge, profileSearchable } from '@/lib/lookup/picker-state';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
 import { printedCode } from '@/lib/cards/issue-batch';
 import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
@@ -94,14 +94,8 @@ export function DetailsForm({
   const [problems, setProblems] = useState<string[]>(session.problems ?? []);
   const [customProblems, setCustomProblems] = useState(session.custom_problems ?? '');
   const [memorable, setMemorable] = useState(session.memorable_info ?? '');
-  // The "More about the conversation" section starts open when it already holds something.
-  const [moreOpen, setMoreOpen] = useState(
-    () =>
-      parseNicheList(session.niche, niches).length > 0 ||
-      (session.problems ?? []).length > 0 ||
-      !!(session.custom_problems ?? '').trim() ||
-      !!(session.memorable_info ?? '').trim(),
-  );
+  // The folded "Event and private note" section starts open when it already holds a note.
+  const [moreOpen, setMoreOpen] = useState(() => !!(session.memorable_info ?? '').trim());
 
   // After a card scan: fields that agree with the card, and ones that differ (the rep decides).
   const [cardSnap, setCardSnap] = useState<Partial<Record<ReconciledField, string | null>>>({});
@@ -238,10 +232,8 @@ export function DetailsForm({
   const siteLookup = useRef<LookupPickerApi | null>(null);
   const profileLookup = useRef<LookupPickerApi | null>(null);
 
-  // Look-ups run only when the rep taps a search button, after a card scan, or once on
-  // leaving the name or company box with something new: never while they are typing, so
-  // half a name never spends a search. The rep only ever taps the right answer; nothing is
-  // filled in.
+  // Look-ups run in the background: after a pause in typing, on leaving the name or company
+  // box, or after a card scan. The rep only ever taps the right answer; nothing is filled in.
   // What the rep has picked so far (industry, problems): business text that helps Jev order
   // namesakes. Read from a ref so a lookup that starts later sees the newest ticks.
   const contextRef = useRef<{ niche?: string; problems?: string[] }>({});
@@ -249,9 +241,19 @@ export function DetailsForm({
   const searchOnLeave = (which: 'name' | 'company') => {
     if (!lookupEnabled || session.details_completed_at) return;
     if (which === 'company') siteLookup.current?.runIfChanged();
-    // A name with no company yet is a weak, wasted search: wait for the company box.
-    if (which === 'company' || company.trim()) profileLookup.current?.runIfChanged();
+    if (profileSearchable(name, company)) profileLookup.current?.runIfChanged();
   };
+
+  // Searches also start on their own after a short pause in typing, so the rep never has
+  // to tap anything; runIfChanged skips a question already asked or a field already filled.
+  useEffect(() => {
+    if (!lookupEnabled || session.details_completed_at) return;
+    const timer = setTimeout(() => {
+      if (company.trim().length >= 2) siteLookup.current?.runIfChanged();
+      if (profileSearchable(name, company)) profileLookup.current?.runIfChanged();
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [name, company, lookupEnabled, session.details_completed_at]);
 
   const quickSelect = useMemo(
     () => chipProblemsForAll(niches, selectedNiches, fallbackProblems),
@@ -503,6 +505,126 @@ export function DetailsForm({
         </p>
       ) : null}
 
+      <div className="mt-4 flex flex-col gap-4">
+        {niches.length > 1 ? (
+          <fieldset>
+            <legend className="text-ink-2 text-sm font-medium">Their area</legend>
+            <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
+              {niches.map(({ name }) => {
+                const selected = selectedNiches.includes(name);
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      const next = selected
+                        ? selectedNiches.filter((x) => x !== name)
+                        : [...selectedNiches, name];
+                      // The saved value holds 80 characters: a tick that would be dropped is refused.
+                      if (!selected && !nichesFit(next)) {
+                        setError('That is too many areas to save. Untick one first.');
+                        return;
+                      }
+                      setSelectedNiches(next);
+                      // A tick can only stay while its chip is on screen.
+                      const visible = chipProblemsForAll(niches, next, fallbackProblems);
+                      setProblems((current) => keepVisible(current, visible));
+                    }}
+                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                      selected
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : 'border-line bg-surface text-ink-2'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
+
+        {quickSelect.length > 0 ? (
+          <fieldset>
+            <legend className="text-ink-2 w-full text-sm font-medium">
+              What did they raise?
+              <span
+                className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
+                aria-live="polite"
+              >
+                {tickedCount} of {MAX_TICKED_PROBLEMS}
+              </span>
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {problemChips.shown.map((problem) => {
+                const selected = problems.includes(problem);
+                return (
+                  <button
+                    key={problem}
+                    type="button"
+                    onClick={() => {
+                      dismissKeyboard();
+                      toggleProblem(problem);
+                    }}
+                    aria-pressed={selected}
+                    aria-disabled={!selected && atLimit}
+                    className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
+                      selected
+                        ? 'border-accent bg-accent-soft text-accent'
+                        : atLimit
+                          ? 'border-line bg-surface text-ink-3 opacity-50'
+                          : 'border-line bg-surface text-ink-2'
+                    }`}
+                  >
+                    {problem}
+                  </button>
+                );
+              })}
+              {problemChips.hiddenCount > 0 || moreProblems ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreProblems((v) => !v)}
+                  className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
+                >
+                  {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
+                </button>
+              ) : null}
+            </div>
+          </fieldset>
+        ) : null}
+
+        <NoteBox
+          value={customProblems}
+          setValue={setCustomProblems}
+          niches={noteNiches(niches, fallbackProblems)}
+          onFill={(fill) => {
+            const fillIfEmpty = (value: string) => (current: string) =>
+              current.trim() ? current : value;
+            if (fill.name) setName(fillIfEmpty(fill.name));
+            if (fill.company) setCompany(fillIfEmpty(fill.company));
+            // Never swap a niche the rep already worked in.
+            const swap =
+              fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
+            if (swap) setSelectedNiches([fill.niche!]);
+            // Only problems whose chip will be on screen may be ticked, five at most.
+            const visible = chipProblemsForAll(
+              niches,
+              swap ? [fill.niche!] : latest.current.selectedNiches,
+              fallbackProblems,
+            );
+            if (fill.problems.length > 0) {
+              setProblems((current) =>
+                keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
+                  0,
+                  MAX_TICKED_PROBLEMS,
+                ),
+              );
+            }
+          }}
+        />
+      </div>
+
       <CardScan
         scanEnabled={scanEnabled}
         onScan={(card: CardFields) => {
@@ -533,7 +655,7 @@ export function DetailsForm({
             if (!card.website && !now.website.trim() && companyName.length >= 2) {
               siteLookup.current?.run({ name: companyName });
             }
-            if (fullName.split(/\s+/).length >= 2) {
+            if (profileSearchable(fullName, companyName)) {
               profileLookup.current?.run({ name: fullName, company: companyName || undefined });
             }
           }
@@ -628,10 +750,10 @@ export function DetailsForm({
           />
           {lookupEnabled ? (
             <LookupPicker
-              buttonLabel="Search the web for LinkedIn"
+              busyText="Looking for their LinkedIn…"
+              foundText="Is this them?"
               filled={linkedin.trim() !== ''}
-              disabled={name.trim().split(/\s+/).length < 2}
-              disabledReason="Needs their first and last name."
+              disabled={!profileSearchable(name, company)}
               queryText={(b) => `${b.name}${b.company ? ` at ${b.company}` : ''}`}
               path="/api/lookup/linkedin"
               body={() => ({
@@ -668,10 +790,10 @@ export function DetailsForm({
           />
           {lookupEnabled ? (
             <LookupPicker
-              buttonLabel="Find their website"
+              busyText="Looking for their website…"
+              foundText="Is this their site?"
               filled={website.trim() !== ''}
               disabled={company.trim().length < 2}
-              disabledReason="Needs the company name."
               queryText={(b) => String(b.name)}
               path="/api/lookup/company"
               body={() => ({ name: company.trim() })}
@@ -719,130 +841,10 @@ export function DetailsForm({
           onToggle={(e) => setMoreOpen(e.currentTarget.open)}
         >
           <summary>
-            <span>More about the conversation</span>
+            <span>Event and private note</span>
             <ChevronDown aria-hidden="true" className="h-5 w-5" />
           </summary>
           <div className="flex flex-col gap-4 pb-4">
-            {niches.length > 0 ? (
-              <fieldset>
-                <legend className="text-ink-2 text-sm font-medium">
-                  Their area (tick any that fit)
-                </legend>
-                <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
-                  {niches.map(({ name }) => {
-                    const selected = selectedNiches.includes(name);
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => {
-                          const next = selected
-                            ? selectedNiches.filter((x) => x !== name)
-                            : [...selectedNiches, name];
-                          // The saved value holds 80 characters: a tick that would be dropped is refused.
-                          if (!selected && !nichesFit(next)) {
-                            setError('That is too many areas to save. Untick one first.');
-                            return;
-                          }
-                          setSelectedNiches(next);
-                          // A tick can only stay while its chip is on screen.
-                          const visible = chipProblemsForAll(niches, next, fallbackProblems);
-                          setProblems((current) => keepVisible(current, visible));
-                        }}
-                        className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
-                          selected
-                            ? 'border-accent bg-accent-soft text-accent'
-                            : 'border-line bg-surface text-ink-2'
-                        }`}
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ) : null}
-
-            {quickSelect.length > 0 ? (
-              <fieldset>
-                <legend className="text-ink-2 w-full text-sm font-medium">
-                  What did they raise?
-                  <span
-                    className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
-                    aria-live="polite"
-                  >
-                    {tickedCount} of {MAX_TICKED_PROBLEMS}
-                  </span>
-                </legend>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {problemChips.shown.map((problem) => {
-                    const selected = problems.includes(problem);
-                    return (
-                      <button
-                        key={problem}
-                        type="button"
-                        onClick={() => {
-                          dismissKeyboard();
-                          toggleProblem(problem);
-                        }}
-                        aria-pressed={selected}
-                        aria-disabled={!selected && atLimit}
-                        className={`rounded-full border px-3 py-1.5 text-left text-[13px] font-medium ${
-                          selected
-                            ? 'border-accent bg-accent-soft text-accent'
-                            : atLimit
-                              ? 'border-line bg-surface text-ink-3 opacity-50'
-                              : 'border-line bg-surface text-ink-2'
-                        }`}
-                      >
-                        {problem}
-                      </button>
-                    );
-                  })}
-                  {problemChips.hiddenCount > 0 || moreProblems ? (
-                    <button
-                      type="button"
-                      onClick={() => setMoreProblems((v) => !v)}
-                      className="text-ink-2 px-2 py-2 text-[13px] font-medium underline underline-offset-2"
-                    >
-                      {moreProblems ? 'Show fewer' : `${problemChips.hiddenCount} more`}
-                    </button>
-                  ) : null}
-                </div>
-              </fieldset>
-            ) : null}
-
-            <NoteBox
-              value={customProblems}
-              setValue={setCustomProblems}
-              niches={noteNiches(niches, fallbackProblems)}
-              onFill={(fill) => {
-                const fillIfEmpty = (value: string) => (current: string) =>
-                  current.trim() ? current : value;
-                if (fill.name) setName(fillIfEmpty(fill.name));
-                if (fill.company) setCompany(fillIfEmpty(fill.company));
-                // Never swap a niche the rep already worked in.
-                const swap =
-                  fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
-                if (swap) setSelectedNiches([fill.niche!]);
-                // Only problems whose chip will be on screen may be ticked, five at most.
-                const visible = chipProblemsForAll(
-                  niches,
-                  swap ? [fill.niche!] : latest.current.selectedNiches,
-                  fallbackProblems,
-                );
-                if (fill.problems.length > 0) {
-                  setProblems((current) =>
-                    keepVisible([...new Set([...current, ...fill.problems])], visible).slice(
-                      0,
-                      MAX_TICKED_PROBLEMS,
-                    ),
-                  );
-                }
-              }}
-            />
-
             <EventPicker sessionId={session.id} eventId={session.event_id} events={events} />
 
             <Field

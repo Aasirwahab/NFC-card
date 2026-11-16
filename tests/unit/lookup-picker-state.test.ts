@@ -3,6 +3,7 @@ import {
   classifyFailure,
   emptyText,
   failureText,
+  profileSearchable,
   LookupTimeoutError,
   profileBadge,
   shouldSearchOnBlur,
@@ -73,5 +74,15 @@ describe('profile badges', () => {
     expect(profileBadge(false, 'ambiguous')).toBe('Maybe');
     expect(profileBadge(false, 'namesake')).toBe('Different company');
     expect(profileBadge(false, 'colleague')).toBeUndefined();
+  });
+});
+
+describe('profileSearchable', () => {
+  it('needs a full name, or a first name with the company', () => {
+    expect(profileSearchable('Sarah Lee', '')).toBe(true);
+    expect(profileSearchable('Sarah', 'Acme')).toBe(true);
+    expect(profileSearchable('Sarah', '')).toBe(false);
+    expect(profileSearchable('S', 'Acme')).toBe(false);
+    expect(profileSearchable('Sarah', 'A')).toBe(false);
   });
 });
