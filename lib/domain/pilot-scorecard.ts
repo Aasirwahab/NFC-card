@@ -23,7 +23,12 @@ export const PROSPECT_TAP = 'prospect_tap';
 
 const DAY_MS = 24 * 3_600_000;
 
-export type ScorecardSession = ResultSession & { user_id: string; registered_by: string };
+export type ScorecardSession = ResultSession & {
+  user_id: string;
+  registered_by: string;
+  /** Set when the rep confirmed they sent a follow-up (not when one was drafted). */
+  followup_sent_at: string | null;
+};
 
 export type Scorecard = EventResults & {
   /** Live cards the rep registered before the prospect opened them. */
@@ -34,6 +39,10 @@ export type Scorecard = EventResults & {
   repFirstOpenedWithin24h: number;
   /** Live cards whose session the prospect's own tap created. */
   prospectFirst: number;
+  /** Live cards the rep confirmed they followed up: distinct sessions, rep-reported. */
+  followedUp: number;
+  /** Live cards where the prospect tapped book or LinkedIn: distinct, kept apart from opened and booked. */
+  acted: number;
 };
 
 export type ScorecardRow = { userId: string; results: Scorecard };
@@ -49,6 +58,7 @@ function score(
   bookings: ResultBooking[],
 ): Scorecard {
   const active = sessions.filter((s) => s.status === 'active');
+  const activeIds = new Set(active.map((s) => s.id));
   const repFirst = active.filter((s) => s.registered_by !== PROSPECT_TAP);
   const repFirstOpened = repFirst.filter((s) => s.first_viewed_at);
 
@@ -60,6 +70,16 @@ function score(
       (s) => Date.parse(s.first_viewed_at!) - Date.parse(s.registered_at) <= DAY_MS,
     ).length,
     prospectFirst: active.length - repFirst.length,
+    followedUp: active.filter((s) => s.followup_sent_at).length,
+    acted: new Set(
+      events
+        .filter(
+          (e) =>
+            (e.type === 'booking_opened' || e.type === 'linkedin_opened') &&
+            activeIds.has(e.session_id),
+        )
+        .map((e) => e.session_id),
+    ).size,
   };
 }
 
