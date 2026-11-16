@@ -151,17 +151,6 @@ export function LookupPicker({
         </p>
       ) : null}
 
-      {/* Nothing searched for what is typed now: a small manual way in, never a big button. */}
-      {!busy && !filled && !disabled && !fresh ? (
-        <button
-          type="button"
-          onClick={() => void run()}
-          className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-ink-2 underline underline-offset-2"
-        >
-          Find it
-        </button>
-      ) : null}
-
       {shownItems && shownItems.length > 0 ? (
         <p className="text-ink-2 font-medium">{foundText}</p>
       ) : null}

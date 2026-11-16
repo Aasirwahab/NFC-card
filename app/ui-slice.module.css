@@ -536,12 +536,10 @@
   margin-block: 12px 4px;
 }
 
+/* Calm capture: the rep is mid-conversation, so labels whisper and only ticked chips carry colour. */
 .capture :is(label:not([for='quick-note']), legend) {
-  font-family: var(--font-plex-mono), monospace;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--color-ink-3);
 }
 
@@ -552,10 +550,39 @@
   font-weight: 400;
 }
 
+.capture button[aria-pressed='false'] {
+  background: transparent;
+  border-color: var(--color-line);
+  color: var(--color-ink-2);
+}
+
 .capture button[aria-pressed='true'] {
-  background: var(--color-accent);
+  background: var(--color-accent-soft);
   border-color: var(--color-accent);
-  color: white;
+  color: var(--color-ink);
+}
+
+/* A tick as well as colour, so a chosen chip reads without relying on colour alone. */
+.capture button[aria-pressed='true']::before {
+  content: '✓ ';
+  color: var(--color-accent);
+}
+
+.capture legend[data-strong] {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+/* The note grows with what is typed instead of starting as a big box. */
+.capture textarea#quick-note {
+  min-height: 72px;
+  field-sizing: content;
+}
+
+/* Capture is a focus screen: no app header or tabs, just the form and its Save bar. */
+:global(body):has(.capture) :global([data-app-chrome]) {
+  display: none;
 }
 
 .optionalDetails {

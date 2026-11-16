@@ -27,7 +27,10 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   return (
     <div className={`${styles.appShell} flex min-h-dvh flex-col`}>
       <TimezoneSync />
-      <header className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3">
+      <header
+        data-app-chrome
+        className="border-line-soft bg-surface sticky top-0 z-10 border-b px-5 py-3"
+      >
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <Link href="/dashboard">
             <Wordmark />
@@ -46,7 +49,10 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-5 pb-28">{children}</main>
 
-      <nav className="border-line-soft bg-surface/95 fixed inset-x-0 bottom-0 border-t backdrop-blur">
+      <nav
+        data-app-chrome
+        className="border-line-soft bg-surface/95 fixed inset-x-0 bottom-0 border-t backdrop-blur"
+      >
         <div className="mx-auto grid max-w-2xl grid-cols-4 pb-[env(safe-area-inset-bottom,0px)]">
           <NavItem href="/dashboard" label="Today" icon={<LayoutGrid className="h-5 w-5" />} />
           <NavItem href="/events" label="Events" icon={<Tags className="h-5 w-5" />} />

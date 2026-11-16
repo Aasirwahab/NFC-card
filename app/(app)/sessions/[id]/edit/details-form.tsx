@@ -36,7 +36,6 @@ import {
 import type { SiteLookup } from '@/lib/lookup/company';
 import { profileBadge, profileSearchable } from '@/lib/lookup/picker-state';
 import type { ProfileLookup } from '@/lib/lookup/linkedin';
-import { printedCode } from '@/lib/cards/issue-batch';
 import { ApiError, apiSend, apiUpload } from '@/lib/http/client';
 import { hasNoFollowUpChannel } from '@/lib/schemas/sessions';
 
@@ -58,11 +57,9 @@ export function DetailsForm({
   niches,
   fallbackProblems,
   eventName,
-  cardCode,
   events,
   lookupEnabled,
   scanEnabled,
-  aiEnabled,
   justRegistered,
 }: {
   session: Session;
@@ -274,9 +271,22 @@ export function DetailsForm({
     linkedin_url: linkedin.trim() || null,
     prospect_email: email.trim() || null,
   });
+  const filledContacts = [
+    email.trim() && 'email',
+    phone.trim() && 'phone',
+    linkedin.trim() && 'LinkedIn',
+    website.trim() && 'website',
+  ].filter(Boolean);
+  const contactSummary =
+    filledContacts.length > 0
+      ? `Has ${filledContacts.join(', ')}`
+      : noChannel
+        ? 'Email or LinkedIn, so you can follow up'
+        : '';
 
   // Long chip lists stay short on screen: ticked chips first, the rest behind "Show more".
   const [moreProblems, setMoreProblems] = useState(false);
+  const [areasOpen, setAreasOpen] = useState(false);
   const problemChips = visibleChips(quickSelect, problems, moreProblems);
   const tickedCount = keepVisible(problems, quickSelect).length;
   const atLimit = tickedCount >= MAX_TICKED_PROBLEMS;
@@ -459,23 +469,23 @@ export function DetailsForm({
       }}
     >
       <header className="flex items-center gap-2.5">
+        <Link
+          href="/dashboard"
+          aria-label="Back to Today"
+          className="text-ink-2 -ml-2 flex h-11 w-11 items-center justify-center text-lg"
+        >
+          ←
+        </Link>
         <span
           aria-hidden="true"
           className="h-4 w-4 rounded-full ring-2 ring-white"
           style={{ backgroundColor: hex }}
         />
         <h1 className="text-ink text-base font-semibold">
-          Card {session.event_sequence_number} — {session.colour_tag}
+          Card {session.event_sequence_number}
+          {eventName ? <span className="text-ink-3 font-normal"> · {eventName}</span> : null}
         </h1>
       </header>
-
-      <p className="text-ink-3 mt-1 font-mono text-[12px] tracking-wide">{printedCode(cardCode)}</p>
-      <p className="text-ink-3 mt-1 text-[13px]">
-        {eventName ? `${eventName} · ` : ''}
-        {session.registered_by === 'prospect_tap'
-          ? 'opened by them before you registered it'
-          : `registered by ${session.registered_by}`}
-      </p>
 
       {justRegistered ? (
         <p className="bg-ok-bg text-ok mt-4 rounded-lg px-3 py-2.5 text-sm font-medium">
@@ -499,62 +509,76 @@ export function DetailsForm({
         </button>
       ) : null}
 
-      {!aiEnabled ? (
-        <p className="text-ink-3 mt-4 text-sm" role="status">
-          AI help is off right now. Type the details; nothing is lost.
-        </p>
-      ) : null}
-
       <div className="mt-4 flex flex-col gap-4">
         {niches.length > 1 ? (
-          <fieldset>
-            <legend className="text-ink-2 text-sm font-medium">Their area</legend>
-            <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
-              {niches.map(({ name }) => {
-                const selected = selectedNiches.includes(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      const next = selected
-                        ? selectedNiches.filter((x) => x !== name)
-                        : [...selectedNiches, name];
-                      // The saved value holds 80 characters: a tick that would be dropped is refused.
-                      if (!selected && !nichesFit(next)) {
-                        setError('That is too many areas to save. Untick one first.');
-                        return;
-                      }
-                      setSelectedNiches(next);
-                      // A tick can only stay while its chip is on screen.
-                      const visible = chipProblemsForAll(niches, next, fallbackProblems);
-                      setProblems((current) => keepVisible(current, visible));
-                    }}
-                    className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
-                      selected
-                        ? 'border-accent bg-accent-soft text-accent'
-                        : 'border-line bg-surface text-ink-2'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
+          // One quiet line; the area chips open only when the rep wants a different area.
+          areasOpen ? (
+            <fieldset>
+              <legend className="text-ink-2 text-sm font-medium">
+                Their area (tick any that fit)
+              </legend>
+              <div className="mt-2 -mr-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] pr-8 pb-1">
+                {niches.map(({ name }) => {
+                  const selected = selectedNiches.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => {
+                        const next = selected
+                          ? selectedNiches.filter((x) => x !== name)
+                          : [...selectedNiches, name];
+                        // The saved value holds 80 characters: a tick that would be dropped is refused.
+                        if (!selected && !nichesFit(next)) {
+                          setError('That is too many areas to save. Untick one first.');
+                          return;
+                        }
+                        setSelectedNiches(next);
+                        // A tick can only stay while its chip is on screen.
+                        const visible = chipProblemsForAll(niches, next, fallbackProblems);
+                        setProblems((current) => keepVisible(current, visible));
+                      }}
+                      className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
+                        selected
+                          ? 'border-accent bg-accent-soft text-accent'
+                          : 'border-line bg-surface text-ink-2'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
+            <p className="text-ink-3 flex items-center gap-1 text-[14px]">
+              <span className="text-ink-2">{selectedNiches.join(', ') || 'Any area'}</span>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                onClick={() => setAreasOpen(true)}
+                className="text-ink-2 min-h-11 px-1 font-medium underline underline-offset-2"
+              >
+                Change area
+              </button>
+            </p>
+          )
         ) : null}
 
         {quickSelect.length > 0 ? (
           <fieldset>
-            <legend className="text-ink-2 w-full text-sm font-medium">
+            <legend data-strong className="text-ink w-full text-[18px] font-medium">
               What did they raise?
-              <span
-                className={`float-right font-normal ${atLimit ? 'text-accent' : 'text-ink-3'}`}
-                aria-live="polite"
-              >
-                {tickedCount} of {MAX_TICKED_PROBLEMS}
-              </span>
+              {/* No quota on screen; the limit is said only once it is reached. */}
+              {atLimit ? (
+                <span
+                  className="text-accent float-right text-[13px] font-normal"
+                  aria-live="polite"
+                >
+                  {MAX_TICKED_PROBLEMS} is the most
+                </span>
+              ) : null}
             </legend>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {problemChips.shown.map((problem) => {
@@ -700,7 +724,7 @@ export function DetailsForm({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
           <Field label={cardTick('name', 'Their name')} htmlFor="name">
             <Input
               id="name"
@@ -739,101 +763,112 @@ export function DetailsForm({
           </Field>
         </div>
 
-        <Field label={linkedin.trim() ? 'LinkedIn ✓' : 'LinkedIn'} htmlFor="linkedin">
-          <Input
-            id="linkedin"
-            type="url"
-            inputMode="url"
-            value={linkedin}
-            onChange={(e) => setLinkedin(e.target.value)}
-            placeholder="https://linkedin.com/in/…"
+        {/* Lookups run in the background; their suggestions show here, near what was typed. */}
+        {lookupEnabled ? (
+          <LookupPicker
+            busyText="Looking for their LinkedIn…"
+            foundText="Is this them?"
+            filled={linkedin.trim() !== ''}
+            disabled={!profileSearchable(name, company)}
+            queryText={(b) => `${b.name}${b.company ? ` at ${b.company}` : ''}`}
+            path="/api/lookup/linkedin"
+            body={() => ({
+              name: name.trim(),
+              company: company.trim() || undefined,
+              ...pickedContext(),
+            })}
+            toItems={(response: ProfileLookup) =>
+              response.candidates.map((c) => ({
+                key: c.url,
+                checkUrl: c.url,
+                primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
+                secondary: c.snippet || undefined,
+                badge: profileBadge(c.url === response.likelyUrl, c.label),
+                likely: c.url === response.likelyUrl,
+                value: c.url,
+              }))
+            }
+            onPick={setLinkedin}
+            onReady={setProfileApi}
           />
-          {lookupEnabled ? (
-            <LookupPicker
-              busyText="Looking for their LinkedIn…"
-              foundText="Is this them?"
-              filled={linkedin.trim() !== ''}
-              disabled={!profileSearchable(name, company)}
-              queryText={(b) => `${b.name}${b.company ? ` at ${b.company}` : ''}`}
-              path="/api/lookup/linkedin"
-              body={() => ({
-                name: name.trim(),
-                company: company.trim() || undefined,
-                ...pickedContext(),
-              })}
-              toItems={(response: ProfileLookup) =>
-                response.candidates.map((c) => ({
-                  key: c.url,
-                  checkUrl: c.url,
-                  primary: c.headline.replace(/\s*\|\s*LinkedIn.*$/i, ''),
-                  secondary: c.snippet || undefined,
-                  badge: profileBadge(c.url === response.likelyUrl, c.label),
-                  likely: c.url === response.likelyUrl,
-                  value: c.url,
-                }))
-              }
-              onPick={setLinkedin}
-              onReady={setProfileApi}
-            />
-          ) : null}
-        </Field>
-
-        <Field label={website.trim() ? 'Their website ✓' : 'Their website'} htmlFor="website">
-          <Input
-            id="website"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            placeholder="e.g. theircompany.co.uk"
-            inputMode="url"
-            autoCapitalize="none"
-            autoComplete="off"
+        ) : null}
+        {lookupEnabled ? (
+          <LookupPicker
+            busyText="Looking for their website…"
+            foundText="Is this their site?"
+            filled={website.trim() !== ''}
+            disabled={company.trim().length < 2}
+            queryText={(b) => String(b.name)}
+            path="/api/lookup/company"
+            body={() => ({ name: company.trim() })}
+            toItems={(response: SiteLookup) =>
+              response.candidates.map((c) => ({
+                key: c.url,
+                primary: c.domain,
+                secondary: c.title,
+                badge: c.url === response.likelyUrl ? 'Best match' : undefined,
+                likely: c.url === response.likelyUrl,
+                value: c.domain,
+              }))
+            }
+            onPick={setWebsite}
+            onReady={setSiteApi}
           />
-          {lookupEnabled ? (
-            <LookupPicker
-              busyText="Looking for their website…"
-              foundText="Is this their site?"
-              filled={website.trim() !== ''}
-              disabled={company.trim().length < 2}
-              queryText={(b) => String(b.name)}
-              path="/api/lookup/company"
-              body={() => ({ name: company.trim() })}
-              toItems={(response: SiteLookup) =>
-                response.candidates.map((c) => ({
-                  key: c.url,
-                  primary: c.domain,
-                  secondary: c.title,
-                  badge: c.url === response.likelyUrl ? 'Best match' : undefined,
-                  likely: c.url === response.likelyUrl,
-                  value: c.domain,
-                }))
-              }
-              onPick={setWebsite}
-              onReady={setSiteApi}
-            />
-          ) : null}
-        </Field>
+        ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Email" htmlFor="email">
-            <Input
-              id="email"
-              type="email"
-              inputMode="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
+        <details className={styles.optionalDetails}>
+          <summary>
+            <span>
+              Add contact details
+              <span className="text-ink-3 block text-[13px] font-normal">{contactSummary}</span>
+            </span>
+            <ChevronDown aria-hidden="true" className="h-5 w-5" />
+          </summary>
+          <div className="flex flex-col gap-3 pb-4">
+            <div className="flex flex-col gap-3">
+              <Field label="Email" htmlFor="email">
+                <Input
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Field>
 
-          <Field label="Phone" htmlFor="phone">
-            <Input
-              id="phone"
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </Field>
-        </div>
+              <Field label="Phone" htmlFor="phone">
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </Field>
+            </div>
+            <Field label={linkedin.trim() ? 'LinkedIn ✓' : 'LinkedIn'} htmlFor="linkedin">
+              <Input
+                id="linkedin"
+                type="url"
+                inputMode="url"
+                value={linkedin}
+                onChange={(e) => setLinkedin(e.target.value)}
+                placeholder="https://linkedin.com/in/…"
+              />
+            </Field>
+            <Field label={website.trim() ? 'Their website ✓' : 'Their website'} htmlFor="website">
+              <Input
+                id="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="e.g. theircompany.co.uk"
+                inputMode="url"
+                autoCapitalize="none"
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+        </details>
 
         <details
           className={styles.optionalDetails}
@@ -865,58 +900,57 @@ export function DetailsForm({
           </div>
         </details>
 
-        {noChannel ? (
-          <p className="bg-warn-bg text-warn mt-3 rounded-lg px-3 py-2.5 text-[13px] font-medium">
-            No way to follow up if they don&rsquo;t tap. Add LinkedIn or email?
-          </p>
-        ) : null}
-
         {session.details_completed_at ? (
           <EnrichmentStatus status={session.enrichment_status} onRegenerate={regenerate} />
         ) : null}
 
-        {session.rep_pitch ? (
-          <p className="text-ink-3 mt-3 text-[13px]">
-            You edited their pitch, so saving or rewriting keeps your version. Use Restore original
-            on the preview to switch back.
-          </p>
+        {/* Page status, preview and removal belong to a saved contact, not to capture. */}
+        {session.details_completed_at ? (
+          <>
+            {session.rep_pitch ? (
+              <p className="text-ink-3 mt-3 text-[13px]">
+                You edited their pitch, so saving or rewriting keeps your version. Use Restore
+                original on the preview to switch back.
+              </p>
+            ) : null}
+
+            <Link
+              href={`/sessions/${session.id}/preview`}
+              className="text-ink-2 mt-2 flex min-h-11 items-center self-start text-[14px] font-medium underline underline-offset-2"
+            >
+              Preview their page
+            </Link>
+
+            <details className={styles.optionalDetails}>
+              <summary>
+                <span>Remove this contact</span>
+                <ChevronDown aria-hidden="true" className="h-5 w-5" />
+              </summary>
+              <div className="flex flex-col gap-4 pb-4">
+                <button
+                  type="button"
+                  onClick={removeContact}
+                  className="text-crit mt-2 self-center text-[13px] underline underline-offset-2"
+                >
+                  Wrong card — remove this contact
+                </button>
+
+                <button
+                  type="button"
+                  onClick={deleteSession}
+                  className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
+                >
+                  Delete this contact completely
+                </button>
+              </div>
+            </details>
+          </>
         ) : null}
-
-        <Link
-          href={`/sessions/${session.id}/preview`}
-          className="border-line bg-surface text-ink [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface-2 mt-3 flex h-12 items-center justify-center rounded-lg border text-[15px] font-medium"
-        >
-          Preview their page
-        </Link>
-
-        <details className={styles.optionalDetails}>
-          <summary>
-            <span>Remove this contact</span>
-            <ChevronDown aria-hidden="true" className="h-5 w-5" />
-          </summary>
-          <div className="flex flex-col gap-4 pb-4">
-            <button
-              type="button"
-              onClick={removeContact}
-              className="text-crit mt-2 self-center text-[13px] underline underline-offset-2"
-            >
-              Wrong card — remove this contact
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteSession}
-              className="text-ink-3 [@media(hover:hover)_and_(pointer:fine)]:hover:text-crit self-center text-[13px] underline underline-offset-2"
-            >
-              Delete this contact completely
-            </button>
-          </div>
-        </details>
       </div>
 
-      {/* Always in reach: pinned just above the tab bar (3.75rem), with the result of Saving beside it,
+      {/* Always in reach: pinned to the bottom (the tab bar is hidden while capturing), with the result of Saving beside it,
           so a long form never hides the button or its feedback. -mx-4/px-4 match the rep surface padding. */}
-      <div className="border-line-soft bg-surface/95 sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-10 -mx-4 mt-4 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+      <div className="border-line-soft bg-surface/95 sticky bottom-0 z-10 -mx-4 mt-4 flex flex-col gap-2 border-t px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur">
         {error ? (
           <p
             className="bg-crit-bg text-crit rounded-lg px-3 py-2.5 text-sm font-medium"
@@ -1167,19 +1201,16 @@ function NoteBox({
   }
 
   return (
-    <section className="border-accent/40 bg-accent-soft/40 rounded-xl border p-3">
-      <label htmlFor="quick-note" className="text-ink text-sm font-semibold">
-        Not in the list? Say it in your words
+    <section>
+      <label htmlFor="quick-note" className="text-ink-3 text-[13px]">
+        Anything else? (optional)
       </label>
-      <p className="text-ink-3 mt-0.5 text-[13px] leading-snug">
-        Business things only. Private details go in To remember them by.
-      </p>
       <Textarea
         id="quick-note"
         rows={2}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Sarah Whitlock, Whitlock Homes, stuck waiting on funding"
+        placeholder="In your words. Business things only."
         maxLength={1000}
         className="mt-1 min-h-0 text-base"
       />
@@ -1188,9 +1219,9 @@ function NoteBox({
           type="button"
           disabled={busy}
           onClick={() => void run()}
-          className="bg-accent [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-hover mt-2 h-11 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+          className="text-ink-2 mt-1.5 min-h-11 text-[13px] font-medium underline underline-offset-2 disabled:opacity-50"
         >
-          {busy ? 'Reading…' : 'Sort it for me'}
+          {busy ? 'Reading…' : 'Fill from note'}
         </button>
       ) : null}
       {message ? (
