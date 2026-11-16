@@ -93,3 +93,19 @@ export function visibleChips(
   const shown = all.filter((c, i) => expanded || i < limit || selected.includes(c));
   return { shown, hiddenCount: all.length - shown.length };
 }
+
+/**
+ * Every problem of the event, the ticked areas' first, then the other areas', without repeats.
+ * The area only orders the list, so a prospect from a neighbouring area is never missing a chip
+ * (Zaid 2026-11-16: "more problems listed"). With no event problems, the playbook fallback. PURE.
+ */
+export function chipProblemsAllAreas(
+  niches: Niche[],
+  selected: string[],
+  fallback: string[],
+): string[] {
+  if (!eventHasProblems(niches)) return fallback;
+  const first = niches.filter((n) => selected.includes(n.name));
+  const rest = niches.filter((n) => !selected.includes(n.name));
+  return [...new Set([...first, ...rest].flatMap((n) => n.problems))];
+}

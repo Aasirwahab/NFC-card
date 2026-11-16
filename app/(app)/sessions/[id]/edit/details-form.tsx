@@ -23,7 +23,7 @@ import {
 } from '@/lib/capture/reconcile';
 import { serializeCaptureDraft } from '@/lib/capture/draft';
 import {
-  chipProblemsForAll,
+  chipProblemsAllAreas,
   FALLBACK_NICHE,
   joinNiches,
   nichesFit,
@@ -253,7 +253,7 @@ export function DetailsForm({
   }, [name, company, lookupEnabled, session.details_completed_at]);
 
   const quickSelect = useMemo(
-    () => chipProblemsForAll(niches, selectedNiches, fallbackProblems),
+    () => chipProblemsAllAreas(niches, selectedNiches, fallbackProblems),
     [niches, selectedNiches, fallbackProblems],
   );
 
@@ -536,7 +536,7 @@ export function DetailsForm({
                         }
                         setSelectedNiches(next);
                         // A tick can only stay while its chip is on screen.
-                        const visible = chipProblemsForAll(niches, next, fallbackProblems);
+                        const visible = chipProblemsAllAreas(niches, next, fallbackProblems);
                         setProblems((current) => keepVisible(current, visible));
                       }}
                       className={`shrink-0 rounded-full border px-3 py-2 text-left text-[13px] font-medium ${
@@ -632,7 +632,7 @@ export function DetailsForm({
               fill.niche && fill.niche !== FALLBACK_NICHE && latest.current.problemCount === 0;
             if (swap) setSelectedNiches([fill.niche!]);
             // Only problems whose chip will be on screen may be ticked, five at most.
-            const visible = chipProblemsForAll(
+            const visible = chipProblemsAllAreas(
               niches,
               swap ? [fill.niche!] : latest.current.selectedNiches,
               fallbackProblems,

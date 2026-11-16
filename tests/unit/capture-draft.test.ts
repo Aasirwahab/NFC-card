@@ -32,7 +32,12 @@ describe('capture drafts', () => {
   });
 });
 
-import { chipProblemsForAll, joinNiches, parseNicheList } from '@/lib/capture/chips';
+import {
+  chipProblemsAllAreas,
+  chipProblemsForAll,
+  joinNiches,
+  parseNicheList,
+} from '@/lib/capture/chips';
 
 describe('several areas at once', () => {
   const niches = [
@@ -92,5 +97,27 @@ describe('niche storage limit', () => {
   it('keeps whole area names only when the joined text would pass 80 characters', () => {
     const long = ['a'.repeat(40), 'b'.repeat(30), 'c'.repeat(20)];
     expect(joinNiches(long)).toBe(`${'a'.repeat(40)} | ${'b'.repeat(30)}`);
+  });
+});
+
+describe('chipProblemsAllAreas', () => {
+  const niches = [
+    { name: 'Clinics', problems: ['No-shows', 'Old website'] },
+    { name: 'Trades', problems: ['Slow quotes', 'Old website'] },
+  ];
+  it('lists every area, the ticked ones first, without repeats', () => {
+    expect(chipProblemsAllAreas(niches, ['Trades'], [])).toEqual([
+      'Slow quotes',
+      'Old website',
+      'No-shows',
+    ]);
+    expect(chipProblemsAllAreas(niches, [], [])).toEqual([
+      'No-shows',
+      'Old website',
+      'Slow quotes',
+    ]);
+  });
+  it('falls back to the playbook when the event has no problems', () => {
+    expect(chipProblemsAllAreas([{ name: 'A', problems: [] }], [], ['Common'])).toEqual(['Common']);
   });
 });
