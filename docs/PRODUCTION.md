@@ -18,7 +18,7 @@ Long-term fix: move Supabase and Vercel functions to London (`eu-west-2` / `lhr1
 
 ## Settings in Vercel (production), names only
 
-`MODEL_PROVIDER=openrouter`, `MODEL_API_KEY`, `MODEL_PITCH`, `MODEL_CHAT`, `MODEL_VISION`, `JEV_ENABLED`, `SEARCH_PROVIDER` and `SEARCH_API_KEY` (SerpApi, free tier about 250 searches a month), `STAFF_EMAILS` (opens `/ops`), `NEXT_PUBLIC_APP_URL`, Supabase and Upstash keys, `WORKER_SECRET`, `CRON_SECRET`, `CHAT_ENABLED`, `JOB_CONCURRENCY`, `JOB_BATCH`. **Not set yet:** `RESEND_API_KEY` and `EMAIL_FROM` (email), `MODEL_RESEARCH` (optional). Settings only reach a deployment built after they were saved: redeploy after changing one.
+`MODEL_PROVIDER=openrouter`, `MODEL_API_KEY`, `MODEL_PITCH`, `MODEL_CHAT`, `MODEL_VISION`, `JEV_ENABLED`, `SEARCH_PROVIDER` and `SEARCH_API_KEY` (SerpApi, free tier about 250 searches a month), `STAFF_EMAILS` (opens `/ops`), `NEXT_PUBLIC_APP_URL`, Supabase and Upstash keys, `WORKER_SECRET`, `CRON_SECRET`, `CHAT_ENABLED`, `JOB_CONCURRENCY`, `JOB_BATCH`. **Optional:** `COMPANIES_HOUSE_API_KEY` (free key from developer.company-information.service.gov.uk) adds one verified company fact ("Registered with Companies House since YEAR") to the pitch research; unset = skipped. **Not set yet:** `RESEND_API_KEY` and `EMAIL_FROM` (email), `MODEL_RESEARCH` (optional). Settings only reach a deployment built after they were saved: redeploy after changing one.
 
 ## Known failure modes
 

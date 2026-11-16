@@ -2,6 +2,8 @@ import 'server-only';
 import { modelFor } from '@/lib/ai/models';
 import type { Json } from '@/lib/db/types';
 import { serviceClient } from '@/lib/db/service';
+import { env } from '@/lib/env';
+import { companiesHouseFact } from './companies-house';
 import { safeFetch } from '@/lib/http/safe-fetch';
 import type { CommitOutcome, EnrichDeps, RejectOutcome } from './pipeline';
 import { createModelSemaphore, redisResearchCache } from './redis';
@@ -49,6 +51,9 @@ export function productionEnrichDeps(): EnrichDeps {
     },
 
     fetchPage: (url) => safeFetch(url),
+    registerFact: env.COMPANIES_HOUSE_API_KEY
+      ? (name) => companiesHouseFact(name, env.COMPANIES_HOUSE_API_KEY!)
+      : undefined,
     cache: redisResearchCache,
     semaphore: createModelSemaphore(),
     researchModel: modelFor('research'),
